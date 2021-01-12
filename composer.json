@@ -2,6 +2,7 @@
     "name": "edortta/yeapf2",
     "description": "Yet Another PHP Framework the Second",
     "license": "MIT",
+    "type": "library",
     "minimum-stability": "stable",
     "authors": [
         {
