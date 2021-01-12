@@ -6,6 +6,19 @@ Second incarnation of the YeAPF flexible framework
 
 (C) 2020 Esteban D.Dortta released under MIT licence for public domain usage.
 
+#### TL;DR
+
+Basic steps
+
+```bash
+$ cd www
+$ mkdir test
+$ cd test
+$ composer require edortta/yeapf2
+```
+
+
+
 #### The name
 
 YeAPF2 means Yet Another PHP Framework the Second and the name is a little joke with YACC (Yet Another Compiler of Compilers).
