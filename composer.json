@@ -1,0 +1,14 @@
+{
+    "name": "EDortta/YeAPF2",
+    "description": "Yet Another PHP Framework the Second",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Esteban Daniel Dortta",
+            "email": "dortta@yahoo.com"
+        }
+    ],
+    "require": {
+      "php": ">=7.4"
+    }
+}
