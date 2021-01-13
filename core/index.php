@@ -2,11 +2,12 @@
 
 namespace yeapf2\core;
 
-class Index {
+class Index
+{
 
-    public function greet($greet = "Oi, mundo cruel")
-    {
-        return $greet;
-    }
+  public function greet($greet = "Oi, mundo cruel")
+  {
+    return $greet;
+  }
 
 }
