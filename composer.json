@@ -11,6 +11,9 @@
             "email": "dortta@yahoo.com"
         }
     ],
+    "autoload": {
+        "psr-4": { "yeapf2\\core\\": "core/" }
+    },
     "require": {
       "php": ">=7.4"
     }
