@@ -11,7 +11,7 @@
         }
     ],
     "autoload": {
-        "psr-4": { "yeapf2\\Hello\\": "src/" }
+        "psr-4": { "yeapf2\\Hello\\": "./src" }
     },
     "require": {
       "php": ">=7.4"
