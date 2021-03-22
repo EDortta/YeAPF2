@@ -1,6 +1,6 @@
 <?php
 
-$libs = ['ydb_skeleton.php'];
+$libs = ['ydbskeleton.php'];
 $libFolder = dirname(__FILE__);
 foreach ($libs as $libName) {
   $_libName = "$libFolder/$libName";

@@ -1,6 +1,6 @@
 <?php
 
-(@include_once(__DIR__."/ydb_skeleton.php")) || die("Error loading ydb_skeleton.php");
+(@include_once(__DIR__."/ydbskeleton.php")) || die("Error loading ydbskeleton.php");
 class MongoDbLink implements YDBLink {
   function __construct($server, $mode='rw') {
     $this->mongoDbServerLocation = $server;

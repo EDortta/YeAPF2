@@ -12,7 +12,15 @@
 
 $libs = ['yloader.php'];
 foreach ($libs as $libName) {
-  $_libName = "lib/$libName";
+  /**
+   * YeAPF2 can reside in core or lib folder
+   **/
+  if (is_dir("core")) {
+    $_libName = "core/$libName";
+  } else {
+    $_libName = "lib/$libName";
+  }
+
   if (file_exists($_libName)) {
     ((@include_once "$_libName") || die("Error loading $_libName"));
   } else {
@@ -79,10 +87,10 @@ $pluginManager->loadPlugins("modules");
  */
 $pluginManager->loadPlugins("plugins");
 
-$css_files_aux  = explode(",", $CFGContexto['css_files']);
+$css_files_aux                 = explode(",", $CFGContexto['css_files']);
 $CFGContexto['css_files_html'] = '';
 foreach ($css_files_aux as $ndx => $cssFile) {
-  $cssFile=trim($cssFile);
+  $cssFile = trim($cssFile);
   $CFGContexto['css_files_html'] .= "\t<link href='.assets/css/$cssFile' rel='stylesheet'>\n";
 }
 
@@ -104,7 +112,7 @@ if (in_array($subject, ['welcome', 'login', 'recuperarSenha', 'cadastro', 'logof
 if (!file_exists($index_name)) {
   _die("Arquivo $index_name não localizado");
 }
-die(__FILE__." at ".__LINE__);
+die(__FILE__ . " at " . __LINE__);
 $index = file_get_contents($index_name);
 
 /**

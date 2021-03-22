@@ -1,6 +1,6 @@
 <?php
 
-(@include_once (__DIR__ . "/ydb_skeleton.php")) || die("Error loading ydb_skeleton.php");
+(@include_once (__DIR__ . "/ydbskeleton.php")) || die("Error loading ydbskeleton.php");
 class MySQLLink implements YDBLink {
   /**
    * server is formed as follows:

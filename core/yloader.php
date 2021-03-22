@@ -23,6 +23,15 @@ $CFGServer         = ['configured' => false];
 $CFGApp            = ['configured' => false];
 $__FIRST_LOG_ENTRY = true;
 
+global $HOST;
+define("DEFAULT_HOST", "at.cli");
+$HOST = (php_sapi_name() == "cli") ? DEFAULT_HOST : $_SERVER['HTTP_HOST'];
+
+if (DEFAULT_HOST != $HOST) {
+  $url_base = $_SERVER['REQUEST_SCHEME'] . "://" . $_SERVER['HTTP_HOST'] . "/" . $_SERVER['REQUEST_URI'];
+} else {
+  $url_base = "cli://$HOST";
+}
 //--------[ low level ]--------
 
 /**
@@ -57,6 +66,251 @@ function __removeLastSlash($str) {
   }
   return $str;
 }
+
+global $FLAGDying;
+$FLAGDying = false;
+
+//--------[ Errors and Exceptions ]------------
+if (!function_exists("_http_response_code")) {
+  function _http_response_code($code = null) {
+    if ($code != null) {
+      _log("http_response_code($code)");
+      http_response_code($code);
+    }
+    return http_response_code();
+  }
+}
+
+if (!function_exists("__getStack")) {
+  function __getStack($trace) {
+    $ret = array();
+    $i   = 0;
+    foreach ($trace as $key => $value) {
+      $ret[$i++] = array(
+        'file'     => _getValue($value, 'file'),
+        'function' => _getValue($value, 'function'),
+        'line'     => _getValue($value, 'line'),
+      );
+    }
+
+    return $ret;
+  }
+}
+
+if (!function_exists('__genDebugId')) {
+  function __genDebugId() {
+    global $__lastDebugId;
+
+    if (empty($__lastDebugId)) {
+      $__lastDebugId = substr(md5(gen_uuid()), 0, 15);
+    }
+
+    do {
+      $y   = 2020 - date("Y");
+      $m   = date("m");
+      $d   = date("d");
+      $h   = date("H");
+      $i   = date("i");
+      $s   = date("s");
+      $ms  = microtime(true) - 1601673664;
+      $aux = dechex($y) . dechex($m) . str_pad(dechex($d), 2, '0', STR_PAD_LEFT) . str_pad(dechex($h), 2, '0', STR_PAD_LEFT) . str_pad(dechex($i), 2, '0', STR_PAD_LEFT) . str_pad(dechex($s), 2, '0', STR_PAD_LEFT) . str_pad(dechex(intval($ms)), 3, '0', STR_PAD_LEFT);
+      if ($aux == $__lastDebugId) {
+        sleep(1);
+      }
+
+    } while ($aux == $__lastDebugId);
+
+    $__lastDebugId = $aux;
+    return $aux;
+  }
+}
+
+if (!function_exists("_getUserAgent")) {
+  function _getUserAgent() {
+    $device    = null;
+    $userAgent = mb_strtolower(!empty($_SERVER['HTTP_USER_AGENT']) ? $_SERVER['HTTP_USER_AGENT'] : "CLI");
+    $search    = array("ipad", "iphone", "blackberry", "android", "ios", "postmanruntime");
+    foreach ($search as $key) {
+      if (stristr($userAgent, $key)) {
+        $device = $key;
+      }
+    }
+    _log("DEVICE: " . $userAgent . " is '$device'");
+
+    return $device;
+  }
+}
+
+if (!function_exists("__outputIsJson")) {
+  function __outputIsJson() {
+    $ret = false;
+    $ret = (
+      isset($_SERVER['HTTP_X_REQUESTED_WITH']) &&
+      strcasecmp($_SERVER['HTTP_X_REQUESTED_WITH'], 'xmlhttprequest') == 0
+    );
+    foreach (headers_list() as $value) {
+      if (false !== strpos($value, "application/json")) {
+        $ret = true;
+      }
+      if (false !== strpos($value, "multipart/form-data")) {
+        $ret = true;
+      }
+    }
+    return $ret;
+  }
+}
+
+/**
+ * Global response mechanism
+ */
+if (!function_exists("_response")) {
+  function _response($response) {
+    if (function_exists("getallheaders")) {
+      $headers = getallheaders();
+    } else {
+      $headers = array('Content-Type' => 'text');
+    }
+
+    if (is_array($response)) {
+      echo json_encode($response, JSON_PRETTY_PRINT);
+    } else {
+      echo json_encode(['status' => $response], JSON_PRETTY_PRINT);
+    }
+    exit;
+  }
+}
+
+global $auxDebugId;
+function __defaultErrorHandler($errno, $errstr, $errfile, $errline) {
+  global $FLAGDying, $auxDebugId;
+  if (!$FLAGDying) {
+    $FLAGDying = true;
+    if (ob_get_contents()) {
+      ob_end_clean();
+    }
+
+    $ret = array(
+      "errtype"   => "error",
+      "errno"     => $errno,
+      "errstr"    => $errstr,
+      "errfile"   => $errfile,
+      "errline"   => $errline,
+      "useragent" => _getUserAgent(),
+    );
+
+    $ret['errstr'] = str_replace("\n", " ", $ret['errstr']);
+    $ret['errstr'] = preg_replace('/\s+/', " ", $ret['errstr']);
+
+    _logError($ret);
+    $ret['call_stack'] = __getStack(debug_backtrace());
+
+    _log(_getCallStack());
+    if ($GLOBALS['CFGOcultarErros']) {
+      $auxDebugId = __genDebugId();
+      $filename   = dirname($GLOBALS['CFGLogFilename']) . "/$auxDebugId.json";
+      file_put_contents($filename, json_encode($ret, JSON_PRETTY_PRINT));
+      if (__outputIsJson()) {
+        _http_response_code(500);
+        unset($ret['call_stack']);
+        _response($ret);
+      } else {
+        if ((php_sapi_name() == "cli")) {
+          echo "\n**** Error $auxDebugId\n";
+        } else {
+          $auxURL = $GLOBALS['url_base'] . "500.html?$auxDebugId";
+          header("Location: $auxURL");
+        }
+      }
+    } else {
+      if (!__outputIsJson()) {
+        echo "<pre>";
+      }
+
+      _http_response_code(500);
+      _response($ret);
+
+    }
+
+    die();
+  }
+}
+
+set_error_handler("__defaultErrorHandler");
+
+function __defaultExceptionHandler($exception) {
+  global $FLAGDying, $auxDebugId;
+
+  if (!$FLAGDying) {
+    $FLAGDying = true;
+    if (ob_get_contents()) {
+      ob_end_clean();
+    }
+
+    $ret = array(
+      "errtype"   => "exception",
+      "errstr"    => $exception->getMessage(),
+      "errfile"   => $exception->getFile(),
+      "errline"   => $exception->getLine(),
+      "useragent" => _getUserAgent(),
+    );
+
+    $ret['errstr'] = str_replace("\n", " ", $ret['errstr']);
+    $ret['errstr'] = preg_replace('/\s+/', " ", $ret['errstr']);
+
+    _logError($ret);
+    $ret['call_stack'] = __getStack($exception->getTrace());
+
+    _log(_getCallStack());
+    if ($GLOBALS['CFGOcultarErros']) {
+      $auxDebugId = __genDebugId();
+      $filename   = dirname($GLOBALS['CFGLogFilename']) . "/$auxDebugId.json";
+      file_put_contents($filename, json_encode($ret, JSON_PRETTY_PRINT));
+      if (__outputIsJson()) {
+        _http_response_code(500);
+        unset($ret['call_stack']);
+        _response($ret);
+      } else {
+        if ((php_sapi_name() == "cli")) {
+          echo "\n**** Error $auxDebugId\n";
+        } else {
+          $auxURL = $GLOBALS['url_base'] . "500.html?$auxDebugId";
+          header("Location: $auxURL");
+        }
+      }
+    } else {
+      if (!__outputIsJson()) {
+        echo "<pre>";
+      }
+
+      _http_response_code(500);
+      _response($ret);
+
+    }
+
+    die();
+  }
+}
+
+set_exception_handler("__defaultExceptionHandler");
+
+function __defaultShutdownFunction() {
+  global $FLAGDying;
+  if (!$FLAGDying) {
+    $err = error_get_last();
+    if (null != $err) {
+      _http_response_code(500);
+      if (!__outputIsJson()) {
+        echo "<pre>";
+      }
+      _response($err);
+      if (!__outputIsJson()) {
+        echo "</pre>";
+      }
+    }
+  }
+}
+
+register_shutdown_function("__defaultShutdownFunction");
 
 //--------[ log/debug functions ]--------
 if (!function_exists("_infoDbg_")) {
@@ -93,8 +347,9 @@ if (!function_exists("_getCallStack")) {
 }
 
 if (!function_exists("_log")) {
-  global $_tempLogString;
+  global $_tempLogString, $_tempWarnings;
   $_tempLogString = '';
+  $_tempWarnings = [];
 
   function _log() {
     global $__FIRST_LOG_ENTRY, $CFGLogFilename, $CFGLogLevel, $_tempLogString;
@@ -162,6 +417,15 @@ if (!function_exists("_log")) {
     } else {
       syslog(LOG_INFO, trim($logEntry));
     }
+  }
+
+  function _warn() {
+    global $_tempWarnings;
+    $args = func_get_args();
+    foreach($args as $argValue) {
+      $_tempWarnings[]=$argValue;
+    }
+    call_user_func_array('_log', $args);
   }
 
   function _dumpY($logFlag, $level) {
@@ -255,19 +519,21 @@ if (!function_exists("_logError")) {
 
 if (!function_exists("_die")) {
   function _die() {
-    global $FLAGDying, $auxDebugId;
+    global $FLAGDying, $auxDebugId, $_tempWarnings;
 
     if (!$FLAGDying) {
       $FLAGDying = true;
       if (ob_get_contents()) {
         ob_end_clean();
       }
-      
+
       $args  = func_get_args();
       $args2 = array("message" => implode(". ", $args));
       if (class_exists("DBConnector")) {
         $args2['db_error'] = DBConnector::getLastError();
       }
+      $args2['stack'] = __getStack(debug_backtrace());
+      $args2['warnings'] = $_tempWarnings;
 
       call_user_func_array('_log', $args2);
       _response($args2);
@@ -345,10 +611,10 @@ $CFGLogLevel    = 1;
 
 _log("Starting...");
 /* wired parts */
-$yLibs = ['ybasis.php', 'ymisc.php', 'yparser.php', 'yanaliser.php', 'ydb_skeleton.php'];
+$yLibs = ['ybasis.php', 'ymisc.php', 'yparser.php', 'yanaliser.php', 'ydbskeleton.php'];
 
-$libFolder        = __DIR__;
-$alternativeParts = "$libFolder/.config/yloader.lst";
+$yCoreFolder      = __DIR__;
+$alternativeParts = "$yCoreFolder/.config/yloader.lst";
 /* alternative parts */
 if (file_exists($alternativeParts)) {
   _log("Loading alternative parts $alternativeParts");
@@ -357,9 +623,14 @@ if (file_exists($alternativeParts)) {
   }
 
 } else {
-  _log("Not alternative parts at $libFolder/.config/yloader.lst");
+  _warn("Alternative parts not defined at $yCoreFolder/.config/yloader.lst");
+  $d=glob(__DIR__."/ydb_*.php");
+  foreach($d as $altName) {
+    _warn("Alternative: ".basename($altName));
+  }
 }
 
+array_push($yLibs, 'yapi_consumer_basis.php');
 array_push($yLibs, 'ydatabase.php');
 array_push($yLibs, 'yplugins.php');
 
@@ -367,7 +638,7 @@ _log("Libraries to be loaded: " . json_encode($yLibs));
 foreach ($yLibs as $libName) {
   $libName = trim($libName);
   if ($libName > '') {
-    $_libName = "$libFolder/$libName";
+    $_libName = "$yCoreFolder/$libName";
     _log("Loading $_libName");
     if (file_exists($_libName)) {
       ((@include_once "$_libName") || _die("Error loading $_libName"));
