@@ -13,6 +13,9 @@ abstract class YAPIConsumer {
   private $debugLevel;
   private $collectDebugTrace;
 
+  function __construct() {
+  }
+
   private $error_messages = [
     100 => "out_dbg is not a resource",
     101 => "Unknown REST method '%s'",
@@ -94,7 +97,7 @@ abstract class YAPIConsumer {
   }
 
   public function getPrivateURL() {
-    return sprintf($this->config['private_api_url'], $this->config['marketplace_id']);
+    return sprintf($this->config['private_api_url'], $this->config['url_id']);
   }
 
   private function prepareCurlChannel($sURL, $aParameters = array(), $aHeaders = array()) {
@@ -410,26 +413,30 @@ abstract class YAPIConsumer {
     $JConfig,
     $cleanup = true,
     $extra_headers = false,
-    $with_marketplace_id = false
+    $with_url_id = false
   ) {
     /****************
-    Recebe um JSON e um booleano
-    O JConfig é um JSON para permitir uma maior flexibilidade em integrações futuras.
-    Nele são esperados pelo menos os seguintes campos:
+    Receives a JSON and a Boolean
+    JConfig is a JSON to allow greater flexibility in future integrations.
+    It is expected at least the following fields:
     url_api
-    versao_api
-    token
-    marketplace_id
-    Mas também podem ser usados os seguintes:
+    api_version
+
+    But the following can also be used:
+    auth_basic,
+    auth_token,
+    url_id
+
     usuario
     senha
     chave
     chave_api
+
     E outros que as implementações venham a precisar.
 
-    O cleanup é um booleano que -estando em true- elimina a configuração anterior
-    substituindo-a pela mesma. Se ele estiver em false, o JConfig será misturado
-    à configuração existente podendo assim modificar um ou outro parâmetro da configuração
+    cleanup is a boolean that -if is true- eliminates the previous configuration
+    replacing it with the same. If it is false, JConfig will be mixed
+    to the existing configuration, thus being able to modify one or another parameter of the configuration
      */
     if ($cleanup) {
       $this->config = json_decode($JConfig, true);
@@ -444,31 +451,33 @@ abstract class YAPIConsumer {
       $this->config['url_api'] = substr($this->config['url_api'], 0, strlen($this->config['url_api']) - 1);
     }
 
+    $this->config['headers'] = [
+      'Accept: application/json',
+    ];
+    if (!empty($this->config['auth_basic'])) {
+      $this->config['headers'][] = 'Authorization: Basic ' . $this->config['auth_basic'];
+    }
+    if (!empty($this->config['auth_token'])) {
+      $this->config['headers'][] = 'Token: ' . $this->config['auth_token'];
+    }
+
     if ($extra_headers) {
 
-      $this->config['headers'] = array(
-        'Accept: application/json',
-        'Authorization: Basic ' . $this->config['token'],
-      );
-      $this->config['public_api_url'] = $this->config['url_api'] . "/" . $this->config['versao_api'];
+      $this->config['public_api_url'] = $this->config['url_api'] . "/" . $this->config['api_version'];
       $this->config['headers']        = $extra_headers;
-      if (!$with_marketplace_id) {
-
-        $this->config['private_api_url'] = $this->config['url_api'] . "/" . $this->config['versao_api'];
+      if (!$with_url_id) {
+        $this->config['private_api_url'] = $this->config['url_api'] . "/" . $this->config['api_version'];
       } else {
-        $this->config['private_api_url'] = $this->config['url_api'] . "/" . $this->config['versao_api'] . "/marketplaces/%s";
+        $this->config['private_api_url'] = $this->config['url_api'] . "/" . $this->config['api_version'] . "/marketplaces/%s";
 
-        $this->config['headers'][] = 'Authorization: Basic ' . $this->config['token'];
+        $this->config['headers'][] = 'Authorization: Basic ' . $this->config['auth_basic'];
       }
 
     } else {
 
-      $this->config['public_api_url']  = $this->config['url_api'] . "/" . $this->config['versao_api'];
-      $this->config['private_api_url'] = $this->config['url_api'] . "/" . $this->config['versao_api'] . "/marketplaces/%s";
-      $this->config['headers']         = array(
-        'Accept: application/json',
-        'Authorization: Basic ' . $this->config['token'],
-      );
+      $this->config['public_api_url']  = $this->config['url_api'] . "/" . $this->config['api_version'];
+      $this->config['private_api_url'] = $this->config['url_api'] . "/" . $this->config['api_version'] . "/marketplaces/%s";
+
     }
     //var_dump($this->config["headers"]);die();
 

@@ -349,7 +349,7 @@ if (!function_exists("_getCallStack")) {
 if (!function_exists("_log")) {
   global $_tempLogString, $_tempWarnings;
   $_tempLogString = '';
-  $_tempWarnings = [];
+  $_tempWarnings  = [];
 
   function _log() {
     global $__FIRST_LOG_ENTRY, $CFGLogFilename, $CFGLogLevel, $_tempLogString;
@@ -422,8 +422,8 @@ if (!function_exists("_log")) {
   function _warn() {
     global $_tempWarnings;
     $args = func_get_args();
-    foreach($args as $argValue) {
-      $_tempWarnings[]=$argValue;
+    foreach ($args as $argValue) {
+      $_tempWarnings[] = $argValue;
     }
     call_user_func_array('_log', $args);
   }
@@ -532,7 +532,7 @@ if (!function_exists("_die")) {
       if (class_exists("DBConnector")) {
         $args2['db_error'] = DBConnector::getLastError();
       }
-      $args2['stack'] = __getStack(debug_backtrace());
+      $args2['stack']    = __getStack(debug_backtrace());
       $args2['warnings'] = $_tempWarnings;
 
       call_user_func_array('_log', $args2);
@@ -624,9 +624,9 @@ if (file_exists($alternativeParts)) {
 
 } else {
   _warn("Alternative parts not defined at $yCoreFolder/.config/yloader.lst");
-  $d=glob(__DIR__."/ydb_*.php");
-  foreach($d as $altName) {
-    _warn("Alternative: ".basename($altName));
+  $d = glob(__DIR__ . "/ydb_*.php");
+  foreach ($d as $altName) {
+    _warn("Alternative: " . basename($altName));
   }
 }
 
@@ -649,9 +649,19 @@ foreach ($yLibs as $libName) {
 }
 _log("Libraries ready");
 
-$dbConfig = dirname(__FILE__) . "/api-config.ini";
+$dbConfig           = dirname(__FILE__) . "/api-config.ini";
+$__parserConfigFile = null;
 
 if (file_exists("$dbConfig")) {
+
+  function _getConfigSection($sectionName) {
+    global $dbConfig, $__parserConfigFile;
+    if (null == $__parserConfigFile) {
+      $__parserConfigFile = parse_ini_file("$dbConfig", true);
+    }
+    $ret = _getValue($__parserConfigFile, $sectionName, []);
+    return $ret;
+  }
 
   function _configApplication() {
     global $dbConfig, $HOST, $CFGServer;
