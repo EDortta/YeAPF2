@@ -10,36 +10,31 @@
 
 // ini_set('display_errors', 1);
 
-$libs = ['yloader.php'];
-foreach ($libs as $libName) {
-  /**
-   * YeAPF2 can reside in core or lib folder
-   **/
-  if (is_dir("core")) {
-    $_libName = "core/$libName";
-  } else {
-    $_libName = "lib/$libName";
+$folders     = ['core', 'lib'];
+$yLoaderName = '';
+for ($i = 0; $i < count($folders) && $yLoaderName == ''; $i++) {
+  if (file_exists($folders[$i] . "/yloader.php")) {
+    $yLoaderName = $folders[$i] . "/yloader.php";
   }
-
-  if (file_exists($_libName)) {
-    ((@include_once "$_libName") || die("Error loading $_libName"));
-  } else {
-    die("$_libName not found");
-  }
+}
+if (file_exists($yLoaderName)) {
+  ((@include_once "$yLoaderName") || die('{ "error": "yloader.php cannot be loaded", "filename": "' . $yLoaderName . '" }'));
+} else {
+  die('{ "error": "yloader.php not found" }');
 }
 
 /**
  * necessário para termos CFGApp pronta
  */
-_configurarAplicativo();
+_configureApp();
 
 /**
  * Construo um contexto de operação
  * Poderia usar $GLOBALS que iria dar na mesma
  * mas aqui fica mais claro como limitar as coisas.
- * yAnaliser->do() vai enxergar apenas o que estiver no 'CFGContexto'
+ * yAnaliser->do() vai enxergar apenas o que estiver no 'CFGContext'
  **/
-$CFGContexto = array_merge(
+$CFGContext = array_merge(
   _extractSimilarValues($CFGApp, "layout_"),
   _extractSimilarValues($CFGApp, "html_"),
   [
@@ -49,10 +44,6 @@ $CFGContexto = array_merge(
     'CFGToken'          => $CFGToken,
     'CFGSiteURLAdm'     => $CFGSiteURLAdm,
     'CFGURL'            => mb_strtolower(getDomain($CFGSiteURL)),
-
-    'agencia_custom_id' => _getValue($CFGApp, 'agencia_custom_id'),
-    'nome_agencia'      => _getValue($CFGApp, 'nome_agencia'),
-    'email_agencia'     => _getValue($CFGApp, 'email_agencia'),
 
     'css_files'         => _getValue($CFGApp, 'css_files'),
 
@@ -87,14 +78,14 @@ $pluginManager->loadPlugins("modules");
  */
 $pluginManager->loadPlugins("plugins");
 
-$css_files_aux                 = explode(",", $CFGContexto['css_files']);
-$CFGContexto['css_files_html'] = '';
+$css_files_aux                 = explode(",", $CFGContext['css_files']);
+$CFGContext['css_files_html'] = '';
 foreach ($css_files_aux as $ndx => $cssFile) {
   $cssFile = trim($cssFile);
-  $CFGContexto['css_files_html'] .= "\t<link href='.assets/css/$cssFile' rel='stylesheet'>\n";
+  $CFGContext['css_files_html'] .= "\t<link href='.assets/css/$cssFile' rel='stylesheet'>\n";
 }
 
-$CFGContexto['html_body'] = $pluginManager->callPlugin($subject, $action);
+$CFGContext['html_body'] = $pluginManager->callPlugin($subject, $action);
 
 /**
  * Template a ser utilizado
@@ -104,9 +95,9 @@ $CFGContexto['html_body'] = $pluginManager->callPlugin($subject, $action);
  */
 
 if (in_array($subject, ['welcome', 'login', 'recuperarSenha', 'cadastro', 'logoff'])) {
-  $index_name = _getValue($CFGContexto, 'html_template_full', "e_index_full.html");
+  $index_name = _getValue($CFGContext, 'html_template_full', "e_index_full.html");
 } else {
-  $index_name = _getValue($CFGContexto, 'html_template_menu', "e_index_menu.html");
+  $index_name = _getValue($CFGContext, 'html_template_menu', "e_index_menu.html");
 }
 
 if (!file_exists($index_name)) {
@@ -118,5 +109,5 @@ $index = file_get_contents($index_name);
 /**
  * Processo e mostro o documento
  */
-echo $yAnaliser->do($index, $CFGContexto);
+echo $yAnaliser->do($index, $CFGContext);
 echo "<!-- $index_name -->";

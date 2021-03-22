@@ -53,8 +53,8 @@ class PluginManager {
   }
 
   static public function loadPlugins($folder) {
-    global $yAnaliser, $CFGContexto;
-    $currentDomain = mb_strtolower(getDomain($CFGContexto['CFGSiteURL']));
+    global $yAnaliser, $CFGContext;
+    $currentDomain = mb_strtolower(getDomain(_getValue($CFGContext, 'CFGSiteURL', '')));
     if (is_dir("$folder")) {
       $pluginsFolder = scandir("$folder");
       foreach ($pluginsFolder as $plugin) {
@@ -106,7 +106,7 @@ class PluginManager {
                      * Each parameter is analised in order to help in build the plugin context
                      */
                     foreach ($pluginConfig as $key => $value) {
-                      $aux                              = $yAnaliser->do($value, $CFGContexto);
+                      $aux                              = $yAnaliser->do($value, $CFGContext);
                       self::$plugins[$pluginName][$key] = $aux;
                     }
 
@@ -128,7 +128,7 @@ class PluginManager {
                          * If the initializator returns true, the plugin is enabled.
                          */
                         $gateway = self::$currentGateway;
-                        self::$plugins[$pluginName]['enabled'] = self::$plugins[$pluginName]['_class']->initialize($currentDomain, $gateway, $CFGContexto);
+                        self::$plugins[$pluginName]['enabled'] = self::$plugins[$pluginName]['_class']->initialize($currentDomain, $gateway, $CFGContext);
                       }
                     }
                   } else {
@@ -145,7 +145,7 @@ class PluginManager {
   }
 
   static public function callPlugin($subject, $action, ...$params) {
-    global  $yAnaliser, $CFGContexto;
+    global  $yAnaliser, $CFGContext;
     $gateway = self::$currentGateway;
     $ret = '';
     foreach (self::$plugins as $key => $pluginDefinition) {
@@ -166,7 +166,7 @@ class PluginManager {
                /**
                 * apply the preprocessor
                 */
-              $ret = $yAnaliser->do($content, $CFGContexto);
+              $ret = $yAnaliser->do($content, $CFGContext);
               chdir($wd);
             }
           }

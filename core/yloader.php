@@ -142,12 +142,15 @@ if (!function_exists("_getUserAgent")) {
 }
 
 if (!function_exists("__outputIsJson")) {
+  $CFGOutputContentType=(basename($_SERVER['SCRIPT_NAME'])=='api.php'?'application/json':'text/html');
+
   function __outputIsJson() {
-    $ret = false;
-    $ret = (
+    global $CFGOutputContentType;
+    $ret = $CFGOutputContentType || (
       isset($_SERVER['HTTP_X_REQUESTED_WITH']) &&
       strcasecmp($_SERVER['HTTP_X_REQUESTED_WITH'], 'xmlhttprequest') == 0
     );
+   
     foreach (headers_list() as $value) {
       if (false !== strpos($value, "application/json")) {
         $ret = true;
@@ -205,7 +208,7 @@ function __defaultErrorHandler($errno, $errstr, $errfile, $errline) {
     $ret['call_stack'] = __getStack(debug_backtrace());
 
     _log(_getCallStack());
-    if ($GLOBALS['CFGOcultarErros']) {
+    if ($GLOBALS['CFGHideErrors']) {
       $auxDebugId = __genDebugId();
       $filename   = dirname($GLOBALS['CFGLogFilename']) . "/$auxDebugId.json";
       file_put_contents($filename, json_encode($ret, JSON_PRETTY_PRINT));
@@ -261,7 +264,7 @@ function __defaultExceptionHandler($exception) {
     $ret['call_stack'] = __getStack($exception->getTrace());
 
     _log(_getCallStack());
-    if ($GLOBALS['CFGOcultarErros']) {
+    if ($GLOBALS['CFGHideErrors']) {
       $auxDebugId = __genDebugId();
       $filename   = dirname($GLOBALS['CFGLogFilename']) . "/$auxDebugId.json";
       file_put_contents($filename, json_encode($ret, JSON_PRETTY_PRINT));
@@ -536,7 +539,14 @@ if (!function_exists("_die")) {
       $args2['warnings'] = $_tempWarnings;
 
       call_user_func_array('_log', $args2);
+      if (!__outputIsJson()) {
+        echo "<div style='border-radius:4px;; border: solid 1px #999; padding-left: 12px'><pre style='white-space: pre-wrap;'>";
+      }
+
       _response($args2);
+      if (!__outputIsJson()) {
+        echo "</pre></div>";
+      }
       die();
     }
   }
@@ -570,16 +580,16 @@ function __definirURL($url_app, $uri_base = '', $forcar_https = null) {
     $CFGServer['CFGSiteURL']            = str_replace("http://", "https://", $CFGServer['CFGSiteURL']);
     $CFGServer['CFGSiteURLAdm']         = str_replace("http://", "https://", $CFGServer['CFGSiteURLAdm']);
     $CFGServer['CFGSiteAPI']            = str_replace("http://", "https://", $CFGServer['CFGSiteAPI']);
-    $CFGServer['CFGMostrarInfoConexao'] = _getValue($CFGServer, 'CFGMostrarInfoConexao', false);
+    $CFGServer['CFGShowConnectionInfo'] = _getValue($CFGServer, 'CFGShowConnectionInfo', false);
   } else {
     /* para servir de alerta, se o sistema não está usando https de forma forçada, ele mostra a tarja */
-    $CFGServer['CFGMostrarInfoConexao'] = true;
+    $CFGServer['CFGShowConnectionInfo'] = true;
   }
 
   /* publicamos o novo contexto */
   $GLOBALS['CFGSiteURL']            = $CFGServer['CFGSiteURL'];
   $GLOBALS['CFGSiteURLAdm']         = $CFGServer['CFGSiteURLAdm'];
-  $GLOBALS['CFGMostrarInfoConexao'] = $CFGServer['CFGMostrarInfoConexao'];
+  $GLOBALS['CFGShowConnectionInfo'] = $CFGServer['CFGShowConnectionInfo'];
 }
 
 function _configDentroDoEscopo($InteiroOuData = 0, $forcar_https = true) {
@@ -729,26 +739,23 @@ if (file_exists("$dbConfig")) {
       extract($config['debug']);
     }
 
-    $CFGServer['CFGLogFilename']             = replaceFilenameExtension((isset($log) ? $log : (__DIR__ . "/logs/application.log")), "$HOST.log");
-    $CFGServer['CFGLogLevel']                = (isset($logLevel) ? $logLevel : 0);
-    $CFGServer['CFGOcultarErros']            = (isset($ocultarErros) ? $ocultarErros : 0);
-    $CFGServer['CFGDepurarCalculoEstagio']   = isset($depurarCalculoEstagio) ? ($depurarCalculoEstagio == 1) : false;
-    $CFGServer['CFGPermitirLoginInativo']    = isset($permitirLoginInativo) ? (_configDentroDoEscopo($permitirLoginInativo, $forcar_https)) : false;
-    $CFGServer['CFGPermitirLoginIncompleto'] = isset($permitirLoginIncompleto) ? (_configDentroDoEscopo($permitirLoginIncompleto, $forcar_https)) : false;
-    $CFGServer['CFGMostrarInfoConexao']      = isset($mostrarInfoConexao) ? $mostrarInfoConexao : 0;
-    $CFGServer['CFGUsarEmailInstitucional']  = intval((isset($usarEmailInstitucional) ? intval($usarEmailInstitucional) : 0));
-    $CFGServer['CFGDesviarEmail']            = intval(isset($desviarEmail) ? $desviarEmail : 0);
-    $CFGServer['CFGEmailDesvio']             = isset($emailDesvio) ? $emailDesvio : "nowhere@example.com";
+    $CFGServer['CFGLogFilename']        = replaceFilenameExtension((isset($log) ? $log : (__DIR__ . "/logs/application.log")), "$HOST.log");
+    $CFGServer['CFGLogLevel']           = (isset($logLevel) ? $logLevel : 0);
+    $CFGServer['CFGHideErrors']         = (isset($hideErrors) ? $hideErrors : 0);
+    $CFGServer['CFGShowConnectionInfo'] = isset($showConnectionInfo) ? $showConnectionInfo : 0;
+    $CFGServer['CFGUseWhiteLabelEmail'] = intval((isset($useWhiteLabelEmail) ? intval($useWhiteLabelEmail) : 0));
+    $CFGServer['CFGDivertEmail']        = intval(isset($divertEmail) ? $divertEmail : 0);
+    $CFGServer['CFGDiversionEmail']     = isset($diversionEmail) ? $diversionEmail : "nowhere@example.com";
 
     /**
      * Por padrão, se a pasta de logs não existe ou não pode ser escrita,
      * o sistema não oculta os erros
      **/
     if (!is_writable(dirname($CFGServer['CFGLogFilename']))) {
-      $CFGOcultarErros = 0;
+      $CFGHideErrors = 0;
     }
 
-    if (isset($ocultarErros) && ($ocultarErros == 1)) {
+    if (isset($hideErrors) && ($hideErrors == 1)) {
       ini_set('display_errors', 1);
       ini_set('display_startup_errors', 1);
       error_reporting(E_ALL);
@@ -910,9 +917,9 @@ if (file_exists("$dbConfig")) {
 }
 
 /**
- * Agencias
+ * Aplicativo
  **/
-function _configurarAplicativo($url_app = '') {
+function _configureApp($url_app = '') {
   global $CFGServer, $CFGApp, $HOST;
 
   if ($url_app > '') {
