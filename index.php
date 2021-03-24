@@ -50,7 +50,7 @@ $CFGContext = array_merge(
   ]);
 
 /**
- * Toda toda começa com um substantivo ao que chamamos de subject (assunto)
+ * Toda chamada começa com um substantivo ao que chamamos de subject (assunto)
  * podendo estar seguido de um verbo ao que chamamos de action (ação)
  * http://exemplo.com/conta/listarMovimentos
  * que é o mesmo que
@@ -90,11 +90,11 @@ $CFGContext['html_body'] = $pluginManager->callPlugin($subject, $action);
 /**
  * Template a ser utilizado
  * 1) sem rota, utiliza html_template_full
- * 2) login, recuperarSenha, cadastro utilizam html_template_full
+ * 2) login, recoverPassword, sign, logout utilizam html_template_full
  * 3) todos os restante, utilizam html_template_menu
  */
 
-if (in_array($subject, ['welcome', 'login', 'recuperarSenha', 'cadastro', 'logoff'])) {
+if (in_array($subject, ['welcome', 'login', 'recoverPassword', 'sign', 'logout'])) {
   $index_name = _getValue($CFGContext, 'html_template_full', "e_index_full.html");
 } else {
   $index_name = _getValue($CFGContext, 'html_template_menu', "e_index_menu.html");
