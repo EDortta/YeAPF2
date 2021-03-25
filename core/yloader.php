@@ -141,8 +141,9 @@ if (!function_exists("_getUserAgent")) {
   }
 }
 
+$CFGApiRequest = basename($_SERVER['SCRIPT_NAME'])=='api.php';
+$CFGOutputContentType=($CFGApiRequest?'application/json':'text/html');
 if (!function_exists("__outputIsJson")) {
-  $CFGOutputContentType=(basename($_SERVER['SCRIPT_NAME'])=='api.php'?'application/json':'text/html');
 
   function __outputIsJson() {
     global $CFGOutputContentType;
@@ -643,6 +644,10 @@ if (file_exists($alternativeParts)) {
 array_push($yLibs, 'yapi_consumer_basis.php');
 array_push($yLibs, 'ydatabase.php');
 array_push($yLibs, 'yplugins.php');
+if ($CFGApiRequest){
+  array_push($yLibs, "yapi_producer_basis.php");
+}
+
 
 _log("Libraries to be loaded: " . json_encode($yLibs));
 foreach ($yLibs as $libName) {
@@ -717,6 +722,9 @@ if (file_exists("$dbConfig")) {
     if (isset($config['site'])) {
       extract($config['site']);
     }
+
+    $CFGServer['CFGTimeZone'] = (empty($timezone)?'UTC':$timezone);
+    date_default_timezone_set($CFGServer['CFGTimeZone']);
 
     /* Local onde estão os arquivos */
     $CFGServer['CFGSiteFolder'] = __removeLastSlash(isset($site_folder) ? $site_folder : "/public_html");

@@ -9,7 +9,19 @@
  *
  **/
 
-date_default_timezone_set('America/Sao_Paulo');
+
+/**
+ * The following binary flags define the applicability
+ * of each endpoint.
+ * They are basically used to generate the documentation
+ * pertinent to each case.
+ * It is up to the programmer to define how the entrypoint works.
+ * By default all entrypoints are internal, web and mobile.
+ * Indicate that an entrypoint serves more than one applicability
+ * it is a simple matter of binary logic:
+ * API_INTERNAL | API_WEB for example
+ **/
+
 
 if (!defined("API_INTERNAL")) {
 /**

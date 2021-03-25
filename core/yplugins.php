@@ -8,7 +8,8 @@
  * %COPYRIGHT_NOTE%
  **/
 
-interface YeapfPlugin {
+interface YeapfPlugin
+{
   /**
    * Chamado assim que o plugin é carregado, tem por função
    * inicializar o mesmo e prepara-lo para funcionar.
@@ -35,12 +36,14 @@ interface YeapfPlugin {
   public function do($subject, $action, ...$params);
 }
 
-class PluginManager {
-  static $plugins = null;
+class PluginManager
+{
+  static $plugins        = null;
   static $currentGateway = null;
 
-  public function __construct() {
-    self::$plugins = [];
+  public function __construct()
+  {
+    $GLOBALS['__yPluginsRepo'] = [];
     if (__outputIsJson()) {
       self::$currentGateway = 'api';
     } else {
@@ -52,7 +55,8 @@ class PluginManager {
     }
   }
 
-  static public function loadPlugins($folder) {
+  static public function loadPlugins($folder)
+  {
     global $yAnaliser, $CFGContext;
     $currentDomain = mb_strtolower(getDomain(_getValue($CFGContext, 'CFGSiteURL', '')));
     if (is_dir("$folder")) {
@@ -60,33 +64,40 @@ class PluginManager {
       foreach ($pluginsFolder as $plugin) {
         if (!($plugin == '.' || $plugin == '..')) {
           $pluginIniFile = "$folder/$plugin/config.ini";
-          $pluginIni     = @parse_ini_file($pluginIniFile, true);
-          $pluginConfig  = _getValue($pluginIni, 'config', []);
-          foreach ($pluginConfig as $sequence => $pluginName) {
-            preg_match('/plugin[_]{0,1}[0-9]*/', $sequence, $sequenceId);
-            if (!empty($sequenceId[0])) {
-              /*
-               * Plugin cannot be repeated
-               * Missed the exceptions: login, logoff, etc...
-               */
-              if (!array_key_exists($pluginName, self::$plugins)) {
-                self::$plugins[$pluginName]           = $pluginIni[$pluginName];
-                self::$plugins[$pluginName]['loaded'] = false;
-                self::$plugins[$pluginName]['folder'] = "$folder/$plugin";
+          if (file_exists($pluginIniFile)) {
+            $pluginIni    = @parse_ini_file($pluginIniFile, true);
+            $pluginConfig = _getValue($pluginIni, 'config', []);
+            foreach ($pluginConfig as $sequence => $pluginName) {
+              preg_match('/plugin[_]{0,1}[0-9]*/', $sequence, $sequenceId);
+              if (!empty($sequenceId[0])) {
+                /*
+                 * Plugin cannot be repeated
+                 * Missed the exceptions: login, logoff, etc...
+                 */
+                if (!array_key_exists($pluginName, $GLOBALS['__yPluginsRepo'])) {
+                  $GLOBALS['__yPluginsRepo'][$pluginName]           = $pluginIni[$pluginName];
+                  $GLOBALS['__yPluginsRepo'][$pluginName]['loaded'] = false;
+                  $GLOBALS['__yPluginsRepo'][$pluginName]['folder'] = "$folder/$plugin";
+
+                  // API helper
+                  $GLOBALS['__yPluginsIndex'][$pluginIni[$pluginName]['class']] = $pluginName;
+                }
               }
             }
+          } else {
+            _warn("Plugin configuration file '$pluginIniFile' not found");
           }
 
           /*
            * Plugin must be enabled in the current domain
            * or on any domain
            */
-          foreach (self::$plugins as $pluginName => $pluginConfig) {
+          foreach ($GLOBALS['__yPluginsRepo'] as $pluginName => $pluginConfig) {
             if (!$pluginConfig['loaded']) {
               if ($pluginConfig['enabled']) {
                 $domains = mb_strtolower(',' . str_replace(';', ',', str_replace(' ', '', $pluginConfig['domains'])) . ',');
                 if ($pluginConfig['domains'] == '*' || strpos($domains, ",$currentDomain,") !== false) {
-                  self::$plugins[$pluginName]['enabled'] = true;
+                  $GLOBALS['__yPluginsRepo'][$pluginName]['enabled'] = true;
                 }
 
                 _log("Plugin $pluginName can run in $currentDomain? " . ($pluginConfig['enabled'] ? 'YES' : 'NO'));
@@ -95,10 +106,10 @@ class PluginManager {
                  * If the plugin is enabled and can be used in this domain,
                  * search the class and create an instance
                  */
-                if (self::$plugins[$pluginName]['enabled']) {
+                if ($GLOBALS['__yPluginsRepo'][$pluginName]['enabled']) {
                   $_pluginScriptname = getcwd() . "/" . __removeLastSlash($pluginConfig['folder']) . '/' . _getValue($pluginConfig, 'script', 'plugin.php');
                   if (file_exists($_pluginScriptname)) {
-                    self::$plugins[$pluginName]['exists'] = true;
+                    $GLOBALS['__yPluginsRepo'][$pluginName]['exists'] = true;
 
                     _log("Plugin loading $_pluginScriptname");
 
@@ -106,12 +117,12 @@ class PluginManager {
                      * Each parameter is analised in order to help in build the plugin context
                      */
                     foreach ($pluginConfig as $key => $value) {
-                      $aux                              = $yAnaliser->do($value, $CFGContext);
-                      self::$plugins[$pluginName][$key] = $aux;
+                      $aux                                          = $yAnaliser->do($value, $CFGContext);
+                      $GLOBALS['__yPluginsRepo'][$pluginName][$key] = $aux;
                     }
 
                     ((@include_once "$_pluginScriptname") || _die("Error loading $_pluginScriptname"));
-                    self::$plugins[$pluginName]['loaded'] = true;
+                    $GLOBALS['__yPluginsRepo'][$pluginName]['loaded'] = true;
 
                     $_pluginClassName = _getValue($pluginConfig, 'class', 'DefaultPlugin');
                     _log("Plugin class: $_pluginClassName");
@@ -121,19 +132,19 @@ class PluginManager {
                        * if class exists, it is instantiated
                        */
                       _log("Plugin being instantiated as $_pluginClassName");
-                      self::$plugins[$pluginName]['_class'] = new $_pluginClassName();
-                      if (self::$plugins[$pluginName]['_class']) {
+                      $GLOBALS['__yPluginsRepo'][$pluginName]['_class'] = new $_pluginClassName();
+                      if ($GLOBALS['__yPluginsRepo'][$pluginName]['_class']) {
                         /**
                          * once the class is instantiated, it's initialized
                          * If the initializator returns true, the plugin is enabled.
                          */
-                        $gateway = self::$currentGateway;
-                        self::$plugins[$pluginName]['enabled'] = self::$plugins[$pluginName]['_class']->initialize($currentDomain, $gateway, $CFGContext);
+                        $gateway                                           = self::$currentGateway;
+                        $GLOBALS['__yPluginsRepo'][$pluginName]['enabled'] = $GLOBALS['__yPluginsRepo'][$pluginName]['_class']->initialize($currentDomain, $gateway, $CFGContext);
                       }
                     }
                   } else {
                     _log("Plugin $_pluginScriptname not found");
-                    self::$plugins[$pluginName]['exists'] = false;
+                    $GLOBALS['__yPluginsRepo'][$pluginName]['exists'] = false;
                   }
                 }
               }
@@ -144,17 +155,18 @@ class PluginManager {
     }
   }
 
-  static public function callPlugin($subject, $action, ...$params) {
-    global  $yAnaliser, $CFGContext;
+  static public function callPlugin($subject, $action, ...$params)
+  {
+    global $yAnaliser, $CFGContext;
     $gateway = self::$currentGateway;
-    $ret = '';
-    foreach (self::$plugins as $key => $pluginDefinition) {
+    $ret     = '';
+    foreach ($GLOBALS['__yPluginsRepo'] as $key => $pluginDefinition) {
       if ($key == $subject) {
         if (!empty($pluginDefinition['_class'])) {
           $pluginDefinition['_class']->do($subject, $action, $params);
         } else {
           if (!empty($pluginDefinition['file'])) {
-            $wd=getcwd();
+            $wd = getcwd();
             if (chdir($pluginDefinition['folder'])) {
               $content = file_get_contents($pluginDefinition['file']);
               /**
@@ -162,10 +174,10 @@ class PluginManager {
                */
               $content = preg_replace('/src[\ ]*=[\ ]*([\'"]){0,1}([a-zA-Z_0-9\.]{1}[a-zA-Z0-9\.\/_]*)([\'"]){0,1}/', 'src="#cwd()/$2"', $content);
               $content = preg_replace('/link(.*)href[\ ]*=[\ ]*([\'"]){0,1}([a-zA-Z_0-9\.]{1}[a-zA-Z0-9\.\/_]*)([\'"]){0,1}/', 'link$1href="#cwd()/$3"', $content);
-            
-               /**
-                * apply the preprocessor
-                */
+
+              /**
+               * apply the preprocessor
+               */
               $ret = $yAnaliser->do($content, $CFGContext);
               chdir($wd);
             }

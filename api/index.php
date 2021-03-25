@@ -8,8 +8,7 @@
  -->
 
 <?php
-
-phpinfo();
-die();
-  header("Location: ".$_SERVER['REQUEST_SCHEME'] . "://" .$_SERVER['HTTP_HOST'].'/404.html');
+// phpinfo();
+// die();
+  header("Location: ".$_SERVER['REQUEST_SCHEME'] . "://" .$_SERVER['HTTP_HOST'].$_SERVER['REQUEST_URI'].'404.html');
 ?>
