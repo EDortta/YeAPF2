@@ -123,18 +123,30 @@ class YApiProducerBasis extends YApiProducer
 
     $entryPointParts = array();
     $entryPointFound = false;
+    $inlineParamValues = [];
 
     foreach ($this->entryPoints as $path => $pathDefinition) {
       if ($helpMap) {
+        _log("Comparing $path vs $entrypoint");
         echo __LINE__ . ": $path  vs  $entrypoint\n";
       }
 
       preg_match_all("/" . $path . "/", "$entrypoint", $entryPointPartsAux);
+      if ($helpMap) {
+        foreach ($entryPointPartsAux as $key => $value) {
+          _log("match: ".json_encode($value));
+        }
+      }
       if (isset($entryPointPartsAux[0][0])) {
-        if ("$entrypoint" == $entryPointPartsAux[0][0]) {
+        if ($entryPointPartsAux[0][0]>'') {
+          for($i=1; $i<count($entryPointPartsAux); $i++)  {
+            _log("param #". ($i-1). $entryPointPartsAux[$i][0]);
+            $inlineParamValues[$i-1] = $entryPointPartsAux[$i][0];
+          }
           $entryPointFound       = true;
           $currentEntrypointRoot = $this->entryPoints[$path];
           $entryPointParts       = $entryPointPartsAux;
+          _log("EntryPoint: ".print_r($path, true));
         }
       }
     }
@@ -158,11 +170,15 @@ class YApiProducerBasis extends YApiProducer
       if ($currentEntrypointRoot['_method'] == $method) {
 
         $originalPath = $currentEntrypointRoot['_path'];
+        _log("Extracting inline param names from $originalPath");
         preg_match_all('/:([a-zA-Z0-9_@.]*)/', $originalPath, $auxInlineParams);
 
         $inlineParams = array();
         for ($i = 0; $i < count($auxInlineParams[1]); $i++) {
-          $inlineParams[$auxInlineParams[1][$i]] = $entryPointParts[$i + 1][0];
+          $inlineParamName = $entryPointParts[$i + 1][0];
+          _log("inline param ".$auxInlineParams[1][$i]." value = $inlineParamName");
+          // $inlineParams[$auxInlineParams[1][$i]] = $inlineParamName;
+          $inlineParams[$auxInlineParams[1][$i]] = $inlineParamValues[$i];
         }
 
         $_PUT      = array();
@@ -256,6 +272,9 @@ class YApiProducerBasis extends YApiProducer
         _log('post params  = ' . json_encode($_REQUEST));
         if (!empty($currentEntrypointRoot['_params'])) {
           foreach ($currentEntrypointRoot['_params'] as $key => $value) {
+            if ($helpMap) {
+              _log(" \-- param $key = ".json_encode($value));
+            }
             $aParam = (
               isset($_FILES[$key]) ? $_FILES[$key] :
               (
@@ -267,7 +286,7 @@ class YApiProducerBasis extends YApiProducer
                       isset($inlineParams[$key]) ? $inlineParams[$key] :
                       '_undefined_')))));
 
-            _log("$key = [" . $key . " ]" . (is_array($aParam) ? json_encode($aParam) : $aParam));
+            _log("$key = [ " . $key  . (is_array($aParam) ? json_encode($aParam) : $aParam). " ]");
 
             if ($key == 'avatar_file' && isset($_FILES['file'])) {
               $aParam = $_FILES["file"];
