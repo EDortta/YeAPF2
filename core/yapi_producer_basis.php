@@ -1,11 +1,9 @@
 <?php
 require_once __DIR__ . "/yapi_producer_defines.php";
 
-abstract class YApiProducer implements YeapfPlugin
-{
+abstract class YApiProducer implements YeapfPlugin {
 
-  public function initialize($domain, $gateway, $contexto)
-  {
+  public function initialize($domain, $gateway, $contexto) {
 
   }
 
@@ -13,8 +11,7 @@ abstract class YApiProducer implements YeapfPlugin
 
   }
 
-  public function emptyRet($http_code = 204, $error_msg = "")
-  {
+  public function emptyRet($http_code = 204, $error_msg = "") {
     return [
       "http_code"  => $http_code,
       "error_msg"  => $error_msg,
@@ -22,27 +19,85 @@ abstract class YApiProducer implements YeapfPlugin
     ];
   }
 
+  public function grantCacheFolder($posfix = '') {
+    global $CFGCacheFolder, $CFGCacheConfigured, $CFGSiteId;
+
+    $CFGCacheConfigured = (empty($CFGCacheConfigured) ? false : $CFGCacheConfigured);
+    if (!$CFGCacheConfigured) {
+      $OriginalCFGCacheFolder = $CFGCacheFolder;
+
+      $canUseCacheFolder = false;
+      // first - check folder exists
+      if (!is_dir($CFGCacheFolder)) {
+        _log("Cache folder '$CFGCacheFolder' does not exists");
+        if (is_writeable(dirname($CFGCacheFolder))) {
+          $canUseCacheFolder = @mkdir($CFGCacheFolder);
+          if (!$canUseCacheFolder) {
+            _log("Cache folder '$CFGCacheFolder' cannot be created");
+          }
+
+        } else {
+          _log("Cache container folder '" . dirname($CFGCacheFolder) . "' cannot be written");
+        }
+      } else {
+        $canUseCacheFolder = is_writable($CFGCacheFolder);
+        if (!$canUseCacheFolder) {
+          _log("Cache folder '$CFGCacheFolder' cannot be written");
+        }
+      }
+
+      // second - check the folder is writable
+      if (!$canUseCacheFolder) {
+        $CFGCacheFolder = tempnam(sys_get_temp_dir(), $CFGSiteId);
+        if (file_exists($CFGCacheFolder))
+          unlink($CFGCacheFolder);
+        mkdir($CFGCacheFolder);
+        _log("Cache temporary folder created: '$CFGCacheFolder'");
+      }
+      $CFGCacheConfigured = true;
+
+      if ($OriginalCFGCacheFolder != $CFGCacheFolder)
+        _setConfigEntry('site', 'cache_folder', $CFGCacheFolder);
+    }
+
+    // third - as the base exists and is writable, we can trust the remain
+    $posfix = trim(__removeLastSlash($posfix));
+    if ($posfix > '') {
+      if (substr($posfix, 0, 1) != '/') {
+        $posfix = "/$posfix";
+      } else {
+        if ($posfix=='/')
+          $posfix = '';
+      }
+    }
+    $ret = __removeLastSlash($CFGCacheFolder) . $posfix;
+
+    // fourth - if desired folder does not exists, create it
+    if (!is_dir($ret)) {
+      _log("Cache creating folder '$ret'");
+      mkdir($ret, 0777, true);
+    }
+
+    return $ret;
+  }
+
 }
 
-class YApiProducerBasis extends YApiProducer
-{
+class YApiProducerBasis extends YApiProducer {
 
   private $entryPoints  = [];
   private $classAliases = [];
   private $apiName      = 'Generic API';
 
-  public function __construct()
-  {
+  public function __construct() {
     $this->registerEntry("export", "GET", "/export", '{ "applicability": "Integer" }', true);
   }
 
-  public function defineAPIName($apiName)
-  {
+  public function defineAPIName($apiName) {
     $this->apiName = $apiName;
   }
 
-  public function defineClassAlias($classAlias)
-  {
+  public function defineClassAlias($classAlias) {
     $trace                            = debug_backtrace();
     $caller                           = $trace[1];
     $callerClass                      = isset($caller['class']) ? $caller['class'] : '';
@@ -97,8 +152,7 @@ class YApiProducerBasis extends YApiProducer
     );
   }
 
-  public function execute()
-  {
+  public function execute() {
 
     global $helpMode, $helpMap;
 
@@ -121,8 +175,8 @@ class YApiProducerBasis extends YApiProducer
       echo count($path) . " steps\n";
     }
 
-    $entryPointParts = array();
-    $entryPointFound = false;
+    $entryPointParts   = array();
+    $entryPointFound   = false;
     $inlineParamValues = [];
 
     foreach ($this->entryPoints as $path => $pathDefinition) {
@@ -134,18 +188,18 @@ class YApiProducerBasis extends YApiProducer
 
         preg_match_all("/" . $path . "/", "$entrypoint", $entryPointPartsAux);
         if (isset($entryPointPartsAux[0][0])) {
-          if ($entryPointPartsAux[0][0]>'') {
+          if ($entryPointPartsAux[0][0] > '') {
             if ($helpMap) {
-              _log("match: ".print_r($entryPointPartsAux, true));
+              _log("match: " . print_r($entryPointPartsAux, true));
             }
-            for($i=1; $i<count($entryPointPartsAux); $i++)  {
-              _log("param #". ($i-1). ' ' . $entryPointPartsAux[$i][0]);
-              $inlineParamValues[$i-1] = $entryPointPartsAux[$i][0];
+            for ($i = 1; $i < count($entryPointPartsAux); $i++) {
+              _log("param #" . ($i - 1) . ' ' . $entryPointPartsAux[$i][0]);
+              $inlineParamValues[$i - 1] = $entryPointPartsAux[$i][0];
             }
             $entryPointFound       = true;
             $currentEntrypointRoot = $this->entryPoints[$path];
             $entryPointParts       = $entryPointPartsAux;
-            _log("EntryPoint: ".print_r($path, true));
+            _log("EntryPoint: " . print_r($path, true));
           }
         }
       }
@@ -176,7 +230,7 @@ class YApiProducerBasis extends YApiProducer
         $inlineParams = array();
         for ($i = 0; $i < count($auxInlineParams[1]); $i++) {
           $inlineParamName = $entryPointParts[$i + 1][0];
-          _log("inline param ".$auxInlineParams[1][$i]." value = $inlineParamName");
+          _log("inline param " . $auxInlineParams[1][$i] . " value = $inlineParamName");
           // $inlineParams[$auxInlineParams[1][$i]] = $inlineParamName;
           $inlineParams[$auxInlineParams[1][$i]] = $inlineParamValues[$i];
         }
@@ -273,7 +327,7 @@ class YApiProducerBasis extends YApiProducer
         if (!empty($currentEntrypointRoot['_params'])) {
           foreach ($currentEntrypointRoot['_params'] as $key => $value) {
             if ($helpMap) {
-              _log(" \-- param $key = ".json_encode($value));
+              _log(" \-- param $key = " . json_encode($value));
             }
             $aParam = (
               isset($_FILES[$key]) ? $_FILES[$key] :
@@ -286,7 +340,7 @@ class YApiProducerBasis extends YApiProducer
                       isset($inlineParams[$key]) ? $inlineParams[$key] :
                       '_undefined_')))));
 
-            _log("key $key = [ " .(is_array($aParam) ? json_encode($aParam) : $aParam). " ]");
+            _log("key $key = [ " . (is_array($aParam) ? json_encode($aParam) : $aParam) . " ]");
 
             if ($key == 'avatar_file' && isset($_FILES['file'])) {
               $aParam = $_FILES["file"];
@@ -320,9 +374,9 @@ class YApiProducerBasis extends YApiProducer
           _http_response_code($ret['http_code']);
 
         } else {
-          
+
           $ret = $this->emptyRet();
-          
+
           _log("\t" . $currentEntrypointRoot['_functionName'] . '()');
 
           if ($currentEntrypointRoot['_callerClass'] == 'YApiProducerBasis') {
@@ -342,7 +396,7 @@ class YApiProducerBasis extends YApiProducer
           // $ret = call_user_func_array(
           //   [$currentEntrypointRoot['_callerClass'], $currentEntrypointRoot['_functionName']],
           //   $params);
-        
+
           _log('ret  = ' . json_encode($ret));
           _http_response_code(_getValue($ret, 'http_code', 200));
         }
@@ -376,8 +430,7 @@ class YApiProducerBasis extends YApiProducer
 
   }
 
-  public function export($applicability = API_DEFAULT)
-  {
+  public function export($applicability = API_DEFAULT) {
     if ($applicability == "_undefined_") {
       $applicability = API_DEFAULT;
     }

@@ -49,18 +49,7 @@ class SamplePlugin extends YApiProducer {
     $ret = $this->emptyRet(200);
 
     // we would like to use a cache in order to void repetitive request
-    $cacheLocation = __DIR__ . "/cache";
-    if (!is_dir($cacheLocation)) {
-      if (is_writable(dirname($cacheLocation))) {
-        if (!(@mkdir($cacheLocation))) {
-          $ret['http_code'] = 507;
-          $ret['error_msg'] = "Was not possible to create $cacheLocation folder";
-        }
-      } else {
-        $ret['http_code'] = 507;
-        $ret['error_msg'] = "Is not possible to create $cacheLocation folder";
-      }
-    }
+    $cacheLocation = $this->grantCacheFolder(".geoLocation");
 
     if (!is_writable($cacheLocation)) {
       $ret['http_code'] = 507;
@@ -68,11 +57,13 @@ class SamplePlugin extends YApiProducer {
     }
 
     if ($ret['http_code'] == 200) {
+      $ret['cached'] = false;
 
       if (file_exists($cacheLocation . "/$ip.json")) {
         /**
          * if the answer is in cache, use it
          */
+        $ret['cached'] = true;
         $ret['response'] = json_decode(file_get_contents($cacheLocation . "/$ip.json"),true);
 
       } else {
@@ -109,9 +100,9 @@ class SamplePlugin extends YApiProducer {
              * Save in cache file
              */
             file_put_contents($cacheLocation . "/$ip.json", $response);
-          } else {
-            $ret['response'] = json_decode($response,true);
           }
+          $ret['response'] = json_decode($response,true);
+          
         }
       }
 

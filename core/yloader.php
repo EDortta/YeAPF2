@@ -141,8 +141,8 @@ if (!function_exists("_getUserAgent")) {
   }
 }
 
-$CFGApiRequest = basename($_SERVER['SCRIPT_NAME'])=='api.php';
-$CFGOutputContentType=($CFGApiRequest?'application/json':'text/html');
+$CFGApiRequest        = basename($_SERVER['SCRIPT_NAME']) == 'api.php';
+$CFGOutputContentType = ($CFGApiRequest ? 'application/json' : 'text/html');
 if (!function_exists("__outputIsJson")) {
 
   function __outputIsJson() {
@@ -151,7 +151,7 @@ if (!function_exists("__outputIsJson")) {
       isset($_SERVER['HTTP_X_REQUESTED_WITH']) &&
       strcasecmp($_SERVER['HTTP_X_REQUESTED_WITH'], 'xmlhttprequest') == 0
     );
-   
+
     foreach (headers_list() as $value) {
       if (false !== strpos($value, "application/json")) {
         $ret = true;
@@ -644,10 +644,9 @@ if (file_exists($alternativeParts)) {
 array_push($yLibs, 'yapi_consumer_basis.php');
 array_push($yLibs, 'ydatabase.php');
 array_push($yLibs, 'yplugins.php');
-if ($CFGApiRequest){
+if ($CFGApiRequest) {
   array_push($yLibs, "yapi_producer_basis.php");
 }
-
 
 _log("Libraries to be loaded: " . json_encode($yLibs));
 foreach ($yLibs as $libName) {
@@ -669,6 +668,27 @@ $__parserConfigFile = null;
 
 if (file_exists("$dbConfig")) {
 
+  function _saveTextFile($fileName, $dataToSave) {
+    $ret = false;
+    if ($fp = fopen($fileName, 'w')) {
+      $startTime = microtime(TRUE);
+      do {
+        $canWrite = flock($fp, LOCK_EX);
+        if (!$canWrite) {
+          usleep(round(rand(0, 100) * 1000));
+        }
+      } while ((!$canWrite) and ((microtime(TRUE) - $startTime) < 5));
+
+      if ($canWrite) {
+        fwrite($fp, $dataToSave);
+        flock($fp, LOCK_UN);
+        $ret = true;
+      }
+      fclose($fp);
+    }
+    return $ret;
+  }
+
   function _getConfigSection($sectionName) {
     global $dbConfig, $__parserConfigFile;
     if (null == $__parserConfigFile) {
@@ -676,6 +696,37 @@ if (file_exists("$dbConfig")) {
     }
     $ret = _getValue($__parserConfigFile, $sectionName, []);
     return $ret;
+  }
+
+  function _setConfigEntry($sectionName, $entryName, $entryValue) {
+    global $dbConfig, $__parserConfigFile;
+
+    if (is_writeable($dbConfig)) {
+      $section             = _getConfigSection($sectionName);
+      $section[$entryName] = addslashes($entryValue);
+  
+      $__parserConfigFile[$sectionName] = $section;
+  
+      $res = [];
+      foreach($__parserConfigFile as $key => $val)
+      {
+          if(is_array($val)) {
+              $res[] = "[$key]";
+              foreach($val as $skey => $sval) {
+                $res[] = "$skey = ".(is_numeric($sval) ? $sval : '"'.$sval.'"');
+              }
+              $res[]='';
+          } else {
+            $res[] = "$key = ".(is_numeric($val) ? $val : '"'.$val.'"');
+          }
+      }
+  
+  
+      if (!_saveTextFile($dbConfig, implode("\n",$res)))
+        _die("$dbConfig cannot be written");
+    } else {
+      _die("$dbConfig is not writable");
+    }
   }
 
   function _configApplication() {
@@ -725,11 +776,13 @@ if (file_exists("$dbConfig")) {
       extract($config['site']);
     }
 
-    $CFGServer['CFGTimeZone'] = (empty($timezone)?'UTC':$timezone);
+    $CFGServer['CFGTimeZone'] = (empty($timezone) ? 'UTC' : $timezone);
     date_default_timezone_set($CFGServer['CFGTimeZone']);
 
-    /* Local onde estão os arquivos */
-    $CFGServer['CFGSiteFolder'] = __removeLastSlash(isset($site_folder) ? $site_folder : "/public_html");
+    /* O.S. files location */
+    $CFGServer['CFGSiteFolder']  = __removeLastSlash(isset($site_folder) ? $site_folder : "/public_html");
+    $CFGServer['CFGCacheFolder'] = __removeLastSlash(isset($cache_folder) ? $cache_folder : "/public_html/.cache");
+    $CFGServer['CFGSiteId']      = __removeLastSlash(isset($site_id) ? $site_id : "unidentified-site");
 
     $token = __genRandomToken(true);
 
@@ -912,8 +965,8 @@ if (file_exists("$dbConfig")) {
     $CFGServer['CFGEmailSMTPConfig'] = _getValue($CFGServer['CFGEmailSMTPServers'], _getValue($CFGServer, 'CFGEmailSMTP', 'none'), [0 => []])[$auxNdxRnd];
 
     if ($oldCFGLogFilename != $CFGServer['CFGLogFilename']) {
-      _log("Log file changed to ".$CFGServer['CFGLogFilename']);
-    }    
+      _log("Log file changed to " . $CFGServer['CFGLogFilename']);
+    }
     /* publicar CFGServer */
     foreach ($CFGServer as $key => $value) {
       $GLOBALS[$key] = $value;
