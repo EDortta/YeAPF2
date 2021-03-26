@@ -76,7 +76,7 @@ _log("Executing API call");
 // die(print_r($GLOBALS['__yPluginsRepo']));
 
 $helpMode = true;
-$helpMap  = true;
+$helpMap  = false;
 $ret      = $api->execute();
 
 if ($ret !== false) {

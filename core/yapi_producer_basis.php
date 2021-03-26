@@ -126,27 +126,27 @@ class YApiProducerBasis extends YApiProducer
     $inlineParamValues = [];
 
     foreach ($this->entryPoints as $path => $pathDefinition) {
-      if ($helpMap) {
-        _log("Comparing $path vs $entrypoint");
-        echo __LINE__ . ": $path  vs  $entrypoint\n";
-      }
-
-      preg_match_all("/" . $path . "/", "$entrypoint", $entryPointPartsAux);
-      if ($helpMap) {
-        foreach ($entryPointPartsAux as $key => $value) {
-          _log("match: ".json_encode($value));
+      if (!$entryPointFound) {
+        if ($helpMap) {
+          _log("Comparing $path vs $entrypoint");
+          echo __LINE__ . ": $path  vs  $entrypoint\n";
         }
-      }
-      if (isset($entryPointPartsAux[0][0])) {
-        if ($entryPointPartsAux[0][0]>'') {
-          for($i=1; $i<count($entryPointPartsAux); $i++)  {
-            _log("param #". ($i-1). $entryPointPartsAux[$i][0]);
-            $inlineParamValues[$i-1] = $entryPointPartsAux[$i][0];
+
+        preg_match_all("/" . $path . "/", "$entrypoint", $entryPointPartsAux);
+        if (isset($entryPointPartsAux[0][0])) {
+          if ($entryPointPartsAux[0][0]>'') {
+            if ($helpMap) {
+              _log("match: ".print_r($entryPointPartsAux, true));
+            }
+            for($i=1; $i<count($entryPointPartsAux); $i++)  {
+              _log("param #". ($i-1). ' ' . $entryPointPartsAux[$i][0]);
+              $inlineParamValues[$i-1] = $entryPointPartsAux[$i][0];
+            }
+            $entryPointFound       = true;
+            $currentEntrypointRoot = $this->entryPoints[$path];
+            $entryPointParts       = $entryPointPartsAux;
+            _log("EntryPoint: ".print_r($path, true));
           }
-          $entryPointFound       = true;
-          $currentEntrypointRoot = $this->entryPoints[$path];
-          $entryPointParts       = $entryPointPartsAux;
-          _log("EntryPoint: ".print_r($path, true));
         }
       }
     }
@@ -286,7 +286,7 @@ class YApiProducerBasis extends YApiProducer
                       isset($inlineParams[$key]) ? $inlineParams[$key] :
                       '_undefined_')))));
 
-            _log("$key = [ " . $key  . (is_array($aParam) ? json_encode($aParam) : $aParam). " ]");
+            _log("key $key = [ " .(is_array($aParam) ? json_encode($aParam) : $aParam). " ]");
 
             if ($key == 'avatar_file' && isset($_FILES['file'])) {
               $aParam = $_FILES["file"];
@@ -320,31 +320,29 @@ class YApiProducerBasis extends YApiProducer
           _http_response_code($ret['http_code']);
 
         } else {
+          
+          $ret = $this->emptyRet();
+          
+          _log("\t" . $currentEntrypointRoot['_functionName'] . '()');
 
-          if (!$currentEntrypointRoot['_allowEmptyParams']) {
-            _log("Not allowed without params");
-            $ret = $this->emptyRet();
+          if ($currentEntrypointRoot['_callerClass'] == 'YApiProducerBasis') {
+
+            $ret = call_user_func_array([$this, $currentEntrypointRoot['_functionName']], $params);
+
           } else {
-            _log("\t" . $currentEntrypointRoot['_functionName'] . '()');
 
-            if ($currentEntrypointRoot['_callerClass'] == 'YApiProducerBasis') {
+            $yPluginEntry = $GLOBALS['__yPluginsIndex'][$currentEntrypointRoot['_callerClass']];
 
-              $ret = call_user_func_array([$this, $currentEntrypointRoot['_functionName']], $params);
+            $class = $GLOBALS['__yPluginsRepo'][$yPluginEntry]['_class'];
+            $ret   = call_user_func_array([$class, $currentEntrypointRoot['_functionName']], $params);
 
-            } else {
-
-              $yPluginEntry = $GLOBALS['__yPluginsIndex'][$currentEntrypointRoot['_callerClass']];
-
-              $class = $GLOBALS['__yPluginsRepo'][$yPluginEntry]['_class'];
-              $ret   = call_user_func_array([$class, $currentEntrypointRoot['_functionName']], $params);
-
-            }
-
-            // $ret = call_user_func_array($currentEntrypointRoot['_callerClass']->{$currentEntrypointRoot['_functionName']}, $params);
-            // $ret = call_user_func_array(
-            //   [$currentEntrypointRoot['_callerClass'], $currentEntrypointRoot['_functionName']],
-            //   $params);
           }
+
+          // $ret = call_user_func_array($currentEntrypointRoot['_callerClass']->{$currentEntrypointRoot['_functionName']}, $params);
+          // $ret = call_user_func_array(
+          //   [$currentEntrypointRoot['_callerClass'], $currentEntrypointRoot['_functionName']],
+          //   $params);
+        
           _log('ret  = ' . json_encode($ret));
           _http_response_code(_getValue($ret, 'http_code', 200));
         }

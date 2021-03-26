@@ -690,6 +690,8 @@ if (file_exists("$dbConfig")) {
      * configuração da primeira camada.
      */
 
+    $oldCFGLogFilename = $GLOBALS['CFGLogFilename'];
+
     $config = parse_ini_file("$dbConfig", true);
     if (!empty($config['connection'])) {
       /* rw and/or ro are expected */
@@ -909,6 +911,9 @@ if (file_exists("$dbConfig")) {
     /* a partir daqui, o sistema (neste ciclo) usará o servidor configurado em CFGEmailSMTPConfig */
     $CFGServer['CFGEmailSMTPConfig'] = _getValue($CFGServer['CFGEmailSMTPServers'], _getValue($CFGServer, 'CFGEmailSMTP', 'none'), [0 => []])[$auxNdxRnd];
 
+    if ($oldCFGLogFilename != $CFGServer['CFGLogFilename']) {
+      _log("Log file changed to ".$CFGServer['CFGLogFilename']);
+    }    
     /* publicar CFGServer */
     foreach ($CFGServer as $key => $value) {
       $GLOBALS[$key] = $value;
