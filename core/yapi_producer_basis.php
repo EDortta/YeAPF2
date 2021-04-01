@@ -49,15 +49,19 @@ abstract class YApiProducer implements YeapfPlugin {
       // second - check the folder is writable
       if (!$canUseCacheFolder) {
         $CFGCacheFolder = tempnam(sys_get_temp_dir(), $CFGSiteId);
-        if (file_exists($CFGCacheFolder))
+        if (file_exists($CFGCacheFolder)) {
           unlink($CFGCacheFolder);
+        }
+
         mkdir($CFGCacheFolder);
         _log("Cache temporary folder created: '$CFGCacheFolder'");
       }
       $CFGCacheConfigured = true;
 
-      if ($OriginalCFGCacheFolder != $CFGCacheFolder)
+      if ($OriginalCFGCacheFolder != $CFGCacheFolder) {
         _setConfigEntry('site', 'cache_folder', $CFGCacheFolder);
+      }
+
     }
 
     // third - as the base exists and is writable, we can trust the remain
@@ -66,8 +70,10 @@ abstract class YApiProducer implements YeapfPlugin {
       if (substr($posfix, 0, 1) != '/') {
         $posfix = "/$posfix";
       } else {
-        if ($posfix=='/')
+        if ($posfix == '/') {
           $posfix = '';
+        }
+
       }
     }
     $ret = __removeLastSlash($CFGCacheFolder) . $posfix;
@@ -91,6 +97,7 @@ class YApiProducerBasis extends YApiProducer {
 
   public function __construct() {
     $this->registerEntry("export", "GET", "/export", '{ "applicability": "Integer" }', true);
+    $this->registerEntry("show", "GET", "/show", '{ "applicability": "Integer" }', true);
   }
 
   public function defineAPIName($apiName) {
@@ -428,6 +435,35 @@ class YApiProducerBasis extends YApiProducer {
 
     return $ret;
 
+  }
+
+  public function show($applicability = API_DEFAULT) {
+    if ($applicability == "_undefined_") {
+      $applicability = API_DEFAULT;
+    }
+
+    _http_response_code(200);
+    $filteredEntries = [ $this->apiName => []];
+    foreach ($this->entryPoints as $entryPath => $entryDefinition) {
+      // $entry = $entryDefinition;
+
+      foreach ($entryDefinition as $key => $value) {
+        //$first_key = key($entry);
+
+        $_callerFile    = $entryDefinition[$key]['_callerFile'];
+        $_path          = $entryDefinition[$key]['_path'];
+        $_params          = $entryDefinition[$key]['_params'];
+        $_callerClass   = $entryDefinition[$key]['_callerClass'];
+        $_applicability = $entryDefinition[$key]['_applicability'];
+        // die(print_r($value));
+
+        if (($applicability & $_applicability) > 0) {
+          $filteredEntries[$this->apiName][$_path] = $_params;
+        }
+      }
+    }
+
+    return $filteredEntries;
   }
 
   public function export($applicability = API_DEFAULT) {

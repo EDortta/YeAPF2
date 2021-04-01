@@ -67,6 +67,8 @@ header("Pragma: no-cache");
 
 $api = new YApiProducerBasis;
 
+$pluginManager->loadPlugins("basis");
+
 $pluginManager->loadPlugins("modules");
 
 $pluginManager->loadPlugins("plugins");
