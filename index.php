@@ -38,14 +38,14 @@ $CFGContext = array_merge(
   _extractSimilarValues($CFGApp, "layout_"),
   _extractSimilarValues($CFGApp, "html_"),
   [
-    'CFGSiteFolder'     => $CFGSiteFolder,
-    'CFGSiteURL'        => $CFGSiteURL,
-    'CFGSiteAPI'        => $CFGSiteAPI,
-    'CFGToken'          => $CFGToken,
-    'CFGSiteURLAdm'     => $CFGSiteURLAdm,
-    'CFGURL'            => mb_strtolower(getDomain($CFGSiteURL)),
+    'CFGSiteFolder' => $CFGSiteFolder,
+    'CFGSiteURL'    => $CFGSiteURL,
+    'CFGSiteAPI'    => $CFGSiteAPI,
+    'CFGToken'      => $CFGToken,
+    'CFGSiteURLAdm' => $CFGSiteURLAdm,
+    'CFGURL'        => mb_strtolower(getDomain($CFGSiteURL)),
 
-    'css_files'         => _getValue($CFGApp, 'css_files'),
+    'css_files'     => _getValue($CFGApp, 'css_files'),
 
   ]);
 
@@ -78,7 +78,7 @@ $pluginManager->loadPlugins("modules");
  */
 $pluginManager->loadPlugins("plugins");
 
-$css_files_aux                 = explode(",", $CFGContext['css_files']);
+$css_files_aux                = explode(",", $CFGContext['css_files']);
 $CFGContext['css_files_html'] = '';
 foreach ($css_files_aux as $ndx => $cssFile) {
   $cssFile = trim($cssFile);
@@ -103,7 +103,7 @@ if (in_array($subject, ['welcome', 'login', 'recoverPassword', 'sign', 'logout']
 if (!file_exists($index_name)) {
   _die("Arquivo $index_name não localizado");
 }
-die(__FILE__ . " at " . __LINE__);
+//   die(__FILE__ . " at " . __LINE__);
 $index = file_get_contents($index_name);
 
 /**
