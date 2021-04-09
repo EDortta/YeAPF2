@@ -1,12 +1,11 @@
 <?php
-class ExemploPlugin implements CronosPlugin
-{
-    public function initialize($domain, $gateway, $contexto) {
+class ExemploPlugin implements YeapfPlugin {
+  public function initialize($domain, $gateway, &$contexto) {
 
-      return true;
-    }
+    return true;
+  }
 
-    public function do($subject, $action, ...$params) {
+  public function do($subject, $action, ...$params) {
 
-    }
+  }
 }

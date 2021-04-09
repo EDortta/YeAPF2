@@ -3,7 +3,7 @@ class SamplePlugin extends YApiProducer {
   private $domain;
   private $gateway;
 
-  public function initialize($domain, $gateway, $contexto) {
+  public function initialize($domain, $gateway, &$contexto) {
     global $api;
     $this->$domain  = $domain;
     $this->$gateway = $gateway;
@@ -63,8 +63,8 @@ class SamplePlugin extends YApiProducer {
         /**
          * if the answer is in cache, use it
          */
-        $ret['cached'] = true;
-        $ret['response'] = json_decode(file_get_contents($cacheLocation . "/$ip.json"),true);
+        $ret['cached']   = true;
+        $ret['response'] = json_decode(file_get_contents($cacheLocation . "/$ip.json"), true);
 
       } else {
         /**
@@ -95,14 +95,14 @@ class SamplePlugin extends YApiProducer {
         if ($err) {
           $ret['error'] = $err;
         } else {
-          if (substr($response,0,3)!='404') {
+          if (substr($response, 0, 3) != '404') {
             /**
              * Save in cache file
              */
             file_put_contents($cacheLocation . "/$ip.json", $response);
           }
-          $ret['response'] = json_decode($response,true);
-          
+          $ret['response'] = json_decode($response, true);
+
         }
       }
 

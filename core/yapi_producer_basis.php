@@ -3,7 +3,7 @@ require_once __DIR__ . "/yapi_producer_defines.php";
 
 abstract class YApiProducer implements YeapfPlugin {
 
-  public function initialize($domain, $gateway, $contexto) {
+  public function initialize($domain, $gateway, &$contexto) {
 
   }
 
@@ -443,7 +443,7 @@ class YApiProducerBasis extends YApiProducer {
     }
 
     _http_response_code(200);
-    $filteredEntries = [ $this->apiName => []];
+    $filteredEntries = [$this->apiName => []];
     foreach ($this->entryPoints as $entryPath => $entryDefinition) {
       // $entry = $entryDefinition;
 
@@ -452,7 +452,7 @@ class YApiProducerBasis extends YApiProducer {
 
         $_callerFile    = $entryDefinition[$key]['_callerFile'];
         $_path          = $entryDefinition[$key]['_path'];
-        $_params          = $entryDefinition[$key]['_params'];
+        $_params        = $entryDefinition[$key]['_params'];
         $_callerClass   = $entryDefinition[$key]['_callerClass'];
         $_applicability = $entryDefinition[$key]['_applicability'];
         // die(print_r($value));

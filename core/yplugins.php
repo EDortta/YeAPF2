@@ -20,7 +20,7 @@ interface YeapfPlugin {
    * (context) é um vetor associativo com o contexto operacional
    * em que o plugin está operando.
    */
-  public function initialize($domain, $gateway, $context);
+  public function initialize($domain, $gateway, &$context);
 
   /**
    * É o miolo do plugin.
@@ -61,6 +61,8 @@ class PluginManager {
         if (!($plugin == '.' || $plugin == '..')) {
           $isBasisConfigFile = ('basis' == $folder && $plugin == 'config.ini');
           $isFolderIntoBasis = ('basis' == $folder && is_dir("$folder/$plugin"));
+
+          echo "[ $folder/$plugin ]\n";
           if (!$isFolderIntoBasis) {
             if (is_dir("$folder/$plugin") || $isBasisConfigFile) {
 
@@ -74,6 +76,8 @@ class PluginManager {
               } else {
                 $pluginIniFile = "$folder/$plugin/config.ini";
               }
+
+              echo "$pluginIniFile\n";
 
               if (file_exists($pluginIniFile)) {
                 $pluginIni    = @parse_ini_file($pluginIniFile, true);
@@ -150,6 +154,7 @@ class PluginManager {
                              */
                             $gateway                                           = self::$currentGateway;
                             $GLOBALS['__yPluginsRepo'][$pluginName]['enabled'] = $GLOBALS['__yPluginsRepo'][$pluginName]['_class']->initialize($currentDomain, $gateway, $CFGContext);
+
                           }
                         }
                       } else {

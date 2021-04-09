@@ -1,8 +1,6 @@
 <?php
 
-
-class yAnaliserClassFoundation
-{
+class yAnaliserClassFoundation {
   private $identifier;
   private $float;
   private $integer;
@@ -11,8 +9,10 @@ class yAnaliserClassFoundation
   private $literal2;
   private $functionName;
 
-  public function __construct()
-  {
+  private $userFunctions;
+  private $stack;
+
+  public function __construct() {
     $this->operators  = "(>=|<=|==|>|<|\||\&)";
     $this->identifier = "([a-zA-Z_]{1}[a-zA-Z0-9_]*)";
     $this->float      = "([\-\+]{0,1}[0-9.]*)";
@@ -22,10 +22,39 @@ class yAnaliserClassFoundation
     $this->literal2   = "([\"]{1}.*[\"]{1})";
 
     $this->functionName = "#($this->identifier{0,248})\(";
+
+    $this->userFunctions = [];
+
+    $this->stack = [];
   }
 
-  public function getValueDefault($array, $key, $defaultValue)
-  {
+  public function __call($name, $args) {
+    $args           = $args[0];
+    $args['caller'] = $this;
+    return $this->userFunctions[$name]->invoke(new $this->userFunctions[$name]->class, $args);
+  }
+
+  public function declareUserFunction($userFunctionName, $userFunctionBody) {
+    $this->userFunctions[$userFunctionName] = $userFunctionBody;
+  }
+
+  public function undeclareUserFunction($userFunctionName) {
+    if (array_key_exists($userFunctionName, $this->userFunctions)) {
+      unset($this->userFunctions);
+    }
+  }
+
+  function adoptClass($sourceClassNameOrClass) {
+    $class   = new ReflectionClass($sourceClassNameOrClass);
+    $methods = $class->getMethods();
+    foreach ($methods as $methodInfo) {
+      $methodName  = $methodInfo->name;
+      $methodClass = $methodInfo->class;
+      $this->declareUserFunction($methodName, $class->getMethod($methodName));
+    }
+  }
+
+  public function getValueDefault($array, $key, $defaultValue) {
     $ret = $defaultValue;
     if (is_array($array)) {
       if (!empty($array[$key])) {
@@ -36,8 +65,7 @@ class yAnaliserClassFoundation
     return $ret;
   }
 
-  public function getParamValue($array, $index, $defaultValue)
-  {
+  public function getParamValue($array, $index, $defaultValue) {
     $ret = $defaultValue;
     if (is_array($array)) {
       if (!empty($array[$index])) {
@@ -48,32 +76,27 @@ class yAnaliserClassFoundation
     return $ret;
   }
 
-  public function isInteger($strExpr)
-  {
+  public function isInteger($strExpr) {
     preg_match_all("/$this->integer/", $strExpr, $test);
     return (count($test[0]) > 0) && ($test[0][0] == $strExpr);
   }
 
-  public function isNumber($strExpr)
-  {
+  public function isNumber($strExpr) {
     preg_match_all("/$this->float/", $strExpr, $test);
     return (count($test[0]) > 0) && ($test[0][0] == $strExpr);
   }
 
-  public function isIdentifier($strExpr)
-  {
+  public function isIdentifier($strExpr) {
     preg_match_all("/$this->identifier/", $strExpr, $test);
     return (count($test[0]) > 0) && ($test[0][0] == $strExpr);
   }
 
-  public function isLiteral($strExpr)
-  {
+  public function isLiteral($strExpr) {
     preg_match_all("/$this->literal1|$this->literal2/", $strExpr, $test);
     return (count($test[0]) > 0) && ($test[0][0] == $strExpr);
   }
 
-  private function unquote($value)
-  {
+  private function unquote($value) {
     $firstChar = substr($value, 0, 1);
     if (substr($value, strlen($value) - 1) == $firstChar) {
       $value = substr($value, 1, strlen($value) - 2);
@@ -81,8 +104,7 @@ class yAnaliserClassFoundation
     return $value;
   }
 
-  private function quote($value)
-  {
+  private function quote($value) {
     $c1 = substr($value, 0, 1);
     if ($c1 == '"') {
       $quote = "'";
@@ -94,8 +116,7 @@ class yAnaliserClassFoundation
     return $value;
   }
 
-  private function explodeParameters($strExpr, $aValues)
-  {
+  private function explodeParameters($strExpr, $aValues) {
     $params = array();
     preg_match_all('/([^,]+)/', $strExpr, $output_array);
     for ($i = 0; $i < count($output_array[0]); $i++) {
@@ -125,8 +146,7 @@ class yAnaliserClassFoundation
     return $params;
   }
 
-  public function console($paramList)
-  {
+  public function console($paramList) {
     $ret = '';
     if (is_array($paramList)) {
       for ($p = 0; $p < count($paramList); $p++) {
@@ -136,12 +156,21 @@ class yAnaliserClassFoundation
     return trim($ret);
   }
 
-  private function _($paramList)
-  {
+  private function _($paramList) {
     return $this->console($paramList);
   }
 
-  function do($strExpr = null, $aValues = []) {
+  function do($strExpr = null, $aValues = null) {
+    $stackPtr = count($this->stack);
+    if (empty($aValues) || (!is_array($aValues))) {
+      if ($stackPtr > 0) {
+        $aValues = $this->stack[$stackPtr];
+      } else {
+        $aValues = [];
+      }
+    } else {
+      $this->stack[$stackPtr++] = $aValues;
+    }
     $ret = false;
     if (is_string($strExpr)) {
       $ret = $strExpr;
@@ -169,7 +198,9 @@ class yAnaliserClassFoundation
           $params   = $this->explodeParameters($funcParams, $aValues);
           $funcName = "_$funcName";
 
-          if (method_exists($this, $funcName)) {
+          if ((method_exists($this, $funcName)) ||
+            (array_key_exists($funcName, $this->userFunctions))
+          ) {
             $positional[$i]['replacement'] = $this->$funcName($params);
           } else {
             $positional[$i]['replacement'] = "[ Warning: $funcName() not found! ]";
@@ -197,6 +228,7 @@ class yAnaliserClassFoundation
 
       }
     }
+    array_pop($this->stack);
     return $ret;
   }
 }
@@ -204,16 +236,15 @@ class yAnaliserClassFoundation
 /**
  *
  */
-class yAnaliserClass extends yAnaliserClassFoundation
-{
+class yAnaliserClass extends yAnaliserClassFoundation {
+  private $userFunctions;
 
-  public function __construct()
-  {
+  public function __construct() {
     parent::__construct();
+    $this->userFunctions = [];
   }
 
-  public function _decimal2($params)
-  {
+  public function _decimal2($params) {
     $ret           = null;
     $value         = $this->getParamValue($params, 0, 0);
     $decimals      = $this->getParamValue($params, 1, 2);
@@ -222,51 +253,6 @@ class yAnaliserClass extends yAnaliserClassFoundation
     if (!empty($params[0]['value'])) {
       $ret = number_format($value, $decimals, $dec_point, $thousands_sep);
     }
-    return $ret;
-  }
-
-  public function _CNPJ($params)
-  {
-    $ret  = '';
-    $cnpj = $this->getParamValue($params, 0, 0);
-    $cnpj = preg_replace('/[^0-9]/', '', $cnpj);
-    // exemplo 70.106.552/0001-64
-    // 70106552000164
-    while (strlen($cnpj) < 14) {
-      $cnpj = "0$cnpj";
-    }
-
-    $ret = substr($cnpj, 0, 2) . '.' . substr($cnpj, 2, 3) . '.' . substr($cnpj, 5, 3) . '/' . substr($cnpj, 8, 4) . '-' . substr($cnpj, 12, 2);
-    return $ret;
-  }
-
-  public function _CPF($params)
-  {
-    $ret = '';
-    $cpf = $this->getParamValue($params, 0, 0);
-    $cpf = preg_replace('/[^0-9]/', '', $cpf);
-    // exemplo 111.111.111-11
-    // 11111111111
-    while (strlen($cpf) < 11) {
-      $cpf = "0$cpf";
-    }
-
-    $ret = substr($cpf, 0, 3) . '.' . substr($cpf, 3, 3) . '.' . substr($cpf, 6, 3) . '-' . substr($cpf, 11, 2);
-    return $ret;
-  }
-
-  public function _CEP($params)
-  {
-    $ret = '';
-    $cep = $this->getParamValue($params, 0, 0);
-    $cep = pref_replace('/[^0-9]/', '', $cep);
-    // 11.111-111
-    // 11111111
-    while (strlen($cep) < 8) {
-      $cep = "0$cep";
-    }
-
-    $ret = substr($cep, 0, 2) . '.' . substr($cep, 2, 3) . '-' . substr($cep, 5, 3);
     return $ret;
   }
 
