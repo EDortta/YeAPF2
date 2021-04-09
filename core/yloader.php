@@ -622,7 +622,7 @@ $CFGLogLevel    = 1;
 
 _log("Starting...");
 /* wired parts */
-$yLibs = ['ybasis.php', 'ymisc.php', 'yparser.php', 'yanaliser.php', 'ydbskeleton.php'];
+$yLibs = ['ybasis.php', 'ymisc.php', 'yparser.php', 'yanaliser.php', 'ydbskeleton.php', 'yi18n.php'];
 
 $yCoreFolder      = __DIR__;
 $alternativeParts = "$yCoreFolder/.config/yloader.lst";
@@ -704,29 +704,97 @@ if (file_exists("$dbConfig")) {
     if (is_writeable($dbConfig)) {
       $section             = _getConfigSection($sectionName);
       $section[$entryName] = addslashes($entryValue);
-  
+
       $__parserConfigFile[$sectionName] = $section;
-  
+
       $res = [];
-      foreach($__parserConfigFile as $key => $val)
-      {
-          if(is_array($val)) {
-              $res[] = "[$key]";
-              foreach($val as $skey => $sval) {
-                $res[] = "$skey = ".(is_numeric($sval) ? $sval : '"'.$sval.'"');
-              }
-              $res[]='';
-          } else {
-            $res[] = "$key = ".(is_numeric($val) ? $val : '"'.$val.'"');
+      foreach ($__parserConfigFile as $key => $val) {
+        if (is_array($val)) {
+          $res[] = "[$key]";
+          foreach ($val as $skey => $sval) {
+            $res[] = "$skey = " . (is_numeric($sval) ? $sval : '"' . $sval . '"');
           }
+          $res[] = '';
+        } else {
+          $res[] = "$key = " . (is_numeric($val) ? $val : '"' . $val . '"');
+        }
       }
-  
-  
-      if (!_saveTextFile($dbConfig, implode("\n",$res)))
+
+      if (!_saveTextFile($dbConfig, implode("\n", $res))) {
         _die("$dbConfig cannot be written");
+      }
+
     } else {
       _die("$dbConfig is not writable");
     }
+  }
+
+  function _grantCacheFolder($posfix = '') {
+    global $CFGCacheFolder, $CFGCacheConfigured, $CFGSiteId;
+
+    $CFGCacheConfigured = (empty($CFGCacheConfigured) ? false : $CFGCacheConfigured);
+    if (!$CFGCacheConfigured) {
+      $OriginalCFGCacheFolder = $CFGCacheFolder;
+
+      $canUseCacheFolder = false;
+      // first - check folder exists
+      if (!is_dir($CFGCacheFolder)) {
+        _log("Cache folder '$CFGCacheFolder' does not exists");
+        if (is_writeable(dirname($CFGCacheFolder))) {
+          $canUseCacheFolder = @mkdir($CFGCacheFolder);
+          if (!$canUseCacheFolder) {
+            _log("Cache folder '$CFGCacheFolder' cannot be created");
+          }
+
+        } else {
+          _log("Cache container folder '" . dirname($CFGCacheFolder) . "' cannot be written");
+        }
+      } else {
+        $canUseCacheFolder = is_writable($CFGCacheFolder);
+        if (!$canUseCacheFolder) {
+          _log("Cache folder '$CFGCacheFolder' cannot be written");
+        }
+      }
+
+      // second - check the folder is writable
+      if (!$canUseCacheFolder) {
+        $CFGCacheFolder = tempnam(sys_get_temp_dir(), $CFGSiteId);
+        if (file_exists($CFGCacheFolder)) {
+          unlink($CFGCacheFolder);
+        }
+
+        mkdir($CFGCacheFolder);
+        _log("Cache temporary folder created: '$CFGCacheFolder'");
+      }
+      $CFGCacheConfigured = true;
+
+      if ($OriginalCFGCacheFolder != $CFGCacheFolder) {
+        _setConfigEntry('site', 'cache_folder', $CFGCacheFolder);
+      }
+
+    }
+
+    // third - as the base exists and is writable, we can trust the remain
+    $posfix = trim(__removeLastSlash($posfix));
+    if ($posfix > '') {
+      if (substr($posfix, 0, 1) != '/') {
+        $posfix = "/$posfix";
+      } else {
+        if ($posfix == '/') {
+          $posfix = '';
+        }
+
+      }
+    }
+    $ret = __removeLastSlash($CFGCacheFolder) . $posfix;
+
+    // fourth - if desired folder does not exists, create it
+    if (!is_dir($ret)) {
+      _log("Cache creating folder '$ret'");
+      mkdir($ret, 0777, true);
+    }
+
+    return $ret;
   }
 
   function _configApplication() {

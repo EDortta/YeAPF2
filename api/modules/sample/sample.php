@@ -49,7 +49,7 @@ class SamplePlugin extends YApiProducer {
     $ret = $this->emptyRet(200);
 
     // we would like to use a cache in order to void repetitive request
-    $cacheLocation = $this->grantCacheFolder(".geoLocation");
+    $cacheLocation = _grantCacheFolder(".geoLocation");
 
     if (!is_writable($cacheLocation)) {
       $ret['http_code'] = 507;
