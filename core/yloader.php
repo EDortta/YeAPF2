@@ -622,7 +622,7 @@ $CFGLogLevel    = 1;
 
 _log("Starting...");
 /* wired parts */
-$yLibs = ['ybasis.php', 'ymisc.php', 'yparser.php', 'yanaliser.php', 'ydbskeleton.php', 'yi18n.php'];
+$yLibs = ['ybasis.php', 'ymisc.php', 'yparser.php', 'yanalyzer.php', 'ydbskeleton.php', 'yi18n.php'];
 
 $yCoreFolder      = __DIR__;
 $alternativeParts = "$yCoreFolder/.config/yloader.lst";
@@ -1119,6 +1119,13 @@ function _getTemplate($templateName) {
   return $ret;
 }
 
+/**
+ * Minifies an HTML string in order to spent less space
+ *
+ * @param      string  $buffer  The HTML string
+ *
+ * @return     string  Minified HTML
+ */
 function minifyHtml($buffer) {
 
   $search = array(
@@ -1141,20 +1148,18 @@ function minifyHtml($buffer) {
 }
 
 /**
- * Validação de valores
- * #     #
- * #     #    ##    #          #    #####     ##     ####    ####   ######   ####
- * #     #   #  #   #          #    #    #   #  #   #    #  #    #  #       #
- * #     #  #    #  #          #    #    #  #    #  #       #    #  #####    ####
- *  #   #   ######  #          #    #    #  ######  #       #    #  #            #
- *   # #    #    #  #          #    #    #  #    #  #    #  #    #  #       #    #
- *    #     #    #  ######     #    #####   #    #   ####    ####   ######   ####
- **/
+ * Extract the domain placed into an URL.
+ *
+ * @param      string  $url    The complete URL containing domain
+ *
+ * @return     mixed    An string with the domain or FALSE.
+ */
 function getDomain($url) {
   $pieces = parse_url($url);
   $domain = isset($pieces['host']) ? $pieces['host'] : '';
   if (preg_match('/(?P<domain>[a-z0-9][a-z0-9\-]{1,63}\.[a-z\.]{2,6})$/i', $domain, $regs)) {
     return $regs['domain'];
+  } else {
+    return false;
   }
-  return false;
 }

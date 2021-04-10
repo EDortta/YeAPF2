@@ -19,4 +19,4 @@ class yi18n {
   }
 }
 
-$yAnaliser->adoptClass("yi18n");
+$yAnalyzer->adoptClass("yi18n");

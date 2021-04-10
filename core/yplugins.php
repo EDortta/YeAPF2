@@ -9,7 +9,7 @@
  **/
 
 /**
- * YeAPF plugin interface
+ * Plugin interface
  *
  * All Plugins must implement at least the methods here declared.
  * Outside that, the Plugin can behave as any other class.
@@ -56,9 +56,27 @@ interface YeapfPlugin
   public function do($subject, $action, ...$params);
 }
 
+/**
+ * PluginManager Class
+ *
+ * All kind of plugins will be managed by this class.
+ * Basis is a single plugin that is loaded prior to others.
+ * Modules are considered as first class plugins.
+ * Plugins are treated as customer addition to main system.
+ */
 class PluginManager
 {
+  /**
+   * List of loaded plugins
+   *
+   * @var        array
+   */
   static $plugins        = null;
+  /**
+   * Current gateway under wich this application is running... now
+   *
+   * @var        string
+   */
   static $currentGateway = null;
 
   public function __construct()
@@ -75,9 +93,23 @@ class PluginManager
     }
   }
 
+  /**
+   * Load the plugins present in the specified folder
+   *
+   * This method is used by api.php, index.php and others where is
+   * needed to load the plugins from a folder.
+   * Meanwhile the order inside the folder is controlled by this
+   * method, the order in which the folders are loaded are controled
+   * by the caller.
+   *
+   * @param string $folder indicates from which folder the plugins
+   *                        will be loaded.
+   *
+   * @return null
+   */
   static public function loadPlugins($folder)
   {
-    global $yAnaliser, $CFGContext;
+    global $yAnalyzer, $CFGContext;
     $currentDomain = mb_strtolower(getDomain(_getValue($CFGContext, 'CFGSiteURL', '')));
     if (is_dir("$folder")) {
       $pluginsFolder = scandir("$folder");
@@ -155,7 +187,7 @@ class PluginManager
                          * Each parameter is analised in order to help in build the plugin context
                          */
                         foreach ($pluginConfig as $key => $value) {
-                          $aux                                          = $yAnaliser->do($value, $CFGContext);
+                          $aux                                          = $yAnalyzer->do($value, $CFGContext);
                           $GLOBALS['__yPluginsRepo'][$pluginName][$key] = $aux;
                         }
 
@@ -196,31 +228,57 @@ class PluginManager
     }
   }
 
+  /**
+   * Plugin caller
+   *
+   * Is the responsible method used to call a plugin, any of them.
+   * Only if the plugin attend to the subject, is called.
+   * The first plugin to answer makes the algorithm break the search.
+   * If the plugin has a class, then the do() method of this class
+   * will be called, otherwise, if there is a file (a.k.a. an html)
+   * then this file will be processed but first, the manager changes
+   * the current folder to the file folder in order to enforces an
+   * isolated environment for the plugin.
+   *
+   * @param      string  $subject    Usually a noun
+   * @param      string  $action     Usually a verb
+   * @param      mixed   ...$params  A set of parameters sent by URL,
+   *                                 a POST array, a JSON body, etc
+   *
+   * @return     string  The return of the executed plugin. In case
+   *                     of being a plugin class which answer the call
+   *                     then, it is an encoded json block.
+   */
   static public function callPlugin($subject, $action, ...$params)
   {
-    global $yAnaliser, $CFGContext;
+    global $yAnalyzer, $CFGContext;
     $gateway = self::$currentGateway;
+    $answered = false;
     $ret     = '';
     foreach ($GLOBALS['__yPluginsRepo'] as $key => $pluginDefinition) {
-      if ($key == $subject) {
-        if (!empty($pluginDefinition['_class'])) {
-          $pluginDefinition['_class']->do($subject, $action, $params);
-        } else {
-          if (!empty($pluginDefinition['file'])) {
-            $wd = getcwd();
-            if (chdir($pluginDefinition['folder'])) {
-              $content = file_get_contents($pluginDefinition['file']);
-              /**
-               * replace script references
-               */
-              $content = preg_replace('/src[\ ]*=[\ ]*([\'"]){0,1}([a-zA-Z_0-9\.]{1}[a-zA-Z0-9\.\/_]*)([\'"]){0,1}/', 'src="#cwd()/$2"', $content);
-              $content = preg_replace('/link(.*)href[\ ]*=[\ ]*([\'"]){0,1}([a-zA-Z_0-9\.]{1}[a-zA-Z0-9\.\/_]*)([\'"]){0,1}/', 'link$1href="#cwd()/$3"', $content);
+      if (!$answered) {
+        if ($key == $subject) {
+          if (!empty($pluginDefinition['_class'])) {
+            $ret = json_encode($pluginDefinition['_class']->do($subject, $action, $params));
+            $answered = true;
+          } else {
+            if (!empty($pluginDefinition['file'])) {
+              $wd = getcwd();
+              if (chdir($pluginDefinition['folder'])) {
+                $content = file_get_contents($pluginDefinition['file']);
+                /**
+                 * replace script references
+                 */
+                $content = preg_replace('/src[\ ]*=[\ ]*([\'"]){0,1}([a-zA-Z_0-9\.]{1}[a-zA-Z0-9\.\/_]*)([\'"]){0,1}/', 'src="#cwd()/$2"', $content);
+                $content = preg_replace('/link(.*)href[\ ]*=[\ ]*([\'"]){0,1}([a-zA-Z_0-9\.]{1}[a-zA-Z0-9\.\/_]*)([\'"]){0,1}/', 'link$1href="#cwd()/$3"', $content);
 
-              /**
-               * apply the preprocessor
-               */
-              $ret = $yAnaliser->do($content, $CFGContext);
-              chdir($wd);
+                /**
+                 * apply the preprocessor
+                 */
+                $ret = $yAnalyzer->do($content, $CFGContext);
+                $answered = true;
+                chdir($wd);
+              }
             }
           }
         }
