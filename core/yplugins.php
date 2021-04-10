@@ -8,38 +8,61 @@
  * %COPYRIGHT_NOTE%
  **/
 
-interface YeapfPlugin {
+/**
+ * YeAPF plugin interface
+ *
+ * All Plugins must implement at least the methods here declared.
+ * Outside that, the Plugin can behave as any other class.
+ */
+interface YeapfPlugin
+{
+
   /**
-   * Chamado assim que o plugin é carregado, tem por função
-   * inicializar o mesmo e prepara-lo para funcionar.
-   * É um método puro devolvendo apenas true ou false se
-   * a inicialização deu certo.
-   * (domain) é o dominio sob o qual o plugin está funcionando
-   * (gateway) é a via pela que o sistema está chamando o plugin:
-   * api, web ou cli
-   * (context) é um vetor associativo com o contexto operacional
-   * em que o plugin está operando.
+   * Plugin Initializator.
+   *
+   * Called as soon as the plugin is loaded, it has the function
+   * of initialize it and get it ready to work.
+   * It is a pure method returning only true or false if the
+   * initialization worked.
+   * @param string $domain  the domain under which the plugin is working
+   * @param string $gateway the means by which the system is calling
+   *                        the plugin: api, web or cli
+   * @param string $context an associative vector with the operational
+   *                        context the plugin is operating on.
+   * @return boolean  Indicates if the plugin can or cannot be used.
    */
+
   public function initialize($domain, $gateway, &$context);
 
   /**
-   * É o miolo do plugin.
-   * Por meio deste método a API e a WEB se comunicam com o plugin.
-   * O primeiro parâmetro (subject) é em geral um substantivo
-   * ao passo que o segundo (action) indica a ação a ser realizada sob
-   * o substantivo anterior.
-   * Já os outros parâmetros podem ser qualquer coisa que o programador
-   * precisar.
+   * plugin core method.
    *
+   * It is the core of the plugin.
+   * Through this method, the API and the WEB communicate
+   * with the plugin.
+   * When it is called from api, in a positional URL, the
+   * first parameter will be the subject and the second
+   * the action. As in /clients/list.
+   *
+   * @param string $subject It's ussualiy a noun telling the system
+   *                        the subject, or chapter on where the
+   *                        action will take place
+   * @param string $action  It uses to be a verb that indicates the
+   *                        action to be performed under the previous
+   *                        noun.
+   *
+   * @return yReturnType
    */
   public function do($subject, $action, ...$params);
 }
 
-class PluginManager {
+class PluginManager
+{
   static $plugins        = null;
   static $currentGateway = null;
 
-  public function __construct() {
+  public function __construct()
+  {
     $GLOBALS['__yPluginsRepo'] = [];
     if (__outputIsJson()) {
       self::$currentGateway = 'api';
@@ -52,7 +75,8 @@ class PluginManager {
     }
   }
 
-  static public function loadPlugins($folder) {
+  static public function loadPlugins($folder)
+  {
     global $yAnaliser, $CFGContext;
     $currentDomain = mb_strtolower(getDomain(_getValue($CFGContext, 'CFGSiteURL', '')));
     if (is_dir("$folder")) {
@@ -172,7 +196,8 @@ class PluginManager {
     }
   }
 
-  static public function callPlugin($subject, $action, ...$params) {
+  static public function callPlugin($subject, $action, ...$params)
+  {
     global $yAnaliser, $CFGContext;
     $gateway = self::$currentGateway;
     $ret     = '';
