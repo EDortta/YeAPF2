@@ -35,7 +35,13 @@ if (DEFAULT_HOST != $HOST) {
 //--------[ low level ]--------
 
 /**
- * Voids the error of request by an inexistent array value
+ * Gets the value default of an array item.
+ *
+ * @param      array   $array    The array
+ * @param      mixed  $key      The array key
+ * @param      mized  $default  The default value
+ *
+ * @return     array   The searched value
  */
 function _getValue($array, $key, $default = null) {
   if (!empty($array)) {
@@ -106,7 +112,7 @@ if (!function_exists('__genDebugId')) {
     }
 
     do {
-      $y   = 2020 - date("Y");
+      $y   = date("Y") - 2020;
       $m   = date("m");
       $d   = date("d");
       $h   = date("H");
@@ -1120,7 +1126,7 @@ function _getTemplate($templateName) {
 }
 
 /**
- * Minifies an HTML string in order to spent less space
+ * Minifies an HTML string in order to spend less space
  *
  * @param      string  $buffer  The HTML string
  *

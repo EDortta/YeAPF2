@@ -2,7 +2,14 @@
 //https://www.w3schools.com/tags/ref_language_codes.asp
 // https://www.baeldung.com/java-8-localization
 
-class yi18n {
+/**
+ * This extensions implement the macro #translate()
+ * It can take from 1 to 3 parameters:
+ *   The phrase to be translated
+ *   The source language and
+ *   The target language
+ */
+class yextensioni18n {
   public function _translate($params) {
     global $CFGContext;
 
@@ -19,4 +26,4 @@ class yi18n {
   }
 }
 
-$yAnalyzer->adoptClass("yi18n");
+$yAnalyzer->adoptClass("yextensioni18n");
