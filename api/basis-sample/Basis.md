@@ -1,6 +1,6 @@
 # Basis
 
-The *basis* folder is a special one ( among *modules* and *plugins* )because it can has *config.ini* in it and it doesen't allow to contain any folder into it.
+The *basis* folder is a special one ( among *modules* and *plugins* ) because it can has *config.ini* in it and it doesn't allow to contain any folder into it.
 
 It was created with application startup configuration in mind. In other words: it is the first plugin loaded and run.
 
