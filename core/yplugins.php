@@ -118,7 +118,7 @@ class PluginManager
           $isBasisConfigFile = ('basis' == $folder && $plugin == 'config.ini');
           $isFolderIntoBasis = ('basis' == $folder && is_dir("$folder/$plugin"));
 
-          echo "[ $folder/$plugin ]\n";
+          // echo "[ $folder/$plugin ]\n";
           if (!$isFolderIntoBasis) {
             if (is_dir("$folder/$plugin") || $isBasisConfigFile) {
 
@@ -133,7 +133,7 @@ class PluginManager
                 $pluginIniFile = "$folder/$plugin/config.ini";
               }
 
-              echo "$pluginIniFile\n";
+              // echo "$pluginIniFile\n";
 
               if (file_exists($pluginIniFile)) {
                 $pluginIni    = @parse_ini_file($pluginIniFile, true);
@@ -151,7 +151,9 @@ class PluginManager
                       $GLOBALS['__yPluginsRepo'][$pluginName]['folder'] = ($isBasisConfigFile ? "$folder" : "$folder/$plugin");
 
                       // API helper
-                      $GLOBALS['__yPluginsIndex'][$pluginIni[$pluginName]['class']] = $pluginName;
+                      if (!empty($pluginIni[$pluginName]['class'])) {
+                        $GLOBALS['__yPluginsIndex'][$pluginIni[$pluginName]['class']] = $pluginName;
+                      }
                     }
                   }
                 }

@@ -13,6 +13,23 @@ if (!function_exists("replaceFilenameExtension")) {
   }
 }
 
+if (!function_exists("_recordCPULoad")) {
+  global $_CPULoadRecord;
+  $_CPULoadRecord = [
+    1  => [],
+    5  => [],
+    15 => [],
+  ];
+  function _recordCPULoad() {
+    global $_CPULoadRecord;
+    $load                     = sys_getloadavg();
+    $ndx                      = count($_CPULoadRecord[1]);
+    $_CPULoadRecord[1][$ndx]  = $load[0];
+    $_CPULoadRecord[5][$ndx]  = $load[1];
+    $_CPULoadRecord[15][$ndx] = $load[2];
+  }
+}
+
 function isValidDocument($country, $document_type, $document) {
 
   $ret = false;
@@ -271,7 +288,7 @@ function reducePictureSize($fileName, $desiredMaxSizeMB = 5) {
     $size1 = filesize($fileName) / 1024 / 1024;
     if ($size1 > $desiredMaxSizeMB) {
 
-      $backupFilename = replaceFilenameExtension("$fileName", ".backup." . getExtension($fileName));
+      $backupFilename = replaceFilenameExtension("$fileName", ".backup." . getFilenameExtension($fileName));
 
       if (copy($fileName, "$backupFilename")) {
         $info          = getimagesize($fileName);
@@ -290,7 +307,7 @@ function reducePictureSize($fileName, $desiredMaxSizeMB = 5) {
         }
 
         if ($podeContinuar) {
-          $newFileName = replaceFilenameExtension("$fileName", ".new." . getExtension($fileName));
+          $newFileName = replaceFilenameExtension("$fileName", ".new." . getFilenameExtension($fileName));
           imagejpeg($image, "$newFileName", 90);
           $size2 = filesize("$newFileName") / 1024 / 1024;
           if ($size1 < $size2) {

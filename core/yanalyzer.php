@@ -386,6 +386,10 @@ class yAnalyzerClassFoundation {
           if ((method_exists($this, $funcName)) ||
             (array_key_exists($funcName, $this->userFunctions))
           ) {
+            if ($funcName=='d_') {
+              print_r($this);
+              die("Calling $funcName(".json_encode($params).")");
+            }
             $positional[$i]['replacement'] = $this->$funcName($params);
           } else {
             $positional[$i]['replacement'] = "[ Warning: $funcName() not found! ]";
@@ -429,6 +433,24 @@ class yAnalyzerClass extends yAnalyzerClassFoundation {
   public function __construct() {
     parent::__construct();
     $this->userFunctions = [];
+  }
+
+  public function _coalesce($paramList) {
+    $paramList = array_merge($paramList, ['type' => 'string', 'value' => '']);
+    return (empty($paramList[0]['value']) ? $paramList[1]['value'] : $paramList[0]['value']);
+  }
+
+  public function _ref($params) {
+    $filename = $this->getParamValue($params, 0, "dummy.ref");
+    $myBase = dirname($_SERVER['SCRIPT_FILENAME']);
+    $targetBase = substr(getcwd(),strlen($myBase));
+    return "proc$targetBase/$filename";
+  }
+
+  public function _cwd() {
+    $dir = dirname($_SERVER['SCRIPT_FILENAME']);
+    $cwd = getcwd();
+    return substr($cwd, strlen($dir) + 1);
   }
 
   /**

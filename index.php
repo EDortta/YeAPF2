@@ -10,7 +10,7 @@
 
 // ini_set('display_errors', 1);
 
-$folders     = ['core', 'lib'];
+$folders     = ['ycore', 'core', 'lib'];
 $yLoaderName = '';
 for ($i = 0; $i < count($folders) && $yLoaderName == ''; $i++) {
   if (file_exists($folders[$i] . "/yloader.php")) {

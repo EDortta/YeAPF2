@@ -94,7 +94,7 @@ function _getDomainFromURL($url = '') {
   }
 
   preg_match_all('/[a-zA-Z0-9]*\.([a-zA-Z0-9\.]*)/', $url, $output_array);
-  $ret = $output_array[0][0];
+  $ret = _getValue($output_array[0],0,'');
   $ret = str_replace("www.", "", $ret);
   return $ret;
 }

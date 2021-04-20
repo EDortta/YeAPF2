@@ -561,12 +561,18 @@ if (!function_exists("_die")) {
 
 $auxDebugErroDesc = '';
 
-function __definirURL($url_app, $uri_base = '', $forcar_https = null) {
-  global $CFGServer;
+function __definirURL($url_app, $uri_base = '', $forcar_https = null, $api_base = '') {
+  global $CFGServer, $yAnalyzer;
   if ($uri_base == '') {
     $uri_base = _getValue($GLOBALS, '__uri_base', '/');
   } else {
     $GLOBALS['__uri_base'] = $uri_base;
+  }
+
+  if ($api_base == '') {
+    $api_base = _getValue($GLOBALS, '__api_base', '/');
+  } else {
+    $GLOBALS['__api_base'] = $api_base;
   }
 
   if ($forcar_https == null) {
@@ -575,10 +581,27 @@ function __definirURL($url_app, $uri_base = '', $forcar_https = null) {
     $GLOBALS['__forcar_https'] = $forcar_https;
   }
 
+  $api_base = trim($api_base);
+
+  if (0 == strlen($api_base)) {
+    $api_base = '/api/';
+  }
+
+  $CFGCronos['CFGCurrentDomain'] = _getDomainFromURL($url_app);
+
   $CFGServer['CFGSiteURL'] = __removeLastSlash($url_app . $uri_base);
 
   /* URL da API */
   $CFGServer['CFGSiteAPI'] = __removeLastSlash($url_app . '/api') . '/';
+
+  $aux_API_URL = _getDomainFromURL($api_base);
+  if ($aux_API_URL=='') {
+    $CFGCronos['CFGSiteAPI'] = __removeLastSlash(__removeLastSlash($url_app). '/' . __removeLastSlash($api_base)) . '/';
+  } else {
+    $CFGCronos['CFGSiteAPI'] = $api_base;
+  }
+  /* macro-substitição */
+  $CFGCronos['CFGSiteAPI'] = $yAnalyzer->do($CFGCronos['CFGSiteAPI'], $CFGCronos);
 
   /* URL do /sistema */
   $CFGServer['CFGSiteURLAdm'] = $CFGServer['CFGSiteURL'] . "/sistema";
