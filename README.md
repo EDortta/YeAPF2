@@ -46,6 +46,14 @@ YeAPF2, like its first version, has a large part written in Javascript. Some yea
 
 This trend continues in YeAPF2 and will be further strengthened as we think of mirroring YeAPF2 to work in Node. In other words, PHP would be just an option.
 
+#### How to contribute
+
+As it is a one-only-man project, your concrete contribution will be a good reward for this work.
+
+You can use PayPal in order to make a donation in [U$S](https://www.paypal.com/donate?hosted_button_id=VWSWDWEMLA95Q) or [BRL (R$)](https://www.paypal.com/donate?hosted_button_id=3UKC9GHT6CKN4)
+
+Or in ETH: `0x8735b3070e6a25c59b4f33c701df2b9df259ac36` (Minimum of 0,02 ETH)
+
 #### Colophon: the bad news
 
 Last but not least, YeAPF2 is not compatible with YeAPF. Applications made in YeAPF must be manually migrated to YeAPF2.
