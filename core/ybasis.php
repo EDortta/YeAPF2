@@ -8,7 +8,11 @@
 
 //--------[ uuid and tokens  ]--------
 
-/* gerador de UUID v4 */
+/**
+ * UUIDV4 Generator
+ *
+ * @return     string  Returns a random UUID v4
+ */
 function gen_uuid() {
   /* ver https://www.php.net/manual/en/function.uniqid.php#94959 */
   return sprintf('%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
@@ -20,9 +24,17 @@ function gen_uuid() {
   );
 }
 
+
 /**
- * Gera um token para ser usado na autenticação
- **/
+ * Creates a randomized token
+ *
+ * Randomized tokens have some prime numbers injected in order to
+ * detect them as "valid" tokens
+ *
+ * @param      bool    $injectPrimes  TRUE indicates to inject prime numbers
+ *
+ * @return     string  token
+ */
 function __genRandomToken($injectPrimes = false) {
   if (function_exists("openssl_random_pseudo_bytes")) {
     $token = openssl_random_pseudo_bytes(16);
@@ -55,6 +67,15 @@ function __genRandomToken($injectPrimes = false) {
   return $token;
 }
 
+/**
+ * Informs if a token is valid.
+ * 
+ * A token is valid when have certain primes in certain locations
+ *
+ * @param      string       $token  The token
+ *
+ * @return     bool  TRUE if the token is valid
+ */
 function __validateRandomToken($token) {
   $ret = false;
   /**

@@ -8,13 +8,23 @@ class SampleConfig extends YApiProducer {
     $this->$domain  = $domain;
     $this->$gateway = $gateway;
 
-    $api->defineAPIName("NuoMed");
+    $api->defineAPIName("SampleApp");
     $contexto['CFGDefaultLang'] = 'pt-br';
 
     return true;
   }
 
   function do($subject, $action, ...$params) {
+    switch ("$subject.$action") {
+      case 'yeapf.configServer':
+        # code...
+        break;
+
+      case 'yeapf.configApp':
+        # code...
+        break;
+
+    }
   }
 
 }

@@ -71,7 +71,7 @@ class PluginManager
    *
    * @var        array
    */
-  static $plugins        = null;
+  static $plugins = null;
   /**
    * Current gateway under wich this application is running... now
    *
@@ -236,6 +236,8 @@ class PluginManager
    * Is the responsible method used to call a plugin, any of them.
    * Only if the plugin attend to the subject, is called.
    * The first plugin to answer makes the algorithm break the search.
+   * If the subjects starts with '*', then all plugins will receive
+   * the broadcast.
    * If the plugin has a class, then the do() method of this class
    * will be called, otherwise, if there is a file (a.k.a. an html)
    * then this file will be processed but first, the manager changes
@@ -254,16 +256,26 @@ class PluginManager
   static public function callPlugin($subject, $action, ...$params)
   {
     global $yAnalyzer, $CFGContext;
-    $gateway = self::$currentGateway;
+    $gateway  = self::$currentGateway;
     $answered = false;
-    $ret     = '';
+    $ret      = '';
+    
     foreach ($GLOBALS['__yPluginsRepo'] as $key => $pluginDefinition) {
+
+      $isBroadCast = substr($subject, 0, 1) == '*';
+      if ($isBroadCast) {
+        $subject      = substr($subject, 1);
+        $answered = false;
+      }
+
       if (!$answered) {
-        if ($key == $subject) {
+        if (($isBroadCast) || ($key == $subject)) {
           if (!empty($pluginDefinition['_class'])) {
-            $ret = json_encode($pluginDefinition['_class']->do($subject, $action, $params));
+            // Broadcast allowed
+            $ret      = json_encode($pluginDefinition['_class']->do($subject, $action, $params));
             $answered = true;
-          } else {
+          } else if ($key == $subject) {
+            // Broadcast disalowed
             if (!empty($pluginDefinition['file'])) {
               $wd = getcwd();
               if (chdir($pluginDefinition['folder'])) {
@@ -277,7 +289,7 @@ class PluginManager
                 /**
                  * apply the preprocessor
                  */
-                $ret = $yAnalyzer->do($content, $CFGContext);
+                $ret      = $yAnalyzer->do($content, $CFGContext);
                 $answered = true;
                 chdir($wd);
               }

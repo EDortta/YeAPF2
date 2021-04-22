@@ -19,9 +19,12 @@ global $CFGApp;
 global $auxDebugErroDesc;
 global $__FIRST_LOG_ENTRY;
 
-$CFGServer         = ['configured' => false];
-$CFGApp            = ['configured' => false];
+$CFGServer = ['configured' => false];
+$CFGApp    = ['configured' => false];
+
 $__FIRST_LOG_ENTRY = true;
+
+$auxDebugErroDesc = '';
 
 global $HOST;
 define("DEFAULT_HOST", "at.cli");
@@ -43,7 +46,8 @@ if (DEFAULT_HOST != $HOST) {
  *
  * @return     array   The searched value
  */
-function _getValue($array, $key, $default = null) {
+function _getValue($array, $key, $default = null)
+{
   if (!empty($array)) {
     if (isset($array[$key])) {
       return $array[$key];
@@ -55,7 +59,8 @@ function _getValue($array, $key, $default = null) {
   }
 }
 
-function _extractSimilarValues($array, $prefix) {
+function _extractSimilarValues($array, $prefix)
+{
   $ret = [];
   foreach ($array as $key => $value) {
     if (substr($key, 0, strlen($prefix)) == $prefix) {
@@ -65,7 +70,8 @@ function _extractSimilarValues($array, $prefix) {
   return $ret;
 }
 
-function __removeLastSlash($str) {
+function __removeLastSlash($str)
+{
   $str = trim($str);
   if (substr($str, -1) == '/') {
     $str = substr($str, 0, -1);
@@ -78,7 +84,8 @@ $FLAGDying = false;
 
 //--------[ Errors and Exceptions ]------------
 if (!function_exists("_http_response_code")) {
-  function _http_response_code($code = null) {
+  function _http_response_code($code = null)
+  {
     if ($code != null) {
       _log("http_response_code($code)");
       http_response_code($code);
@@ -88,7 +95,8 @@ if (!function_exists("_http_response_code")) {
 }
 
 if (!function_exists("__getStack")) {
-  function __getStack($trace) {
+  function __getStack($trace)
+  {
     $ret = array();
     $i   = 0;
     foreach ($trace as $key => $value) {
@@ -104,7 +112,8 @@ if (!function_exists("__getStack")) {
 }
 
 if (!function_exists('__genDebugId')) {
-  function __genDebugId() {
+  function __genDebugId()
+  {
     global $__lastDebugId;
 
     if (empty($__lastDebugId)) {
@@ -132,7 +141,8 @@ if (!function_exists('__genDebugId')) {
 }
 
 if (!function_exists("_getUserAgent")) {
-  function _getUserAgent() {
+  function _getUserAgent()
+  {
     $device    = null;
     $userAgent = mb_strtolower(!empty($_SERVER['HTTP_USER_AGENT']) ? $_SERVER['HTTP_USER_AGENT'] : "CLI");
     $search    = array("ipad", "iphone", "blackberry", "android", "ios", "postmanruntime");
@@ -151,7 +161,8 @@ $CFGApiRequest        = basename($_SERVER['SCRIPT_NAME']) == 'api.php';
 $CFGOutputContentType = ($CFGApiRequest ? 'application/json' : 'text/html');
 if (!function_exists("__outputIsJson")) {
 
-  function __outputIsJson() {
+  function __outputIsJson()
+  {
     global $CFGOutputContentType;
     $ret = $CFGOutputContentType || (
       isset($_SERVER['HTTP_X_REQUESTED_WITH']) &&
@@ -174,7 +185,8 @@ if (!function_exists("__outputIsJson")) {
  * Global response mechanism
  */
 if (!function_exists("_response")) {
-  function _response($response) {
+  function _response($response)
+  {
     if (function_exists("getallheaders")) {
       $headers = getallheaders();
     } else {
@@ -191,7 +203,8 @@ if (!function_exists("_response")) {
 }
 
 global $auxDebugId;
-function __defaultErrorHandler($errno, $errstr, $errfile, $errline) {
+function __defaultErrorHandler($errno, $errstr, $errfile, $errline)
+{
   global $FLAGDying, $auxDebugId;
   if (!$FLAGDying) {
     $FLAGDying = true;
@@ -247,7 +260,8 @@ function __defaultErrorHandler($errno, $errstr, $errfile, $errline) {
 
 set_error_handler("__defaultErrorHandler");
 
-function __defaultExceptionHandler($exception) {
+function __defaultExceptionHandler($exception)
+{
   global $FLAGDying, $auxDebugId;
 
   if (!$FLAGDying) {
@@ -303,7 +317,8 @@ function __defaultExceptionHandler($exception) {
 
 set_exception_handler("__defaultExceptionHandler");
 
-function __defaultShutdownFunction() {
+function __defaultShutdownFunction()
+{
   global $FLAGDying;
   if (!$FLAGDying) {
     $err = error_get_last();
@@ -324,7 +339,8 @@ register_shutdown_function("__defaultShutdownFunction");
 
 //--------[ log/debug functions ]--------
 if (!function_exists("_infoDbg_")) {
-  function _infoDbg_($dbg, $dbgNdx) {
+  function _infoDbg_($dbg, $dbgNdx)
+  {
     global $HOST;
 
     if (isset($dbg[$dbgNdx])) {
@@ -343,7 +359,8 @@ if (!function_exists("_infoDbg_")) {
 }
 
 if (!function_exists("_getCallStack")) {
-  function _getCallStack($dbg = null) {
+  function _getCallStack($dbg = null)
+  {
     if ($dbg == null) {
       $dbg = debug_backtrace();
     }
@@ -361,7 +378,8 @@ if (!function_exists("_log")) {
   $_tempLogString = '';
   $_tempWarnings  = [];
 
-  function _log() {
+  function _log()
+  {
     global $__FIRST_LOG_ENTRY, $CFGLogFilename, $CFGLogLevel, $_tempLogString;
     // $_SERVER['SCRIPT_FILENAME']
     $dbg    = debug_backtrace();
@@ -429,7 +447,8 @@ if (!function_exists("_log")) {
     }
   }
 
-  function _warn() {
+  function _warn()
+  {
     global $_tempWarnings;
     $args = func_get_args();
     foreach ($args as $argValue) {
@@ -438,7 +457,8 @@ if (!function_exists("_log")) {
     call_user_func_array('_log', $args);
   }
 
-  function _dumpY($logFlag, $level) {
+  function _dumpY($logFlag, $level)
+  {
     global $yeapfLogFlags, $yeapfLogLevel;
 
     if (empty($yeapfLogFlags)) {
@@ -469,7 +489,8 @@ if (!function_exists("_log")) {
     }
   }
 
-  function _emptyRet() {
+  function _emptyRet()
+  {
     return [
       'record'   => [],
       'analised' => [],
@@ -477,7 +498,8 @@ if (!function_exists("_log")) {
     ];
   }
 
-  function _record(&$ret) {
+  function _record(&$ret)
+  {
     $args     = func_get_args();
     $logEntry = "";
     $ndx      = 1;
@@ -502,14 +524,16 @@ if (!function_exists("_log")) {
     $ret['record'][] = $logEntry;
   }
 
-  function _mergeRecord(&$targetRet, $sourceRet) {
+  function _mergeRecord(&$targetRet, $sourceRet)
+  {
     $targetRet['record']   = array_merge($targetRet['record'], $sourceRet['record']);
     $targetRet['analised'] = array_merge($targetRet['analised'], $sourceRet['analised']);
   }
 }
 
 if (!function_exists("_logError")) {
-  function _logError($aError, $showEmpty = true) {
+  function _logError($aError, $showEmpty = true)
+  {
     if (!empty($aError)) {
       $errLine = "\n          EXECUTION ERROR!\n          ";
       foreach ($aError as $key => $value) {
@@ -528,7 +552,8 @@ if (!function_exists("_logError")) {
 }
 
 if (!function_exists("_die")) {
-  function _die() {
+  function _die()
+  {
     global $FLAGDying, $auxDebugId, $_tempWarnings;
 
     if (!$FLAGDying) {
@@ -559,9 +584,8 @@ if (!function_exists("_die")) {
   }
 }
 
-$auxDebugErroDesc = '';
-
-function __definirURL($url_app, $uri_base = '', $forcar_https = null, $api_base = '') {
+function __setupURL($url_app, $uri_base = '', $forcar_https = null, $api_base = '')
+{
   global $CFGServer, $yAnalyzer;
   if ($uri_base == '') {
     $uri_base = _getValue($GLOBALS, '__uri_base', '/');
@@ -595,8 +619,8 @@ function __definirURL($url_app, $uri_base = '', $forcar_https = null, $api_base 
   $CFGServer['CFGSiteAPI'] = __removeLastSlash($url_app . '/api') . '/';
 
   $aux_API_URL = _getDomainFromURL($api_base);
-  if ($aux_API_URL=='') {
-    $CFGCronos['CFGSiteAPI'] = __removeLastSlash(__removeLastSlash($url_app). '/' . __removeLastSlash($api_base)) . '/';
+  if ($aux_API_URL == '') {
+    $CFGCronos['CFGSiteAPI'] = __removeLastSlash(__removeLastSlash($url_app) . '/' . __removeLastSlash($api_base)) . '/';
   } else {
     $CFGCronos['CFGSiteAPI'] = $api_base;
   }
@@ -622,7 +646,8 @@ function __definirURL($url_app, $uri_base = '', $forcar_https = null, $api_base 
   $GLOBALS['CFGShowConnectionInfo'] = $CFGServer['CFGShowConnectionInfo'];
 }
 
-function _configDentroDoEscopo($InteiroOuData = 0, $forcar_https = true) {
+function _configDentroDoEscopo($InteiroOuData = 0, $forcar_https = true)
+{
   /**
    * Se for um inteiro só aceitamos 0 ou 1
    * Se for datahora, então precisa vir no formato yyyymmddHHMM
@@ -697,16 +722,17 @@ $__parserConfigFile = null;
 
 if (file_exists("$dbConfig")) {
 
-  function _saveTextFile($fileName, $dataToSave) {
+  function _saveTextFile($fileName, $dataToSave)
+  {
     $ret = false;
     if ($fp = fopen($fileName, 'w')) {
-      $startTime = microtime(TRUE);
+      $startTime = microtime(true);
       do {
         $canWrite = flock($fp, LOCK_EX);
         if (!$canWrite) {
           usleep(round(rand(0, 100) * 1000));
         }
-      } while ((!$canWrite) and ((microtime(TRUE) - $startTime) < 5));
+      } while ((!$canWrite) and ((microtime(true) - $startTime) < 5));
 
       if ($canWrite) {
         fwrite($fp, $dataToSave);
@@ -718,7 +744,8 @@ if (file_exists("$dbConfig")) {
     return $ret;
   }
 
-  function _getConfigSection($sectionName) {
+  function _getConfigSection($sectionName)
+  {
     global $dbConfig, $__parserConfigFile;
     if (null == $__parserConfigFile) {
       $__parserConfigFile = parse_ini_file("$dbConfig", true);
@@ -727,7 +754,8 @@ if (file_exists("$dbConfig")) {
     return $ret;
   }
 
-  function _setConfigEntry($sectionName, $entryName, $entryValue) {
+  function _setConfigEntry($sectionName, $entryName, $entryValue)
+  {
     global $dbConfig, $__parserConfigFile;
 
     if (is_writeable($dbConfig)) {
@@ -758,7 +786,8 @@ if (file_exists("$dbConfig")) {
     }
   }
 
-  function _grantCacheFolder($posfix = '') {
+  function _grantCacheFolder($posfix = '')
+  {
     global $CFGCacheFolder, $CFGCacheConfigured, $CFGSiteId;
 
     $CFGCacheConfigured = (empty($CFGCacheConfigured) ? false : $CFGCacheConfigured);
@@ -826,12 +855,22 @@ if (file_exists("$dbConfig")) {
     return $ret;
   }
 
-  function _configApplication() {
+  function _publishCFGServer()
+  {
+    global $CFGServer;
+
+    foreach ($CFGServer as $key => $value) {
+      $GLOBALS[$key] = $value;
+    }
+  }
+
+  function _configServer()
+  {
     global $dbConfig, $HOST, $CFGServer;
 
     /**
      * Há duas camadas de configuração:
-     * Esta primeira (_configApplication) trata do que tem a ver com o
+     * Esta primeira (_configServer) trata do que tem a ver com o
      * servidor como um todo. Ou seja, não é específica para uma URL determinada
      * A segunda camada (_configurarAplicativo), é puxada a partir da URL sob
      * a qual o sistema está trabalhando e nos permite sobreescrever a
@@ -889,9 +928,9 @@ if (file_exists("$dbConfig")) {
     $uri_base     = isset($uri_base) ? $uri_base : "/";
     $forcar_https = empty($forcar_https) ? false : ($forcar_https == 1);
     if (!empty($_SERVER['REQUEST_SCHEME'])) {
-      __definirURL($_SERVER['REQUEST_SCHEME'] . "://" . $_SERVER['HTTP_HOST'], $uri_base, $forcar_https);
+      __setupURL($_SERVER['REQUEST_SCHEME'] . "://" . $_SERVER['HTTP_HOST'], $uri_base, $forcar_https);
     } else {
-      __definirURL((!empty($site_url) ? $site_url : "http://127.0.0.1"), $uri_base, $forcar_https);
+      __setupURL((!empty($site_url) ? $site_url : "http://127.0.0.1"), $uri_base, $forcar_https);
     }
 
     //debug
@@ -1064,17 +1103,21 @@ if (file_exists("$dbConfig")) {
     if ($oldCFGLogFilename != $CFGServer['CFGLogFilename']) {
       _log("Log file changed to " . $CFGServer['CFGLogFilename']);
     }
-    /* publicar CFGServer */
-    foreach ($CFGServer as $key => $value) {
-      $GLOBALS[$key] = $value;
-    }
 
     $CFGServer['configured'] = true;
+    _publishCFGServer();
 
     if (false) {echo "<pre>";die(print_r($CFGServer));}
 
   }
-  _configApplication();
+  _configServer();
+
+  $pluginManager->loadPlugins("basis");
+  $pluginManager->loadPlugins("modules");
+  $pluginManager->loadPlugins("plugins");
+
+  $pluginManager->callPlugin('*yeapf', 'configServer');
+
 } else {
   _response("'$dbConfig' não localizado");
 }
@@ -1082,8 +1125,9 @@ if (file_exists("$dbConfig")) {
 /**
  * Aplicativo
  **/
-function _configureApp($url_app = '') {
-  global $CFGServer, $CFGApp, $HOST;
+function _configureApp($url_app = '')
+{
+  global $CFGApp;
 
   if ($url_app > '') {
     $CFGApp['configured'] = false;
@@ -1096,10 +1140,10 @@ function _configureApp($url_app = '') {
 
     if ($url_app == '') {
       $url_app = _getValue($appData->get("default_domain=true"), 'url', DEFAULT_HOST);
-    } else {
-      __definirURL($url_app);
     }
     _log("Configurando aplicativo '$url_app'");
+    __setupURL($url_app);
+
 
     $url_app_e_ip = filter_var($url_app, FILTER_VALIDATE_IP);
     $_404_causa   = "Endereço desconhecido";
@@ -1138,7 +1182,8 @@ function _configureApp($url_app = '') {
   return [$ret, (!$ret ? $_404_causa : '')];
 }
 
-function _getTemplate($templateName) {
+function _getTemplate($templateName)
+{
   $folder   = dirname(__FILE__);
   $fileName = $folder . '/templates/' . $templateName;
   $ret      = false;
@@ -1155,7 +1200,8 @@ function _getTemplate($templateName) {
  *
  * @return     string  Minified HTML
  */
-function minifyHtml($buffer) {
+function minifyHtml($buffer)
+{
 
   $search = array(
     '/\>[^\S ]+/s', // strip whitespaces after tags, except space
@@ -1183,7 +1229,8 @@ function minifyHtml($buffer) {
  *
  * @return     mixed    An string with the domain or FALSE.
  */
-function getDomain($url) {
+function getDomain($url)
+{
   $pieces = parse_url($url);
   $domain = isset($pieces['host']) ? $pieces['host'] : '';
   if (preg_match('/(?P<domain>[a-z0-9][a-z0-9\-]{1,63}\.[a-z\.]{2,6})$/i', $domain, $regs)) {

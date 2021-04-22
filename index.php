@@ -68,15 +68,10 @@ if ($subject == '') {
   $subject = 'welcome';
 }
 
-/**
- * Carrego os módulos que estejam disponíveis
- */
-$pluginManager->loadPlugins("modules");
 
 /**
  * Carrego os plugins que estejam disponíveis
  */
-$pluginManager->loadPlugins("plugins");
 
 $css_files_aux                = explode(",", $CFGContext['css_files']);
 $CFGContext['css_files_html'] = '';
