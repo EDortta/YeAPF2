@@ -62,10 +62,10 @@ class YDBHelper {
   }
 }
 
-define("YDBCONFIG_ERROR", 1000);
-define("YDB_MISSING_DATABASE", 1001);
+define("YDBCONFIG_ERROR",        1000);
+define("YDB_MISSING_DATABASE",   1001);
 define("YDB_MISSING_CONNECTION", 1002);
-define("YDB_QUERY_ERROR", 1010);
+define("YDB_QUERY_ERROR",        1010);
 
 class YException extends Exception {
   static $details;
@@ -131,7 +131,7 @@ class DBConnector {
   }
 
   static function registerLink($DBLinkName, $DBLink, $DBCollection) {
-    _log("Registering '$DBLinkName' link");
+    _dumpY(DBG_DATABASE, 1, "Registering '$DBLinkName' link");
     self::$links[$DBLinkName] = [
       'conn'       => $DBLink,
       'collection' => $DBCollection,
@@ -163,16 +163,16 @@ class DBConnector {
           if (!$connExists || $mode == 'ro') {
             /* verify there is a link at reach */
             if (!empty(self::$links[$driverName])) {
-              _log("Instantiating dbTagName: $dbTagName mode: $auxMode");
+              _dumpY(DBG_DATABASE, 1, "Instantiating dbTagName: $dbTagName mode: $auxMode");
               $aux = new self::$links[$driverName]['conn']($serverDefinition);
 
               if (empty(self::$connections[$mode][$dbTagName])) {
                 self::$connections[$mode][$dbTagName] = [];
                 if (self::$defaultDBTagName == null) {
-                  _log("Default dbTagName: $dbTagName");
+                  _dumpY(DBG_DATABASE, 3, "Default dbTagName: $dbTagName");
                   self::$defaultDBTagName = $dbTagName;
                 }
-                _log("Connections pool changed to " . json_encode(self::$connections));
+                _dumpY(DBG_DATABASE, 2, "Connections pool changed to " . json_encode(self::$connections));
               }
 
               /* rw mode always allows just one connection per dbTagName */
@@ -203,17 +203,17 @@ class DBConnector {
     $ret = new DummyCollection(null, null, null, null);
     if (null === $dbTagName) {
       $dbTagName = self::$defaultDBTagName;
-      _log("Using default dbTagName: " . $dbTagName);
+      _dumpY(DBG_DATABASE, 1, "Using default dbTagName: " . $dbTagName);
     }
     $collName = "$dbTagName.$collectionName";
-    _log("Granting $collName");
+    _dumpY(DBG_DATABASE, 1, "Granting $collName");
     if (array_key_exists($collName, self::$collections)) {
-      _log("Collection being reused");
+      _dumpY(DBG_DATABASE, 2, "Collection being reused");
       $ret = self::$collections[$collName];
     } else {
-      _log("Collection being created");
+      _dumpY(DBG_DATABASE, 2, "Collection being created");
       if (array_key_exists($dbTagName, _getValue(self::$connections, 'rw', []))) {
-        _log("Connection $dbTagName found");
+        _dumpY(DBG_DATABASE, 3, "Connection $dbTagName found");
         $rw       = self::$connections['rw'][$dbTagName][0];
         $ro_count = count(_getValue(self::$connections['ro'], $dbTagName, []));
         if ($ro_count == 0) {
@@ -227,10 +227,10 @@ class DBConnector {
           self::$collections[$collName] = new self::$links[$driverName]['collection']($ro, $rw, $collectionName, $idName);
           $ret                          = self::$collections[$collName];
         } else {
-          _log("Unknown link: '$driverName' granting collection $collName");
+          _dumpY(DBG_DATABASE, 1, "Unknown link: '$driverName' granting collection $collName");
         }
       } else {
-        _log("Unknown connection: $dbTagName");
+        _dumpY(DBG_DATABASE, 1, "Unknown connection: $dbTagName");
       }
     }
     return $ret;

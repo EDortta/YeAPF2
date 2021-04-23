@@ -349,7 +349,7 @@ class yAnalyzerClassFoundation {
     $stackPtr = count($this->stack);
     if (empty($aValues) || (!is_array($aValues))) {
       if ($stackPtr > 0) {
-        $aValues = $this->stack[$stackPtr];
+        $aValues = $this->stack[$stackPtr-1];
       } else {
         $aValues = [];
       }
@@ -445,6 +445,23 @@ class yAnalyzerClass extends yAnalyzerClassFoundation {
     $myBase = dirname($_SERVER['SCRIPT_FILENAME']);
     $targetBase = substr(getcwd(),strlen($myBase));
     return "proc$targetBase/$filename";
+  }
+
+  public function _asset($params) {
+    $filename = $this->getParamValue($params, 0, "dummy.ref");
+    return ".assets/$filename";
+  }
+
+  public function _include($params) {
+    global $yAnalyzer;
+    $filename = $this->getParamValue($params, 0, "dummy.txt");
+    if (file_exists($filename)) {
+      $fileContent = file_get_contents($filename);
+      $ret = $yAnalyzer->do($fileContent);
+    } else {
+      $ret = "[ file $filename not found ]";
+    }
+    return $ret;
   }
 
   public function _cwd() {

@@ -15,7 +15,7 @@ class MySQLLink implements YDBLink {
     $this->driver_flavor = 'mysqli';
     $this->mode          = ($mode == "ro" ? 0 : ($mode == "rw" ? 1 : -1));
 
-    _log("Configuring mysql link");
+    _dumpY(DBG_DATABASE, 1, "Configuring mysql link");
 
     if ($server_config) {
       if ($server_config) {
@@ -26,10 +26,10 @@ class MySQLLink implements YDBLink {
         $this->name = $database;
         if (in_array($this->mode, [0, 1])) {
           if (function_exists("mysqli_connect")) {
-            _log("Connecting to $server ( $database at $host )");
+            _dumpY(DBG_DATABASE, 1, "Connecting to $server ( $database at $host )");
             $this->connection = mysqli_connect($host, $user, $password, $database);
             if ($this->connection) {
-              _log("DB connection ready");
+              _dumpY(DBG_DATABASE, 1, "DB connection ready");
             } else {
               $connDetail = "";
               if (mysqli_connect_errno()) {

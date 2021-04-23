@@ -166,7 +166,7 @@ if (!function_exists("getBearerToken")) {
         $ret = $matches[1];
       }
     }
-    _log("Bearer Token enviado: [ $ret ]");
+    _dumpY(DBG_BASIS, 1, "Bearer Token enviado: [ $ret ]");
     return $ret;
   }
 }

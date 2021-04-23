@@ -16,11 +16,13 @@ global $dbConn;
 global $dbConfig;
 global $CFGServer;
 global $CFGApp;
+global $CFGContext;
 global $auxDebugErroDesc;
 global $__FIRST_LOG_ENTRY;
 
-$CFGServer = ['configured' => false];
-$CFGApp    = ['configured' => false];
+$CFGServer  = ['configured' => false];
+$CFGApp     = ['configured' => false];
+$CFGContext = [];
 
 $__FIRST_LOG_ENTRY = true;
 
@@ -79,15 +81,283 @@ function __removeLastSlash($str)
   return $str;
 }
 
+//--------[ debugging flags ]-------------
+define("DBG_FOUNDATION", 1);
+define("DBG_BASIS", 2);
+define("DBG_PARSER", 4);
+define("DBG_ANALYZER", 8);
+define("DBG_DATABASE", 16);
+define("DBG_I18N", 32);
+define("DBG_PLUGIN", 64);
+define("DBG_API_PROD", 128);
+define("DBG_API_CONS", 256);
+
 global $FLAGDying;
 $FLAGDying = false;
+//--------[ log/debug functions ]--------
+if (!function_exists("_infoDbg_")) {
+  function _infoDbg_($dbg, $dbgNdx)
+  {
+    global $HOST;
+
+    if (isset($dbg[$dbgNdx])) {
+      if ($HOST == DEFAULT_HOST) {
+        $_file = basename(_getValue($dbg[$dbgNdx], 'file'));
+      } else {
+        $_file = $_SERVER['SCRIPT_NAME'];
+      }
+
+      return $_file . ":" . _getValue($dbg[$dbgNdx], 'line') . "@" . _getValue($dbg[$dbgNdx], 'function') . "() ";
+    } else {
+      return "";
+    }
+
+  }
+}
+
+if (!function_exists("_getCallStack")) {
+  function _getCallStack($dbg = null)
+  {
+    if ($dbg == null) {
+      $dbg = debug_backtrace();
+    }
+    $logEntry = "\n         CALL STACK\n";
+    for ($i = 0; $i < count($dbg); $i++) {
+      $logEntry .= "         " . _infoDbg_($dbg, $i) . "\n";
+    }
+    $logEntry .= "\n---END----\n\n";
+    return $logEntry;
+  }
+}
+
+if (!function_exists("_log")) {
+  global $_tempLogString, $_tempWarnings, $_tempLogNdx;
+  $_tempLogString = '';
+  $_tempWarnings  = [];
+  $_tempLogNdx    = 1000;
+
+  function _resetLog()
+  {
+    global $__FIRST_LOG_ENTRY, $_tempLogNdx;
+    $__FIRST_LOG_ENTRY = true;
+    $_tempLogNdx       = 1000;
+  }
+
+  function _log()
+  {
+    global $__FIRST_LOG_ENTRY, $CFGLogFilename, $CFGLogLevel, $_tempLogString, $_tempLogNdx;
+    // $_SERVER['SCRIPT_FILENAME']
+    $dbg    = debug_backtrace();
+    $dbgNdx = 0;
+    while (($dbgNdx < count($dbg) - 1) && (strpos('*:_log:logReturn:', ':' . $dbg[$dbgNdx]['function'] . ':') > 0)) {
+      $dbgNdx++;
+    }
+
+    $args = func_get_args();
+
+    if (true) {
+      $firstLine = "";
+      $dbgNdx++;
+    } else {
+      $firstLine = _infoDbg_($dbg, $dbgNdx + 1);
+      if ($firstLine > "") {
+        $firstLine .= "\n           \--> ";
+      }
+    }
+
+    $logHeader = date("H:i:s " . ($_tempLogNdx++) . " ");
+    $logMargin = str_repeat(" ", strlen($logHeader));
+
+    $logEntry = $logHeader . $firstLine . _infoDbg_($dbg, $dbgNdx);
+    foreach ($args as $value) {
+      if ($value != "require") {
+        if (is_array($value)) {
+          $logEntry .= json_encode($value, JSON_PRETTY_PRINT);
+        } else {
+          $logEntry .= "$value ";
+        }
+
+      }
+    }
+
+    $logEntry = str_replace("\n", "\n" . $logMargin, $logEntry);
+    $_tempLogString .= $logEntry . "\n";
+    if (strlen($_tempLogString) > 4096) {
+      $_tempLogString = substr($_tempLogString, strpos($_tempLogString, "\n") + 1);
+    }
+
+    if ($CFGLogLevel > 0) {
+
+      if (is_writable(dirname($CFGLogFilename))) {
+
+        if ((file_exists($CFGLogFilename)) && (filesize($CFGLogFilename) > 1024 * 1024)) {
+          rename($CFGLogFilename, $CFGLogFilename . "." . date('Y-m-dTH-m'));
+          touch($CFGLogFilename);
+        }
+
+        $logFile = fopen($CFGLogFilename, "a");
+        if ($logFile) {
+          if ($__FIRST_LOG_ENTRY) {
+            $logEntry = "\n\n\n---[ACTION]-----------------------------------------\n";
+            $logEntry .= _getValue($_SERVER, 'REQUEST_METHOD', 'get?') . ' ' .
+            _getValue($_SERVER, 'REQUEST_SCHEME', 'cli') . '://' .
+            _getValue($_SERVER, 'SERVER_NAME', _getValue($_SERVER, 'SERVER_ADDR', "UNKNOWN")) .
+            _getValue($_SERVER, 'REQUEST_URI', '') .
+              "\n----------------------------------------------------";
+            $__FIRST_LOG_ENTRY = false;
+          }
+          fwrite($logFile, trim($logEntry) . "\n");
+          fclose($logFile);
+        }
+      } else {
+        _die("$CFGLogFilename cannot be written");
+      }
+    } else {
+      syslog(LOG_INFO, trim($logEntry));
+    }
+  }
+
+  function _warn()
+  {
+    global $_tempWarnings;
+    $args = func_get_args();
+    foreach ($args as $argValue) {
+      $_tempWarnings[] = $argValue;
+    }
+    call_user_func_array('_log', $args);
+  }
+
+  function _dumpY($logFlag, $level)
+  {
+    global $CFGLogMask, $CFGLogLevel;
+
+    if (empty($CFGLogMask)) {
+      $CFGLogMask = 65535;
+    }
+
+    if (empty($CFGLogLevel)) {
+      $CFGLogLevel = 99;
+    }
+
+    if ($level <= $CFGLogLevel) {
+      if (($logFlag & $CFGLogMask) > 0) {
+        $paramNdx = 0;
+        $args     = func_get_args();
+        $argList  = '';
+        foreach ($args as $a) {
+          $paramNdx++;
+          if ($paramNdx > 2) {
+            if ($argList > '') {
+              $argList .= ' ';
+            }
+
+            $argList .= $a;
+          }
+        }
+        _log("$argList");
+      }
+    }
+  }
+
+  function _emptyRet()
+  {
+    return [
+      'record'   => [],
+      'analised' => [],
+      'ret_code' => 0,
+    ];
+  }
+
+  function _record(&$ret)
+  {
+    $args     = func_get_args();
+    $logEntry = "";
+    $ndx      = 1;
+    foreach ($args as $value) {
+      if ($ndx > 1) {
+        if ($value != "require") {
+          if (is_array($value)) {
+            $logEntry .= json_encode($value, JSON_PRETTY_PRINT);
+          } else {
+            $logEntry .= "$value ";
+          }
+        }
+      }
+      $ndx++;
+    }
+    _dumpY(DBG_FOUNDATION, 1, $logEntry);
+    if (empty($ret['record'])) {
+      $ret['record'] = [];
+    }
+    $ret['record'][] = $logEntry;
+  }
+
+  function _mergeRecord(&$targetRet, $sourceRet)
+  {
+    $targetRet['record']   = array_merge($targetRet['record'], $sourceRet['record']);
+    $targetRet['analised'] = array_merge($targetRet['analised'], $sourceRet['analised']);
+  }
+}
+
+if (!function_exists("_logError")) {
+  function _logError($aError, $showEmpty = true)
+  {
+    if (!empty($aError)) {
+      $errLine = "\n          EXECUTION ERROR!\n          ";
+      foreach ($aError as $key => $value) {
+        if (!empty($value)) {
+          if (!is_array($value)) {
+            $errLine .= "$key: $value\n          ";
+          } else {
+            $errLine .= "$key: array()\n          ";
+          }
+        }
+      }
+      _dumpY(DBG_FOUNDATION, 1, $errLine);
+      _dumpY(DBG_FOUNDATION, 1, _getCallStack());
+    }
+  }
+}
+
+if (!function_exists("_die")) {
+  function _die()
+  {
+    global $FLAGDying, $auxDebugId, $_tempWarnings;
+
+    if (!$FLAGDying) {
+      $FLAGDying = true;
+      if (ob_get_contents()) {
+        ob_end_clean();
+      }
+
+      $args  = func_get_args();
+      $args2 = array("message" => implode(". ", $args));
+      if (class_exists("DBConnector")) {
+        $args2['db_error'] = DBConnector::getLastError();
+      }
+      $args2['stack']    = __getStack(debug_backtrace());
+      $args2['warnings'] = $_tempWarnings;
+
+      call_user_func_array('_log', $args2);
+      if (!__outputIsJson()) {
+        echo "<div style='border-radius:4px;; border: solid 1px #999; padding-left: 12px'><pre style='white-space: pre-wrap;'>";
+      }
+
+      _response($args2);
+      if (!__outputIsJson()) {
+        echo "</pre></div>";
+      }
+      die();
+    }
+  }
+}
 
 //--------[ Errors and Exceptions ]------------
 if (!function_exists("_http_response_code")) {
   function _http_response_code($code = null)
   {
     if ($code != null) {
-      _log("http_response_code($code)");
+      _dumpY(DBG_FOUNDATION, 1, "http_response_code($code)");
       http_response_code($code);
     }
     return http_response_code();
@@ -151,32 +421,22 @@ if (!function_exists("_getUserAgent")) {
         $device = $key;
       }
     }
-    _log("DEVICE: " . $userAgent . " is '$device'");
+    _dumpY(DBG_FOUNDATION, 1, "DEVICE: " . $userAgent . " is '$device'");
 
     return $device;
   }
 }
 
 $CFGApiRequest        = basename($_SERVER['SCRIPT_NAME']) == 'api.php';
+$CFGWebRequest        = basename($_SERVER['SCRIPT_NAME']) == 'index.php';
 $CFGOutputContentType = ($CFGApiRequest ? 'application/json' : 'text/html');
 if (!function_exists("__outputIsJson")) {
 
   function __outputIsJson()
   {
-    global $CFGOutputContentType;
-    $ret = $CFGOutputContentType || (
-      isset($_SERVER['HTTP_X_REQUESTED_WITH']) &&
-      strcasecmp($_SERVER['HTTP_X_REQUESTED_WITH'], 'xmlhttprequest') == 0
-    );
+    global $CFGApiRequest, $CFGWebRequest;
 
-    foreach (headers_list() as $value) {
-      if (false !== strpos($value, "application/json")) {
-        $ret = true;
-      }
-      if (false !== strpos($value, "multipart/form-data")) {
-        $ret = true;
-      }
-    }
+    $ret = ($CFGApiRequest) || (!$CFGWebRequest);
     return $ret;
   }
 }
@@ -187,10 +447,8 @@ if (!function_exists("__outputIsJson")) {
 if (!function_exists("_response")) {
   function _response($response)
   {
-    if (function_exists("getallheaders")) {
-      $headers = getallheaders();
-    } else {
-      $headers = array('Content-Type' => 'text');
+    if (!headers_sent()) {
+      header('Content-Type: application/json; charset=utf-8');
     }
 
     if (is_array($response)) {
@@ -198,6 +456,20 @@ if (!function_exists("_response")) {
     } else {
       echo json_encode(['status' => $response], JSON_PRETTY_PRINT);
     }
+    _dumpY(DBG_FOUNDATION, 1, "\n\n---[/ACTION]----------------------------------------\n\n");
+    exit;
+  }
+}
+
+if (!function_exists("_answer")) {
+  function _answer($htmlString)
+  {
+    if (is_array($htmlString)) {
+      echo implode("\n", $htmlString);
+    } else {
+      echo $htmlString;
+    }
+    _dumpY(DBG_FOUNDATION, 1, "\n\n---[/ACTION]----------------------------------------\n\n");
     exit;
   }
 }
@@ -227,7 +499,7 @@ function __defaultErrorHandler($errno, $errstr, $errfile, $errline)
     _logError($ret);
     $ret['call_stack'] = __getStack(debug_backtrace());
 
-    _log(_getCallStack());
+    _dumpY(DBG_FOUNDATION, 1, _getCallStack());
     if ($GLOBALS['CFGHideErrors']) {
       $auxDebugId = __genDebugId();
       $filename   = dirname($GLOBALS['CFGLogFilename']) . "/$auxDebugId.json";
@@ -284,7 +556,7 @@ function __defaultExceptionHandler($exception)
     _logError($ret);
     $ret['call_stack'] = __getStack($exception->getTrace());
 
-    _log(_getCallStack());
+    _dumpY(DBG_FOUNDATION, 1, _getCallStack());
     if ($GLOBALS['CFGHideErrors']) {
       $auxDebugId = __genDebugId();
       $filename   = dirname($GLOBALS['CFGLogFilename']) . "/$auxDebugId.json";
@@ -337,253 +609,6 @@ function __defaultShutdownFunction()
 
 register_shutdown_function("__defaultShutdownFunction");
 
-//--------[ log/debug functions ]--------
-if (!function_exists("_infoDbg_")) {
-  function _infoDbg_($dbg, $dbgNdx)
-  {
-    global $HOST;
-
-    if (isset($dbg[$dbgNdx])) {
-      if ($HOST == DEFAULT_HOST) {
-        $_file = basename(_getValue($dbg[$dbgNdx], 'file'));
-      } else {
-        $_file = $_SERVER['SCRIPT_NAME'];
-      }
-
-      return $_file . ":" . _getValue($dbg[$dbgNdx], 'line') . "@" . _getValue($dbg[$dbgNdx], 'function') . "() ";
-    } else {
-      return "";
-    }
-
-  }
-}
-
-if (!function_exists("_getCallStack")) {
-  function _getCallStack($dbg = null)
-  {
-    if ($dbg == null) {
-      $dbg = debug_backtrace();
-    }
-    $logEntry = "\n         CALL STACK\n";
-    for ($i = 0; $i < count($dbg); $i++) {
-      $logEntry .= "         " . _infoDbg_($dbg, $i) . "\n";
-    }
-    $logEntry .= "\n---END----\n\n";
-    return $logEntry;
-  }
-}
-
-if (!function_exists("_log")) {
-  global $_tempLogString, $_tempWarnings;
-  $_tempLogString = '';
-  $_tempWarnings  = [];
-
-  function _log()
-  {
-    global $__FIRST_LOG_ENTRY, $CFGLogFilename, $CFGLogLevel, $_tempLogString;
-    // $_SERVER['SCRIPT_FILENAME']
-    $dbg    = debug_backtrace();
-    $dbgNdx = 0;
-    while (($dbgNdx < count($dbg) - 1) && (strpos('*:_log:logReturn:', ':' . $dbg[$dbgNdx]['function'] . ':') > 0)) {
-      $dbgNdx++;
-    }
-
-    $args = func_get_args();
-
-    if (true) {
-      $firstLine = "";
-      $dbgNdx++;
-    } else {
-      $firstLine = _infoDbg_($dbg, $dbgNdx + 1);
-      if ($firstLine > "") {
-        $firstLine .= "\n           \--> ";
-      }
-    }
-
-    $logHeader = date("H:i:s ");
-    $logMargin = str_repeat(" ", strlen($logHeader));
-
-    $logEntry = $logHeader . $firstLine . _infoDbg_($dbg, $dbgNdx);
-    foreach ($args as $value) {
-      if ($value != "require") {
-        if (is_array($value)) {
-          $logEntry .= json_encode($value, JSON_PRETTY_PRINT);
-        } else {
-          $logEntry .= "$value ";
-        }
-
-      }
-    }
-
-    $logEntry = str_replace("\n", "\n" . $logMargin, $logEntry);
-    $_tempLogString .= $logEntry . "\n";
-    if (strlen($_tempLogString) > 4096) {
-      $_tempLogString = substr($_tempLogString, strpos($_tempLogString, "\n") + 1);
-    }
-
-    if ($CFGLogLevel > 0) {
-
-      if (is_writable(dirname($CFGLogFilename))) {
-
-        if ((file_exists($CFGLogFilename)) && (filesize($CFGLogFilename) > 1024 * 1024)) {
-          rename($CFGLogFilename, $CFGLogFilename . "." . date('Y-m-dTH-m'));
-          touch($CFGLogFilename);
-        }
-
-        $logFile = fopen($CFGLogFilename, "a");
-        if ($logFile) {
-          if ($__FIRST_LOG_ENTRY) {
-            $logEntry          = "\n--------------------------------------------\n";
-            $__FIRST_LOG_ENTRY = false;
-          }
-          fwrite($logFile, trim($logEntry) . "\n");
-          fclose($logFile);
-        }
-      } else {
-        _die("$CFGLogFilename cannot be written");
-      }
-    } else {
-      syslog(LOG_INFO, trim($logEntry));
-    }
-  }
-
-  function _warn()
-  {
-    global $_tempWarnings;
-    $args = func_get_args();
-    foreach ($args as $argValue) {
-      $_tempWarnings[] = $argValue;
-    }
-    call_user_func_array('_log', $args);
-  }
-
-  function _dumpY($logFlag, $level)
-  {
-    global $yeapfLogFlags, $yeapfLogLevel;
-
-    if (empty($yeapfLogFlags)) {
-      $yeapfLogFlags = 65535;
-    }
-
-    if (empty($yeapfLogLevel)) {
-      $yeapfLogLevel = 99;
-    }
-
-    if ($level <= $yeapfLogLevel) {
-      if (($logFlag & $yeapfLogFlags) > 0) {
-        $paramNdx = 0;
-        $args     = func_get_args();
-        $argList  = '';
-        foreach ($args as $a) {
-          $paramNdx++;
-          if ($paramNdx > 2) {
-            if ($argList > '') {
-              $argList .= ' ';
-            }
-
-            $argList .= $a;
-          }
-        }
-        _log("$argList");
-      }
-    }
-  }
-
-  function _emptyRet()
-  {
-    return [
-      'record'   => [],
-      'analised' => [],
-      'ret_code' => 0,
-    ];
-  }
-
-  function _record(&$ret)
-  {
-    $args     = func_get_args();
-    $logEntry = "";
-    $ndx      = 1;
-    foreach ($args as $value) {
-      if ($ndx > 1) {
-        if ($value != "require") {
-          if (is_array($value)) {
-            $logEntry .= json_encode($value, JSON_PRETTY_PRINT);
-          } else {
-            $logEntry .= "$value ";
-          }
-
-        }
-      }
-      $ndx++;
-    }
-    _log($logEntry);
-    if (empty($ret['record'])) {
-      $ret['record'] = [];
-    }
-
-    $ret['record'][] = $logEntry;
-  }
-
-  function _mergeRecord(&$targetRet, $sourceRet)
-  {
-    $targetRet['record']   = array_merge($targetRet['record'], $sourceRet['record']);
-    $targetRet['analised'] = array_merge($targetRet['analised'], $sourceRet['analised']);
-  }
-}
-
-if (!function_exists("_logError")) {
-  function _logError($aError, $showEmpty = true)
-  {
-    if (!empty($aError)) {
-      $errLine = "\n          EXECUTION ERROR!\n          ";
-      foreach ($aError as $key => $value) {
-        if (!empty($value)) {
-          if (!is_array($value)) {
-            $errLine .= "$key: $value\n          ";
-          } else {
-            $errLine .= "$key: array()\n          ";
-          }
-        }
-      }
-      _log($errLine);
-      _log(_getCallStack());
-    }
-  }
-}
-
-if (!function_exists("_die")) {
-  function _die()
-  {
-    global $FLAGDying, $auxDebugId, $_tempWarnings;
-
-    if (!$FLAGDying) {
-      $FLAGDying = true;
-      if (ob_get_contents()) {
-        ob_end_clean();
-      }
-
-      $args  = func_get_args();
-      $args2 = array("message" => implode(". ", $args));
-      if (class_exists("DBConnector")) {
-        $args2['db_error'] = DBConnector::getLastError();
-      }
-      $args2['stack']    = __getStack(debug_backtrace());
-      $args2['warnings'] = $_tempWarnings;
-
-      call_user_func_array('_log', $args2);
-      if (!__outputIsJson()) {
-        echo "<div style='border-radius:4px;; border: solid 1px #999; padding-left: 12px'><pre style='white-space: pre-wrap;'>";
-      }
-
-      _response($args2);
-      if (!__outputIsJson()) {
-        echo "</pre></div>";
-      }
-      die();
-    }
-  }
-}
-
 function __setupURL($url_app, $uri_base = '', $forcar_https = null, $api_base = '')
 {
   global $CFGServer, $yAnalyzer;
@@ -613,7 +638,7 @@ function __setupURL($url_app, $uri_base = '', $forcar_https = null, $api_base = 
 
   $CFGCronos['CFGCurrentDomain'] = _getDomainFromURL($url_app);
 
-  $CFGServer['CFGSiteURL'] = __removeLastSlash($url_app . $uri_base);
+  $CFGServer['CFGSiteURL'] = __removeLastSlash('//' . $CFGCronos['CFGCurrentDomain'] . $uri_base);
 
   /* URL da API */
   $CFGServer['CFGSiteAPI'] = __removeLastSlash($url_app . '/api') . '/';
@@ -674,7 +699,7 @@ $CFGLogLevel    = 1;
 
 // ((@include_once(__DIR__."/ybasis.php")) || die("Error loading ybasis.php"));
 
-_log("Starting...");
+_dumpY(DBG_FOUNDATION, 1, "Starting...");
 /* wired parts */
 $yLibs = ['ybasis.php', 'ymisc.php', 'yparser.php', 'yanalyzer.php', 'ydbskeleton.php', 'yi18n.php'];
 
@@ -682,7 +707,7 @@ $yCoreFolder      = __DIR__;
 $alternativeParts = "$yCoreFolder/.config/yloader.lst";
 /* alternative parts */
 if (file_exists($alternativeParts)) {
-  _log("Loading alternative parts $alternativeParts");
+  _dumpY(DBG_FOUNDATION, 1, "Loading alternative parts $alternativeParts");
   foreach (file($alternativeParts) as $altPart) {
     array_push($yLibs, preg_replace('/[[:^print:]]/', '', $altPart));
   }
@@ -702,12 +727,12 @@ if ($CFGApiRequest) {
   array_push($yLibs, "yapi_producer_basis.php");
 }
 
-_log("Libraries to be loaded: " . json_encode($yLibs));
+_dumpY(DBG_FOUNDATION, 1, "Libraries to be loaded: " . json_encode($yLibs));
 foreach ($yLibs as $libName) {
   $libName = trim($libName);
   if ($libName > '') {
     $_libName = "$yCoreFolder/$libName";
-    _log("Loading $_libName");
+    _dumpY(DBG_FOUNDATION, 1, "Loading $_libName");
     if (file_exists($_libName)) {
       ((@include_once "$_libName") || _die("Error loading $_libName"));
     } else {
@@ -715,7 +740,7 @@ foreach ($yLibs as $libName) {
     }
   }
 }
-_log("Libraries ready");
+_dumpY(DBG_FOUNDATION, 1, "Libraries ready");
 
 $dbConfig           = dirname(__FILE__) . "/api-config.ini";
 $__parserConfigFile = null;
@@ -797,20 +822,20 @@ if (file_exists("$dbConfig")) {
       $canUseCacheFolder = false;
       // first - check folder exists
       if (!is_dir($CFGCacheFolder)) {
-        _log("Cache folder '$CFGCacheFolder' does not exists");
+        _dumpY(DBG_FOUNDATION, 1, "Cache folder '$CFGCacheFolder' does not exists");
         if (is_writeable(dirname($CFGCacheFolder))) {
           $canUseCacheFolder = @mkdir($CFGCacheFolder);
           if (!$canUseCacheFolder) {
-            _log("Cache folder '$CFGCacheFolder' cannot be created");
+            _dumpY(DBG_FOUNDATION, 1, "Cache folder '$CFGCacheFolder' cannot be created");
           }
 
         } else {
-          _log("Cache container folder '" . dirname($CFGCacheFolder) . "' cannot be written");
+          _dumpY(DBG_FOUNDATION, 1, "Cache container folder '" . dirname($CFGCacheFolder) . "' cannot be written");
         }
       } else {
         $canUseCacheFolder = is_writable($CFGCacheFolder);
         if (!$canUseCacheFolder) {
-          _log("Cache folder '$CFGCacheFolder' cannot be written");
+          _dumpY(DBG_FOUNDATION, 1, "Cache folder '$CFGCacheFolder' cannot be written");
         }
       }
 
@@ -822,7 +847,7 @@ if (file_exists("$dbConfig")) {
         }
 
         mkdir($CFGCacheFolder);
-        _log("Cache temporary folder created: '$CFGCacheFolder'");
+        _dumpY(DBG_FOUNDATION, 1, "Cache temporary folder created: '$CFGCacheFolder'");
       }
       $CFGCacheConfigured = true;
 
@@ -848,7 +873,7 @@ if (file_exists("$dbConfig")) {
 
     // fourth - if desired folder does not exists, create it
     if (!is_dir($ret)) {
-      _log("Cache creating folder '$ret'");
+      _dumpY(DBG_FOUNDATION, 1, "Cache creating folder '$ret'");
       mkdir($ret, 0777, true);
     }
 
@@ -866,7 +891,7 @@ if (file_exists("$dbConfig")) {
 
   function _configServer()
   {
-    global $dbConfig, $HOST, $CFGServer;
+    global $dbConfig, $HOST, $CFGServer, $CFGContext;
 
     /**
      * Há duas camadas de configuração:
@@ -939,7 +964,8 @@ if (file_exists("$dbConfig")) {
     }
 
     $CFGServer['CFGLogFilename']        = replaceFilenameExtension((isset($log) ? $log : (__DIR__ . "/logs/application.log")), "$HOST.log");
-    $CFGServer['CFGLogLevel']           = (isset($logLevel) ? $logLevel : 0);
+    $CFGServer['CFGLogMask']            = (isset($logMask) ? $logMask : 33);
+    $CFGServer['CFGLogLevel']           = (isset($logLevel) ? $logLevel : 3);
     $CFGServer['CFGHideErrors']         = (isset($hideErrors) ? $hideErrors : 0);
     $CFGServer['CFGShowConnectionInfo'] = isset($showConnectionInfo) ? $showConnectionInfo : 0;
     $CFGServer['CFGUseWhiteLabelEmail'] = intval((isset($useWhiteLabelEmail) ? intval($useWhiteLabelEmail) : 0));
@@ -1100,23 +1126,39 @@ if (file_exists("$dbConfig")) {
     /* a partir daqui, o sistema (neste ciclo) usará o servidor configurado em CFGEmailSMTPConfig */
     $CFGServer['CFGEmailSMTPConfig'] = _getValue($CFGServer['CFGEmailSMTPServers'], _getValue($CFGServer, 'CFGEmailSMTP', 'none'), [0 => []])[$auxNdxRnd];
 
-    if ($oldCFGLogFilename != $CFGServer['CFGLogFilename']) {
-      _log("Log file changed to " . $CFGServer['CFGLogFilename']);
+    $newLogFile = ($oldCFGLogFilename != $CFGServer['CFGLogFilename']);
+    if ($newLogFile) {
+      _dumpY(DBG_FOUNDATION, 1, "Log file changed to " . $CFGServer['CFGLogFilename']);
     }
+
+    // CFGContext is a public structure
+    // yeapf2 will use CFGServer internally
+    $CFGContext = array_merge($CFGServer);
 
     $CFGServer['configured'] = true;
     _publishCFGServer();
+    if ($newLogFile) {
+      _resetLog();
+    }
 
     if (false) {echo "<pre>";die(print_r($CFGServer));}
 
   }
-  _configServer();
 
-  $pluginManager->loadPlugins("basis");
-  $pluginManager->loadPlugins("modules");
-  $pluginManager->loadPlugins("plugins");
+  if (!$CFGServer['configured']) {
+    _configServer();
 
-  $pluginManager->callPlugin('*yeapf', 'configServer');
+    _dumpY(DBG_FOUNDATION, 1, "--------------------------------------");
+    _dumpY(DBG_FOUNDATION, 1, "Plugins being loaded");
+    $pluginManager->loadPlugins("basis");
+    $pluginManager->loadPlugins("modules");
+    $pluginManager->loadPlugins("plugins");
+
+    _dumpY(DBG_FOUNDATION, 1, "Plugins loaded");
+    _dumpY(DBG_FOUNDATION, 1, "--------------------------------------");
+
+    $pluginManager->callPlugin('*yeapf', 'configServer');
+  }
 
 } else {
   _response("'$dbConfig' não localizado");
@@ -1127,7 +1169,7 @@ if (file_exists("$dbConfig")) {
  **/
 function _configureApp($url_app = '')
 {
-  global $CFGApp;
+  global $CFGApp, $CFGContext, $pluginManager;
 
   if ($url_app > '') {
     $CFGApp['configured'] = false;
@@ -1136,42 +1178,13 @@ function _configureApp($url_app = '')
   $ret = false;
 
   if (!$CFGApp['configured']) {
-    $appData = DBConnector::grantCollection(null, 'app_config', 'id');
-
-    if ($url_app == '') {
-      $url_app = _getValue($appData->get("default_domain=true"), 'url', DEFAULT_HOST);
+    $pluginManager->callPlugin('*yeapf', 'configApp', $url_app);
+    $CFGContext = array_merge($CFGContext, $CFGApp);
+    if (isset($CFGContext['context'])) {
+      unset($CFGContext['context']);
     }
-    _log("Configurando aplicativo '$url_app'");
-    __setupURL($url_app);
 
-
-    $url_app_e_ip = filter_var($url_app, FILTER_VALIDATE_IP);
-    $_404_causa   = "Endereço desconhecido";
-    $ret          = false;
-
-    if ($url_app_e_ip) {
-      $_404_causa = "Use a URL e não o endereço IP";
-      $ret        = false;
-    } else {
-      $layout_app = $appData->get("url like '%$url_app'");
-
-      if ($layout_app) {
-        $CFGApp['id']           = _getValue($layout_app, 'id', '');
-        $CFGApp['url_app']      = _getValue($layout_app, 'url', '');
-        $CFGApp['chat_agencia'] = _getValue($layout_app, 'chat_agencia', '');
-        $CFGApp['chat_jivo_id'] = _getValue($layout_app, 'chat_jivo_id', '');
-
-        $CFGApp['configured'] = true;
-
-        foreach ($CFGApp as $key => $value) {
-          $_SESSION[$key] = $value;
-        }
-        $ret = true;
-      } else {
-        $_404_causa = "URL desconhedida no servidor.";
-        $ret        = false;
-      }
-    }
+    $CFGApp['configured'] = true;
   } else {
     $ret = true;
   }

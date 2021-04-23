@@ -110,122 +110,137 @@ class PluginManager
   static public function loadPlugins($folder)
   {
     global $yAnalyzer, $CFGContext;
-    $currentDomain = mb_strtolower(getDomain(_getValue($CFGContext, 'CFGSiteURL', '')));
-    if (is_dir("$folder")) {
-      $pluginsFolder = scandir("$folder");
-      foreach ($pluginsFolder as $plugin) {
-        if (!($plugin == '.' || $plugin == '..')) {
-          $isBasisConfigFile = ('basis' == $folder && $plugin == 'config.ini');
-          $isFolderIntoBasis = ('basis' == $folder && is_dir("$folder/$plugin"));
+    _dumpY(DBG_PLUGIN, 2, json_encode(debug_backtrace()));
+    if (empty($CFGContext['plugin_folder_' . $folder])) {
+      $CFGContext['plugin_folder_' . $folder] = date("U");
+      $currentDomain = mb_strtolower(getDomain(_getValue($CFGContext, 'CFGSiteURL', '')));
+      _dumpY(DBG_PLUGIN, 1, "Plugins being loaded from '$folder' for '$currentDomain' domain");
+      _dumpY(DBG_PLUGIN, 1, "------------------------------------------------------------------------------");
+      if (is_dir("$folder")) {
+        $pluginsInFolder = [];
+        $pluginsFolder   = scandir("$folder");
+        foreach ($pluginsFolder as $plugin) {
+          if (!($plugin == '.' || $plugin == '..')) {
+            $isBasisConfigFile = ('basis' == $folder && $plugin == 'config.ini');
+            $isFolderIntoBasis = ('basis' == $folder && is_dir("$folder/$plugin"));
 
-          // echo "[ $folder/$plugin ]\n";
-          if (!$isFolderIntoBasis) {
-            if (is_dir("$folder/$plugin") || $isBasisConfigFile) {
+            // echo "[ $folder/$plugin ]\n";
+            if (!$isFolderIntoBasis) {
+              if (is_dir("$folder/$plugin") || $isBasisConfigFile) {
+                _dumpY(DBG_PLUGIN, 2, "Plugin $folder/$plugin being analyzed");
 
-              if ($isBasisConfigFile) {
-                /**
-                 * basis is an special folder
-                 * it has the right to have a config.ini in the main folder in order
-                 * to configure all the system
-                 */
-                $pluginIniFile = "$folder/config.ini";
-              } else {
-                $pluginIniFile = "$folder/$plugin/config.ini";
-              }
-
-              // echo "$pluginIniFile\n";
-
-              if (file_exists($pluginIniFile)) {
-                $pluginIni    = @parse_ini_file($pluginIniFile, true);
-                $pluginConfig = _getValue($pluginIni, 'config', []);
-                foreach ($pluginConfig as $sequence => $pluginName) {
-                  preg_match('/plugin[_]{0,1}[0-9]*/', $sequence, $sequenceId);
-                  if (!empty($sequenceId[0])) {
-                    /*
-                     * Plugin cannot be repeated
-                     * Missed the exceptions: login, logoff, etc...
-                     */
-                    if (!array_key_exists($pluginName, $GLOBALS['__yPluginsRepo'])) {
-                      $GLOBALS['__yPluginsRepo'][$pluginName]           = $pluginIni[$pluginName];
-                      $GLOBALS['__yPluginsRepo'][$pluginName]['loaded'] = false;
-                      $GLOBALS['__yPluginsRepo'][$pluginName]['folder'] = ($isBasisConfigFile ? "$folder" : "$folder/$plugin");
-
-                      // API helper
-                      if (!empty($pluginIni[$pluginName]['class'])) {
-                        $GLOBALS['__yPluginsIndex'][$pluginIni[$pluginName]['class']] = $pluginName;
-                      }
-                    }
-                  }
+                if ($isBasisConfigFile) {
+                  /**
+                   * basis is an special folder
+                   * it has the right to have a config.ini in the main folder in order
+                   * to configure all the system
+                   */
+                  $pluginIniFile = "$folder/config.ini";
+                } else {
+                  $pluginIniFile = "$folder/$plugin/config.ini";
                 }
-              } else {
-                _warn("Plugin configuration file '$pluginIniFile' not found");
-              }
-              /*
-               * Plugin must be enabled in the current domain
-               * or on any domain
-               */
-              foreach ($GLOBALS['__yPluginsRepo'] as $pluginName => $pluginConfig) {
-                if (!$pluginConfig['loaded']) {
-                  if ($pluginConfig['enabled']) {
-                    $domains = mb_strtolower(',' . str_replace(';', ',', str_replace(' ', '', $pluginConfig['domains'])) . ',');
-                    if ($pluginConfig['domains'] == '*' || strpos($domains, ",$currentDomain,") !== false) {
-                      $GLOBALS['__yPluginsRepo'][$pluginName]['enabled'] = true;
-                    }
 
-                    _log("Plugin $pluginName can run in $currentDomain? " . ($pluginConfig['enabled'] ? 'YES' : 'NO'));
+                // echo "$pluginIniFile\n";
 
-                    /**
-                     * If the plugin is enabled and can be used in this domain,
-                     * search the class and create an instance
-                     */
-                    if ($GLOBALS['__yPluginsRepo'][$pluginName]['enabled']) {
-                      $_pluginScriptname = getcwd() . "/" . __removeLastSlash($pluginConfig['folder']) . '/' . _getValue($pluginConfig, 'script', 'plugin.php');
-                      if (file_exists($_pluginScriptname)) {
-                        $GLOBALS['__yPluginsRepo'][$pluginName]['exists'] = true;
+                if (file_exists($pluginIniFile)) {
+                  $pluginIni    = @parse_ini_file($pluginIniFile, true);
+                  $pluginConfig = _getValue($pluginIni, 'config', []);
+                  foreach ($pluginConfig as $sequence => $pluginName) {
+                    preg_match('/plugin[_]{0,1}[0-9]*/', $sequence, $sequenceId);
+                    if (!empty($sequenceId[0])) {
+                      /*
+                       * Plugin cannot be repeated
+                       * Missed the exceptions: login, logoff, etc...
+                       */
+                      if (!array_key_exists($pluginName, $GLOBALS['__yPluginsRepo'])) {
+                        $pluginsInFolder[]                                = $pluginName;
+                        $GLOBALS['__yPluginsRepo'][$pluginName]           = $pluginIni[$pluginName];
+                        $GLOBALS['__yPluginsRepo'][$pluginName]['loaded'] = false;
+                        $GLOBALS['__yPluginsRepo'][$pluginName]['folder'] = ($isBasisConfigFile ? "$folder" : "$folder/$plugin");
 
-                        _log("Plugin loading $_pluginScriptname");
-
-                        /**
-                         * Each parameter is analised in order to help in build the plugin context
-                         */
-                        foreach ($pluginConfig as $key => $value) {
-                          $aux                                          = $yAnalyzer->do($value, $CFGContext);
-                          $GLOBALS['__yPluginsRepo'][$pluginName][$key] = $aux;
+                        // API helper
+                        if (!empty($pluginIni[$pluginName]['class'])) {
+                          $GLOBALS['__yPluginsIndex'][$pluginIni[$pluginName]['class']] = $pluginName;
                         }
-
-                        ((@include_once "$_pluginScriptname") || _die("Error loading $_pluginScriptname"));
-                        $GLOBALS['__yPluginsRepo'][$pluginName]['loaded'] = true;
-
-                        $_pluginClassName = _getValue($pluginConfig, 'class', 'DefaultPlugin');
-                        _log("Plugin class: $_pluginClassName");
-
-                        if (class_exists($_pluginClassName)) {
-                          /**
-                           * if class exists, it is instantiated
-                           */
-                          _log("Plugin being instantiated as $_pluginClassName");
-                          $GLOBALS['__yPluginsRepo'][$pluginName]['_class'] = new $_pluginClassName();
-                          if ($GLOBALS['__yPluginsRepo'][$pluginName]['_class']) {
-                            /**
-                             * once the class is instantiated, it's initialized
-                             * If the initializator returns true, the plugin is enabled.
-                             */
-                            $gateway                                           = self::$currentGateway;
-                            $GLOBALS['__yPluginsRepo'][$pluginName]['enabled'] = $GLOBALS['__yPluginsRepo'][$pluginName]['_class']->initialize($currentDomain, $gateway, $CFGContext);
-
-                          }
-                        }
-                      } else {
-                        _log("Plugin $_pluginScriptname not found");
-                        $GLOBALS['__yPluginsRepo'][$pluginName]['exists'] = false;
                       }
                     }
                   }
+                } else {
+                  _warn("Plugin configuration file '$pluginIniFile' not found");
                 }
               }
             }
           }
         }
+        /*
+         * Plugin must be enabled in the current domain
+         * or on any domain
+         */
+        for ($plgNdx = 0; $plgNdx < count($pluginsInFolder); $plgNdx++) {
+          $pluginName   = $pluginsInFolder[$plgNdx];
+          $pluginConfig = $GLOBALS['__yPluginsRepo'][$pluginName];
+
+          _dumpY(DBG_PLUGIN, 2, "*** $pluginName");
+          if (!$pluginConfig['loaded']) {
+            if ($pluginConfig['enabled']) {
+              $domains = mb_strtolower(',' . str_replace(';', ',', str_replace(' ', '', $pluginConfig['domains'])) . ',');
+              if ($pluginConfig['domains'] == '*' || strpos($domains, ",$currentDomain,") !== false) {
+                $GLOBALS['__yPluginsRepo'][$pluginName]['enabled'] = true;
+              }
+
+              _dumpY(DBG_PLUGIN, 1, "Plugin '$pluginName' can run in '$currentDomain'? " . ($pluginConfig['enabled'] ? 'YES' : 'NO'));
+
+              /**
+               * If the plugin is enabled and can be used in this domain,
+               * search the class and create an instance
+               */
+              if ($GLOBALS['__yPluginsRepo'][$pluginName]['enabled']) {
+                $_pluginScriptname = getcwd() . "/" . __removeLastSlash($pluginConfig['folder']) . '/' . _getValue($pluginConfig, 'script', 'plugin.php');
+                _dumpY(DBG_PLUGIN, 3, "Plugin script name = $_pluginScriptname");
+                if (file_exists($_pluginScriptname)) {
+                  $GLOBALS['__yPluginsRepo'][$pluginName]['exists'] = true;
+
+                  _dumpY(DBG_PLUGIN, 3, "Plugin \-- loading $_pluginScriptname");
+
+                  /**
+                   * Each parameter is analised in order to help in build the plugin context
+                   */
+                  foreach ($pluginConfig as $key => $value) {
+                    $aux                                          = $yAnalyzer->do($value, $CFGContext);
+                    $GLOBALS['__yPluginsRepo'][$pluginName][$key] = $aux;
+                  }
+
+                  ((@include_once "$_pluginScriptname") || _die("Error loading $_pluginScriptname"));
+                  $GLOBALS['__yPluginsRepo'][$pluginName]['loaded'] = true;
+
+                  $_pluginClassName = _getValue($pluginConfig, 'class', 'DefaultPlugin');
+                  _dumpY(DBG_PLUGIN, 3, "Plugin \-- class: $_pluginClassName");
+
+                  if (class_exists($_pluginClassName)) {
+                    /**
+                     * if class exists, it is instantiated
+                     */
+                    _dumpY(DBG_PLUGIN, 3, "Plugin \-- being instantiated as $_pluginClassName");
+                    $GLOBALS['__yPluginsRepo'][$pluginName]['_class'] = new $_pluginClassName();
+                    if ($GLOBALS['__yPluginsRepo'][$pluginName]['_class']) {
+                      /**
+                       * once the class is instantiated, it's initialized
+                       * If the initializator returns true, the plugin is enabled.
+                       */
+                      $gateway                                           = self::$currentGateway;
+                      $GLOBALS['__yPluginsRepo'][$pluginName]['enabled'] = $GLOBALS['__yPluginsRepo'][$pluginName]['_class']->initialize($currentDomain, $gateway, $CFGContext);
+
+                    }
+                  }
+                } else {
+                  _dumpY(DBG_PLUGIN, 1, "Plugin $_pluginScriptname not found!");
+                  $GLOBALS['__yPluginsRepo'][$pluginName]['exists'] = false;
+                }
+              }
+            }
+          }
+        }
+
       }
     }
   }
@@ -259,12 +274,12 @@ class PluginManager
     $gateway  = self::$currentGateway;
     $answered = false;
     $ret      = '';
-    
+
     foreach ($GLOBALS['__yPluginsRepo'] as $key => $pluginDefinition) {
 
       $isBroadCast = substr($subject, 0, 1) == '*';
       if ($isBroadCast) {
-        $subject      = substr($subject, 1);
+        $subject  = substr($subject, 1);
         $answered = false;
       }
 
