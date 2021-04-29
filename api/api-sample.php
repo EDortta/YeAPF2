@@ -75,8 +75,6 @@ if ($method == "OPTIONS") {
   header("Cache-Control: post-check=0, pre-check=0", false);
   header("Pragma: no-cache");
 
-  $api = new YApiProducerBasis;
-
   _log("Executing API call");
 
   // die(print_r($GLOBALS['__yPluginsRepo']));

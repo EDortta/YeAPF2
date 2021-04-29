@@ -339,9 +339,9 @@ if (!function_exists("_die")) {
       $args2['warnings'] = $_tempWarnings;
 
       call_user_func_array('_log', $args2);
-      if (!__outputIsJson()) {
-        echo "<div style='border-radius:4px;; border: solid 1px #999; padding-left: 12px'><pre style='white-space: pre-wrap;'>";
-      }
+      // if (!__outputIsJson()) {
+      //   echo "<div style='border-radius:4px;; border: solid 1px #999; padding-left: 12px'><pre style='white-space: pre-wrap;'>";
+      // }
 
       _response($args2);
       if (!__outputIsJson()) {
@@ -1142,14 +1142,19 @@ if (file_exists("$dbConfig")) {
     }
 
     if (false) {echo "<pre>";die(print_r($CFGServer));}
-
   }
 
   if (!$CFGServer['configured']) {
     _configServer();
 
     _dumpY(DBG_FOUNDATION, 1, "--------------------------------------");
+    if ($CFGApiRequest) {
+      _dumpY(DBG_FOUNDATION, 0, "API producer being created");
+      $api = new YApiProducerBasis;
+    }
+
     _dumpY(DBG_FOUNDATION, 1, "Plugins being loaded");
+
     $pluginManager->loadPlugins("basis");
     $pluginManager->loadPlugins("modules");
     $pluginManager->loadPlugins("plugins");
