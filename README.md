@@ -46,6 +46,21 @@ YeAPF2, like its first version, has a large part written in Javascript. Some yea
 
 This trend continues in YeAPF2 and will be further strengthened as we think of mirroring YeAPF2 to work in Node. In other words, PHP would be just an option.
 
+#### Developing
+
+In order to keep things simpler as possible, we can use a modified git command. One for a test application and other for yeapf2 development.
+
+These tools depends on .git-app and .git-y2 folders that are just renamed .git folders.
+
+You simply add these alias to bash_rc or zprofile configuration file as shown here:
+
+```bash
+alias gity2='git --git-dir=.git-y2'
+alias gitapp='git --git-dir=.git-app'
+```
+
+Once you have these aliases installed, you just restart your terminal and use it as you does with `git` command.
+
 #### How to contribute
 
 As it is a one-only-man project, your concrete contribution will be a good reward for this work.
