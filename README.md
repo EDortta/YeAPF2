@@ -59,7 +59,7 @@ alias gity2='git --git-dir=.git-y2'
 alias gitapp='git --git-dir=.git-app'
 ```
 
-Once you have these aliases installed, you just restart your terminal and use it as you does with `git` command.
+Once you have these aliases installed, you just restart your terminal and use them as you does with `git` command. `gity2` for pull modifications from YeAPF2 and `gitapp` for your application.
 
 #### How to contribute
 
