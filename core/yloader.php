@@ -911,7 +911,7 @@ if (file_exists("$dbConfig")) {
         $rwName       = $config['connection']['rw'];
         $rwConnection = _getValue($config, $rwName, []);
         extract($rwConnection);
-        $connSpec = "$dbtype#$dbhost:$dbuser@$dbname/$dbpass";
+        $connSpec = "$dbtype#$dbhost|$dbport:$dbuser@$dbname/$dbpass";
         if ($connSpec != '#:@/') {
           DBConnector::connect($dbtag, $connSpec, "rw");
         }

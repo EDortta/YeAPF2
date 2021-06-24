@@ -4,7 +4,7 @@
 class MySQLLink implements YDBLink {
   /**
    * server is formed as follows:
-   *   host:user@database/password
+   *   host|port:user@database/password
    **/
   function __construct($server, $mode = "rw") {
     $mode = trim(mb_strtolower($mode));
@@ -19,15 +19,17 @@ class MySQLLink implements YDBLink {
 
     if ($server_config) {
       if ($server_config) {
-        $host       = $server_config[1];
+        $aux        = explode("|", $server_config[1]);
+        $host       = $aux[0];
+        $port       = _getValue($aux, 1, '3306');
         $user       = $server_config[2];
         $database   = $server_config[3];
         $password   = $server_config[4];
         $this->name = $database;
         if (in_array($this->mode, [0, 1])) {
           if (function_exists("mysqli_connect")) {
-            _dumpY(DBG_DATABASE, 1, "Connecting to $server ( $database at $host )");
-            $this->connection = mysqli_connect($host, $user, $password, $database);
+            _dumpY(DBG_DATABASE, 1, "Connecting to $database ( $host, $user, $password, $database, $port )");
+            $this->connection = mysqli_connect($host, $user, $password, $database, $port);
             if ($this->connection) {
               _dumpY(DBG_DATABASE, 1, "DB connection ready");
             } else {
@@ -78,7 +80,7 @@ class MySQLLink implements YDBLink {
   }
 }
 
-class MySQLCollection  extends YDBHelper  implements YDBCollection {
+class MySQLCollection extends YDBHelper implements YDBCollection {
   function __construct($roLink, $rwLink, $collectionName, $id_name = "id") {
     $this->ro_connection = $roLink;
     $this->rw_connection = $rwLink;
@@ -96,33 +98,33 @@ class MySQLCollection  extends YDBHelper  implements YDBCollection {
 
   public function query($aQuery, $offset = 0, $limit = 100) {
     $ret = [];
-    $sql = "select * from ".$this->collectionName." where $aQuery";
-    $q = mysqli_query($this->ro_connection->connection, $sql);
+    $sql = "select * from " . $this->collectionName . " where $aQuery";
+    $q   = mysqli_query($this->ro_connection->connection, $sql);
     if ($q) {
-      while ($d=mysqli_fetch_array($q)) {
-        $ret[]=$d;
+      while ($d = mysqli_fetch_array($q)) {
+        $ret[] = $d;
       }
     } else {
       if (mysqli_errno($this->ro_connection->connection)) {
         $errDetail = $this->ro_connection->lastError();
-        throw new YException("mysql ".$errDetail['code'].": ".$errDetail['message']." doing: ".$sql, YDB_MISSING_DATABASE);
+        throw new YException("mysql " . $errDetail['code'] . ": " . $errDetail['message'] . " doing: " . $sql, YDB_MISSING_DATABASE);
       }
     }
     return $ret;
   }
 
   public function get($IdOrCondition) {
-    $ret = [];
+    $ret           = [];
     $IdOrCondition = preg_replace('/\s+/', ' ', "$IdOrCondition");
-    $kind = $this->kindOfExpression($IdOrCondition);
-    if ($kind=='expr') {
+    $kind          = $this->kindOfExpression($IdOrCondition);
+    if ($kind == 'expr') {
       $ret = $this->query($IdOrCondition, 0, 1);
     } else {
-      $key=$IdOrCondition;
-      if ($kind!='int') {
-        $key="'".$key."'";
-      } 
-      $ret = $this->query($this->id_name." = ".$key,0,1);
+      $key = $IdOrCondition;
+      if ($kind != 'int') {
+        $key = "'" . $key . "'";
+      }
+      $ret = $this->query($this->id_name . " = " . $key, 0, 1);
     }
 
     $ret = _getValue($ret, 0);

@@ -104,5 +104,5 @@ $index = file_get_contents($index_name);
 /**
  * Processo e mostro o documento
  */
-echo $yAnaliser->do($index, $CFGContext);
+echo $yAnalyzer->do($index, $CFGContext);
 echo "<!-- $index_name -->";
