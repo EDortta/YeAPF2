@@ -1,7 +1,6 @@
 <?php
 
-interface YDBLink
-{
+interface YDBLink {
   public function __construct($server, $mode = "rw");
 
   public function lastError();
@@ -11,8 +10,7 @@ interface YDBLink
   public function name();
 }
 
-interface YDBCollection
-{
+interface YDBCollection {
   function __construct($roLink, $rwLink, $collectionName, $id_name = "id");
 
   public function name();
@@ -21,15 +19,13 @@ interface YDBCollection
 
   public function get($IdOrCondition);
 
-  public function set($aData);
+  public function set(&$aData);
 
   public function delete($IdOrCondition);
 }
 
-class YDBHelper
-{
-  public function kindOfExpression($expr)
-  {
+class YDBHelper {
+  public function kindOfExpression($expr) {
     $ret = null;
     if (null !== $expr) {
       if (is_array($expr)) {
@@ -71,73 +67,60 @@ define("YDB_MISSING_DATABASE", 1001);
 define("YDB_MISSING_CONNECTION", 1002);
 define("YDB_QUERY_ERROR", 1010);
 
-class YException extends Exception
-{
+class YException extends Exception {
   static $details;
   static $errorNumber;
   static $errorDetails;
 
-  public function __construct($message, $code = 0, Exception $previous = null)
-  {
+  public function __construct($message, $code = 0, Exception $previous = null) {
     self::$errorNumber  = $code;
     self::$errorDetails = $message;
     parent::__construct($message, $code, $previous);
   }
 
-  public function __toString()
-  {
+  public function __toString() {
     return __CLASS__ . ": [{$this->code}]: {$this->errorDetails}\n";
   }
 
-  public function message()
-  {
+  public function message() {
     return "YDatabase error: " . self::$errorNumber . " " . self::$errorDetails;
   }
 }
 
-class DummyCollection extends YDBHelper implements YDBCollection
-{
-  public function __construct($roLink, $rwLink, $collectionName, $id_name = "id")
-  {
+class DummyCollection extends YDBHelper implements YDBCollection {
+  public function __construct($roLink, $rwLink, $collectionName, $id_name = "id") {
     return null;
   }
 
-  public function name()
-  {
+  public function name() {
     return null;
   }
 
-  public function query($aQuery, $offset = 0, $limit = 100)
-  {
+  public function query($aQuery, $offset = 0, $limit = 100) {
     return null;
   }
 
-  public function get($IdOrCondition)
-  {
+  public function get($IdOrCondition) {
     return null;
   }
 
-  public function set($aData)
-  {
+  public function set(&$aData) {
     return null;
   }
 
-  public function delete($IdOrCondition)
-  {
+  public function delete($IdOrCondition) {
     return null;
   }
 
 }
 
-class DBConnector
-{
+class DBConnector {
   public static $links;
   public static $connections;
   public static $collections;
   public static $defaultDBTagName;
 
-  public static function init()
-  {
+  public static function init() {
     self::$links       = [];
     self::$connections = [
       'rw' => [],
@@ -147,8 +130,7 @@ class DBConnector
     self::$defaultDBTagName = null;
   }
 
-  public static function registerLink($DBLinkName, $DBLink, $DBCollection)
-  {
+  public static function registerLink($DBLinkName, $DBLink, $DBCollection) {
     _dumpY(DBG_DATABASE, 1, "Registering '$DBLinkName' link");
     self::$links[$DBLinkName] = [
       'conn'       => $DBLink,
@@ -156,8 +138,7 @@ class DBConnector
     ];
   }
 
-  public static function connect($dbTagName, $server, $mode = 'rw')
-  {
+  public static function connect($dbTagName, $server, $mode = 'rw') {
     $ret = false;
     if (count(array_keys(self::$links)) == 0) {
       _die("Call registerLink() before");
@@ -218,8 +199,7 @@ class DBConnector
     return $ret;
   }
 
-  public static function grantCollection($dbTagName, $collectionName, $idName = 'id')
-  {
+  public static function grantCollection($dbTagName, $collectionName, $idName = 'id') {
     $ret = new DummyCollection(null, null, null, null);
     if (null === $dbTagName) {
       $dbTagName = self::$defaultDBTagName;
@@ -263,8 +243,7 @@ class DBConnector
     return $ret;
   }
 
-  public static function getLastError()
-  {
+  public static function getLastError() {
     $errorList = [];
     foreach (self::$connections as $connMode) {
       foreach ($dbTagName as $conn) {

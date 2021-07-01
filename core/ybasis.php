@@ -5,8 +5,46 @@
  *   - Some global variables, structures and flags
  */
 
-
 //--------[ uuid and tokens  ]--------
+
+function genSUUID($prefix = '', $maxLen = 18) {
+  $charset = "qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM0123456789_";
+  $max     = strlen($charset);
+  $prefix  = str_pad($prefix, 3, '0', STR_PAD_LEFT);
+  /**
+   * SWATCH
+   * https://en.wikipedia.org/wiki/Swatch_Internet_Time
+   */
+  $ret = $prefix . dechex(date("y") . str_pad(date("z"), 3, '0', STR_PAD_LEFT) . date("B"));
+  while (strlen($ret) < $maxLen) {
+    $ret .= substr($charset, random_int(0, $max), 1);
+  }
+  return $ret;
+}
+
+function splitSUUID($suuid) {
+  $ret           = [];
+  $ret['prefix'] = substr($suuid, 0, 3);
+  $ret['swatch'] = substr($suuid, 3, 7);
+  $ret['rnd']    = substr($suuid, 7);
+  return $ret;
+}
+
+function decodeSwatch($suuid) {
+  /**
+   * https://en.wikipedia.org/wiki/Swatch_Internet_Time
+   */
+  $suuidSplited = splitSUUID($suuid);
+  $aux          = hexdec($suuidSplited['swatch']);
+  $y            = substr($aux, 0, 2);
+  $z            = substr($aux, 2, 3);
+  $swatch       = substr($aux, 5, 3);
+  // 23:59 - 999 - 23*60+59 - 1439
+  $minutes = $swatch * 1439 / 999;
+  $hours   = floor($minutes / 60);
+  $minutes = floor(($minutes - $hours * 60) * 100) / 100;
+  return (['year' => $y, 'dayOfYear' => $z, 'swatch' => $swatch, 'hours' => $hours, 'minutes' => $minutes]);
+}
 
 /**
  * UUIDV4 Generator
@@ -23,7 +61,6 @@ function gen_uuid() {
     random_int(0, 0xffff), random_int(0, 0xffff), random_int(0, 0xffff)
   );
 }
-
 
 /**
  * Creates a randomized token
@@ -69,7 +106,7 @@ function __genRandomToken($injectPrimes = false) {
 
 /**
  * Informs if a token is valid.
- * 
+ *
  * A token is valid when have certain primes in certain locations
  *
  * @param      string       $token  The token
@@ -115,7 +152,7 @@ function _getDomainFromURL($url = '') {
   }
 
   preg_match_all('/[a-zA-Z0-9]*\.([a-zA-Z0-9\.]*)/', $url, $output_array);
-  $ret = _getValue($output_array[0],0,'');
+  $ret = _getValue($output_array[0], 0, '');
   $ret = str_replace("www.", "", $ret);
   return $ret;
 }
@@ -137,7 +174,6 @@ if (!function_exists("_getRealIpAddr")) {
 function _response_into_range($code, $min, $max) {
   return $code >= $min && $code <= $max;
 }
-
 
 if (!function_exists("getAuthorizationHeader")) {
   function getAuthorizationHeader() {
@@ -170,4 +206,3 @@ if (!function_exists("getBearerToken")) {
     return $ret;
   }
 }
-

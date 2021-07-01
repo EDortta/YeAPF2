@@ -64,17 +64,21 @@ class YApiProducerBasis extends YApiProducer {
     }
 
     $endpointPath = $path;
-    preg_match_all('/:([a-zA-Z0-9_]*)/', $path, $auxHiddenParams);
-
-    foreach ($auxHiddenParams[0] as $key => $value) {
-      $path = str_replace($value, "([a-zA-Z0-9\-\._@<>]*)", $path);
+    if (preg_match_all('/:([a-zA-Z0-9_]*)/', $path, $auxHiddenParams)) {
+      $auxParam = (empty($params) ? [] : json_decode($params, true));
+      foreach ($auxHiddenParams[0] as $key => $paramName) {
+        $path                            = str_replace($paramName, "([a-zA-Z0-9\-\._@<>]*)", $path);
+        $auxParam[substr($paramName, 1)] = [
+          'type' => 'string',
+        ];
+      }
+      $params = json_encode($auxParam);
     }
-
     $path = str_replace("/", '\/', $path);
 
     $methodTag = '_' . mb_strtolower($desiredMethod) . '_';
     if (!isset($this->entryPoints[$path])) {
-      $this->entryPoints[$path] = array();
+      $this->entryPoints[$path] = [];
     }
 
     _log("Registering $desiredMethod : $path");
@@ -89,6 +93,11 @@ class YApiProducerBasis extends YApiProducer {
       '_callerClass'      => $callerClass,
       '_callerFile'       => $callerFile,
     );
+  }
+
+  public function prepareEntryPoints() {
+    $keys = array_map('strlen', array_keys($this->entryPoints));
+    array_multisort($keys, SORT_DESC, $this->entryPoints);
   }
 
   public function execute() {
@@ -114,7 +123,7 @@ class YApiProducerBasis extends YApiProducer {
       echo count($path) . " steps\n";
     }
 
-    $entryPointParts   = array();
+    $entryPointParts   = [];
     $entryPointFound   = false;
     $inlineParamValues = [];
 
@@ -137,7 +146,8 @@ class YApiProducerBasis extends YApiProducer {
             }
             $entryPointFound       = true;
             $currentEntrypointRoot = $this->entryPoints[$path];
-            $entryPointParts       = $entryPointPartsAux;
+            _log("CurrentEntryPointRoot " . json_encode($currentEntrypointRoot));
+            $entryPointParts = $entryPointPartsAux;
             _log("EntryPoint: " . print_r($path, true));
           }
         }
@@ -166,7 +176,7 @@ class YApiProducerBasis extends YApiProducer {
         _log("Extracting inline param names from $originalPath");
         preg_match_all('/:([a-zA-Z0-9_@.]*)/', $originalPath, $auxInlineParams);
 
-        $inlineParams = array();
+        $inlineParams = [];
         for ($i = 0; $i < count($auxInlineParams[1]); $i++) {
           $inlineParamName = $entryPointParts[$i + 1][0];
           _log("inline param " . $auxInlineParams[1][$i] . " value = $inlineParamName");
@@ -174,8 +184,8 @@ class YApiProducerBasis extends YApiProducer {
           $inlineParams[$auxInlineParams[1][$i]] = $inlineParamValues[$i];
         }
 
-        $_PUT      = array();
-        $_PUT_INFO = array();
+        $_PUT      = [];
+        $_PUT_INFO = [];
         $_INPUT    = @file_get_contents("php://input");
         parse_str($_INPUT, $_PUT_INFO);
         /**
@@ -254,7 +264,7 @@ class YApiProducerBasis extends YApiProducer {
             );
 
           } else {
-            $_PUT_INFO = array();
+            $_PUT_INFO = [];
           }
         }
         parse_str(substr($_SERVER['REQUEST_URI'], strpos($_SERVER['REQUEST_URI'] . '?', '?') + 1), $query_string);
@@ -263,6 +273,7 @@ class YApiProducerBasis extends YApiProducer {
         $notFoundList  = '';
         _log("PUT = " . json_encode($_PUT));
         _log('post params  = ' . json_encode($_REQUEST));
+        _log("Expected params: " . json_encode($currentEntrypointRoot['_params']));
         if (!empty($currentEntrypointRoot['_params'])) {
           foreach ($currentEntrypointRoot['_params'] as $key => $value) {
             if ($helpMap) {
@@ -279,7 +290,7 @@ class YApiProducerBasis extends YApiProducer {
                       isset($inlineParams[$key]) ? $inlineParams[$key] :
                       '_undefined_')))));
 
-            _log("key $key = [ " . (is_array($aParam) ? json_encode($aParam) : $aParam) . " ]");
+            _log("  key '$key' = [ " . (is_array($aParam) ? json_encode($aParam) : $aParam) . " ]");
 
             if ($key == 'avatar_file' && isset($_FILES['file'])) {
               $aParam = $_FILES["file"];
@@ -319,11 +330,13 @@ class YApiProducerBasis extends YApiProducer {
           _log("\t" . $currentEntrypointRoot['_functionName'] . '()');
 
           if ($currentEntrypointRoot['_callerClass'] == 'YApiProducerBasis') {
+            _log("As YApiProducerBasis children");
 
             $ret = call_user_func_array([$this, $currentEntrypointRoot['_functionName']], $params);
 
           } else {
-
+            _log("As a common class");
+            
             $yPluginEntry = $GLOBALS['__yPluginsIndex'][$currentEntrypointRoot['_callerClass']];
 
             $class = $GLOBALS['__yPluginsRepo'][$yPluginEntry]['_class'];
@@ -414,7 +427,7 @@ class YApiProducerBasis extends YApiProducer {
 
       ),
     );
-    $swaggerList = array();
+    $swaggerList = [];
 
     foreach ($this->entryPoints as $entryPath => $entryDefinition) {
       // $entry = $entryDefinition;
@@ -441,7 +454,7 @@ class YApiProducerBasis extends YApiProducer {
           $_chapterDescription         = null;
           $_chapterDescriptionFilename = false;
           if (empty($swaggerList[$_callerClass])) {
-            $swaggerList[$_callerClass] = array();
+            $swaggerList[$_callerClass] = [];
             $fileNames                  = [
               "$_callerClass.md",
               "$_callerFile.md",
@@ -481,8 +494,8 @@ class YApiProducerBasis extends YApiProducer {
           if (("POST" == $method) || ("PUT" == $method)) {
             $itemEntry['request']['body'] = array(
               "mode"     => "formdata",
-              "formdata" => array(),
-              "options"  => array("formdata" => array()),
+              "formdata" => [],
+              "options"  => array("formdata" => []),
             );
             if (isset($entryDetails["_params"])) {
               foreach ($entryDetails["_params"] as $key => $value) {

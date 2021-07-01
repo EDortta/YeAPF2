@@ -58,6 +58,17 @@ class MySQLLink implements YDBLink {
     }
   }
 
+  public static function _dbGetTableList() {
+    $tableList = array();
+    $sql       = "show tables";
+    $q         = self::dbQuery($sql, false);
+    while ($d = self::dbFetchArray($q)) {
+      $k           = array_key_first($d);
+      $tableList[] = $d[$k];
+    }
+    return $tableList;
+  }
+
   public function lastError() {
     $ret = [
       'code'    => 0,
@@ -92,16 +103,60 @@ class MySQLCollection extends YDBHelper implements YDBCollection {
     }
   }
 
+  private function _query($sql) {
+    _log("$sql");
+    $ret = mysqli_query($this->ro_connection->connection, $sql);
+    return $ret;
+  }
+
+  private function _releaseQuery($query) {
+    if ($query) {
+      if (is_object($query)) {
+        mysqli_free_result($query);
+      }
+
+    }
+
+  }
+
+  private function _queryAndFetch($sql) {
+    $ret = null;
+    $q   = $this->_query($sql);
+    if ($q) {
+      $ret = mysqli_fetch_assoc($q);
+      $this->_releaseQuery($q);
+    }
+    return $ret;
+  }
+
+  public function _getCollectionStructure() {
+    $tableName = $this->collectionName;
+
+    $fieldList = array();
+    $sql       = "show columns from `$tableName`";
+    $q         = $this->_query($sql);
+    while ($d = mysqli_fetch_assoc($q)) {
+      $fieldList[$d['Field']] = array(
+        'type'    => $d['Type'],
+        'null'    => $d['Null'],
+        'key'     => $d['Key'],
+        'default' => $d['Default'],
+        'extra'   => $d['Extra'],
+      );
+    }
+    return $fieldList;
+  }
+
   public function name() {
     return $this->collectionName;
   }
 
   public function query($aQuery, $offset = 0, $limit = 100) {
     $ret = [];
-    $sql = "select * from " . $this->collectionName . " where $aQuery";
-    $q   = mysqli_query($this->ro_connection->connection, $sql);
+    $sql = "select * from " . $this->collectionName . " where $aQuery limit $offset, $limit";
+    $q   = $this->_query($sql);
     if ($q) {
-      while ($d = mysqli_fetch_array($q)) {
+      while ($d = mysqli_fetch_assoc($q)) {
         $ret[] = $d;
       }
     } else {
@@ -110,6 +165,7 @@ class MySQLCollection extends YDBHelper implements YDBCollection {
         throw new YException("mysql " . $errDetail['code'] . ": " . $errDetail['message'] . " doing: " . $sql, YDB_MISSING_DATABASE);
       }
     }
+
     return $ret;
   }
 
@@ -131,8 +187,78 @@ class MySQLCollection extends YDBHelper implements YDBCollection {
     return $ret;
   }
 
-  public function set($aData) {
+  public function set(&$aData) {
 
+    $cureField = function ($fieldAsChar, $fieldValue) {
+
+      $specs = ["true", "false", "null"];
+
+      if ($fieldAsChar || !is_numeric($fieldValue)) {
+        if (null === $fieldValue) {
+          $fieldValue = "NULL";
+        }
+        if (true === $fieldValue) {
+          $fieldValue = "TRUE";
+        }
+        if (false === $fieldValue) {
+          $fieldValue = "FALSE";
+        }
+
+        if (in_array(mb_strtolower($fieldValue), $specs)) {
+          $fieldValue = mb_strtoupper($fieldValue);
+        } else {
+          $fieldValue = strip_tags(addslashes($fieldValue));
+          $fieldValue = "'$fieldValue'";
+        }
+      }
+
+      return $fieldValue;
+    };
+
+    $ret = false;
+    if (is_array($aData)) {
+      $structure = $this->_getCollectionStructure();
+
+      $id_value  = $cureField(true, _getValue($aData, $this->id_name, md5(gen_uuid)));
+      $sqlUpdate = "";
+      if (empty($aData[$this->id_name])) {
+        // new record
+        $this->_releaseQuery($this->_query("insert into {$this->collectionName} ({$this->id_name}) values ($id_value)"));
+        $aData[$this->id_name] = $newId;
+      } else {
+        $cc = $this->_queryAndFetch("select count(*) from {$this->collectionName} where {$this->id_name}={$id_value}");
+        if ($cc == 0) {
+          $this->_releaseQuery($this->_query("insert into {$this->collectionName} ({$this->id_name}) values ($id_value)"));
+        }
+      }
+
+      foreach ($aData as $fieldName => $fieldValue) {
+        if (!empty($structure[$fieldName])) {
+          $fieldType = $structure[$fieldName]['type'];
+          if (strpos($fieldType, 'char') !== false) {
+            $fieldAsChar = true;
+          } else {
+            $fieldAsChar = false;
+          }
+
+          if ($this->id_name != $fieldName) {
+            if ($sqlUpdate > '') {
+              $sqlUpdate .= ", ";
+            }
+
+            $fieldValue = $cureField($fieldAsChar, $fieldValue);
+
+            $sqlUpdate .= "$fieldName = $fieldValue";
+          }
+        }
+      }
+
+      $sql = "update {$this->collectionName} set $sqlUpdate where {$this->id_name}={$id_value}";
+      $q   = $this->_query($sql);
+      $ret = (false !== $q);
+      $this->_releaseQuery($q);
+    }
+    return $ret;
   }
 
   public function delete($IdOrCondition) {
