@@ -259,7 +259,7 @@ if (!function_exists("_log")) {
     }
   }
 
-  function _emptyRet()
+  function _debugRet()
   {
     return [
       'record'   => [],
@@ -1150,7 +1150,7 @@ if (file_exists("$dbConfig")) {
     _dumpY(DBG_FOUNDATION, 1, "--------------------------------------");
     if ($CFGApiRequest) {
       _dumpY(DBG_FOUNDATION, 0, "API producer being created");
-      $api = new YApiProducerBasis;
+      $api = new YApiProducerBasis();
     }
 
     _dumpY(DBG_FOUNDATION, 1, "Plugins being loaded");

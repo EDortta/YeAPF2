@@ -12,11 +12,9 @@ abstract class YApiProducer implements YeapfPlugin {
   }
 
   public function emptyRet($http_code = 204, $error_msg = "") {
-    return [
-      "http_code"  => $http_code,
-      "error_msg"  => $error_msg,
-      "error_code" => 0,
-    ];
+    $ret = _emptyRet();
+    $ret['ts']=date('U');
+    return $ret;
   }
 
 }

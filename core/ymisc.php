@@ -240,8 +240,15 @@ function onlyNumbers($value, $extra = '') {
   return $value;
 }
 
+function _emptyRet($http_code = 204, $error_msg = "") {
+  return [
+    "http_code"  => $http_code,
+    "error_msg"  => $error_msg,
+    "error_code" => 0,
+  ];
+}
+
 function httpClient($method, $url, $payload = [], $extra_curl_params = []) {
-  $curl = curl_init();
 
   if (is_array($payload)) {
     $payload = json_encode($payload);
@@ -249,33 +256,42 @@ function httpClient($method, $url, $payload = [], $extra_curl_params = []) {
 
   $method = mb_strtoupper($method);
 
-  curl_setopt_array($curl,
-    array_merge(
-      $extra_curl_params,
-      [
-        CURLOPT_URL            => "$url",
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_ENCODING       => "",
-        CURLOPT_MAXREDIRS      => 10,
-        CURLOPT_TIMEOUT        => 30,
-        CURLOPT_HTTP_VERSION   => CURL_HTTP_VERSION_1_1,
-        CURLOPT_CUSTOMREQUEST  => $method,
-        CURLOPT_POSTFIELDS     => $payload,
-        CURLOPT_HTTPHEADER     => [
-          "accept: application/json",
-          "content-type: application/json",
-          'Content-Length: ' . strlen($payload),
-        ],
-      ]
-    )
-  );
+  $curl_params = [
+    CURLOPT_URL            => "$url",
+    CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_ENCODING       => "",
+    CURLOPT_MAXREDIRS      => 10,
+    CURLOPT_TIMEOUT        => 30,
+    CURLOPT_HTTP_VERSION   => CURL_HTTP_VERSION_1_1,
+    CURLOPT_CUSTOMREQUEST  => $method,
+    CURLOPT_POSTFIELDS     => $payload,
+    CURLOPT_HTTPHEADER     => [
+      "accept: application/json",
+      "content-type: application/json",
+      'Content-Length: ' . strlen($payload),
+    ],
+  ];
+
+  $curl_parms =  [];
+
+  foreach($extra_curl_params as $key => $value) {
+    $curl_parms[$key]=$value;
+  }
+  foreach($curl_params as $key => $value) {
+    $curl_parms[$key]=$value;
+  }
+
+  // die(print_r($curl_params));
+
+  $curl = curl_init();
+  curl_setopt_array($curl, $curl_parms);
 
   $response = curl_exec($curl);
   $err      = curl_error($curl);
 
   curl_close($curl);
 
-  return $response;
+  return [$err, $response];
 
 }
 
@@ -318,7 +334,7 @@ function splitName($name) {
 }
 
 function reducePictureSize($fileName, $desiredMaxSizeMB = 5) {
-  $ret = _emptyRet();
+  $ret = _debugRet();
 
   clearstatcache();
 

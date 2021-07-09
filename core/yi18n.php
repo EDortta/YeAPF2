@@ -23,20 +23,14 @@ class yextensioni18n {
      * https://api.us-south.language-translator.watson.cloud.ibm.com/instances/9f34d7f9-2fc6-44db-b116-28d043b66729
      */
 
-    $cacheLocation = _grantCacheFolder(".i18n");
-    $that          = $params['caller'];
-
-    $defaultSourceLang = _getValue($CFGContext, 'defaultSourceLang', 'en');
-    $defaultTargetLang = _getValue($CFGContext, 'defaultSourceLang', 'es');
-
-    $phrase      = $that->getParamValue($params, 0, 0);
-    $sourceLang  = $that->getParamValue($params, 1, $defaultSourceLang);
-    $targetLang  = $that->getParamValue($params, 2, $defaultTargetLang);
-    $cacheFolder = _grantCacheFolder();
-
     $translateIBM = function ($text, $model_id) {
       // curl -X POST -u "apikey:6ywirUqvyL-qSiR-Ri3DMfdZTgwn0LVc4BhW9DWV_-YG" --header "Content-Type: application/json" --data "{\"text\": [\"Hello, world! \", \"How are you?\"], \"model_id\":\"en-es\"}" "https://api.us-south.language-translator.watson.cloud.ibm.com/instances/9f34d7f9-2fc6-44db-b116-28d043b66729/v3/translate?version=2018-05-01"
-      $aux = httpClient(
+
+      global $api;
+
+      $ret = _emptyRet();
+
+      list($err, $translations) = httpClient(
         "POST",
         "https://api.us-south.language-translator.watson.cloud.ibm.com/instances/9f34d7f9-2fc6-44db-b116-28d043b66729/v3/translate?version=2018-05-01",
         [
@@ -44,40 +38,76 @@ class yextensioni18n {
           "model_id" => $model_id,
         ],
         [
-          CURLOPT_USERPWD => 'apikey:6ywirUqvyL-qSiR-Ri3DMfdZTgwn0LVc4BhW9DWV_-YG'
+          CURLOPT_USERPWD => 'apikey:6ywirUqvyL-qSiR-Ri3DMfdZTgwn0LVc4BhW9DWV_-YG',
         ]
       );
-      die(print_r($aux));
-    };
-
-    if (preg_match('/^i18n_([a-zA-Z]{1}[a-zA-Z_0-9]{2,}):(.*)/', $phrase, $i18n_tags)) {
-      $tag  = $i18n_tags[1];
-      $text = $i18n_tags[2];
-
-      $formalTag      = $sourceLang . "-" . $tag . "-" . $targetLang;
-      $formalFilename = "$cacheLocation/$formalTag.json";
-      /**
-       * First case: The programmer wants to translate and then save the
-       * translated text if it don't exists.
-       * In order to save resources, the saved version has preference.
-       */
-      if ($text > '') {
-
-        if (file_exists($formalFilename)) {
-          // @WARN - the json can be bad formed
-          $formalData = @json_decode(file_get_contents($formalFilename));
-          $ret        = $formalData['translated'];
+      if ($err == '') {
+        if (!empty($translations['error'])) {
+          $ret['http_code']  = 202;
+          $ret['error_code'] = $translations['code'];
+          $ret['error_msg']  = $translations['error'];
         } else {
-
+          $ret['translation'] = "";
+          $aux                = json_decode($translations, true);
+          $trans              = $aux['translations'];
+          foreach ($trans as $line) {
+            if ($ret['translation'] > '') {
+              $ret['translation'] .= "\n";
+            }
+            $ret['translation'] .= json_encode($line['translation']);
+          }
         }
       } else {
-        /**
-         * Second case: The programmer wants to recover the saved text
-         */
+        $ret['http_code']  = 400;
+        $ret['error_code'] = 400;
+        $ret['error_msg']  = $err;
+      }
+      return $ret;
+    };
+
+    $ret = _emptyRet();
+
+    $cacheLocation = _grantCacheFolder(".i18n");
+    $that          = $params['caller'];
+
+    $defaultSourceLang = _getValue($CFGContext, 'defaultSourceLang', 'en');
+    $defaultTargetLang = _getValue($CFGContext, 'defaultTargetLang', 'es');
+
+    $phrase     = $that->getParamValue($params, 0, 0);
+    $sourceLang = $that->getParamValue($params, 1, $defaultSourceLang);
+    $targetLang = $that->getParamValue($params, 2, $defaultTargetLang);
+
+    $saveFileFlag = false;
+    if (preg_match('/^i18n_([a-zA-Z]{1}[a-zA-Z_0-9]{2,}):(.*)/', $phrase, $i18n_tags)) {
+      $tag    = $i18n_tags[1];
+      $text   = $i18n_tags[2];
+      $tagged = true;
+    } else {
+      $tag    = md5($phrase);
+      $text   = $phrase;
+      $tagged = false;
+    }
+
+    $formalTag      = $targetLang . "-" . $tag . "-" . $sourceLang;
+    $formalFilename = "$cacheLocation/$formalTag.text";
+
+    if (file_exists($formalFilename)) {
+      $ret['translation'] = @file_get_contents($formalFilename);
+    } else {
+      if ($text > '') {
+        $ret['translation'] = $translateIBM([$text], "$sourceLang-$targetLang");
+        $saveFileFlag = true;
       }
     }
 
-    return "Translating $phrase to $targetLang";
+    if ($ret['error_code'] == 0) {
+      if ($saveFileFlag) {
+        @file_put_contents($formalFilename, $ret['translation']);
+      }
+      return preg_replace('/u([\da-fA-F]{4})/', '&#x\1;', $ret['translation']);
+    } else {
+      return $ret['error_msg'];
+    }
   }
 }
 
