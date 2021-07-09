@@ -240,6 +240,45 @@ function onlyNumbers($value, $extra = '') {
   return $value;
 }
 
+function httpClient($method, $url, $payload = [], $extra_curl_params = []) {
+  $curl = curl_init();
+
+  if (is_array($payload)) {
+    $payload = json_encode($payload);
+  }
+
+  $method = mb_strtoupper($method);
+
+  curl_setopt_array($curl,
+    array_merge(
+      $extra_curl_params,
+      [
+        CURLOPT_URL            => "$url",
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_ENCODING       => "",
+        CURLOPT_MAXREDIRS      => 10,
+        CURLOPT_TIMEOUT        => 30,
+        CURLOPT_HTTP_VERSION   => CURL_HTTP_VERSION_1_1,
+        CURLOPT_CUSTOMREQUEST  => $method,
+        CURLOPT_POSTFIELDS     => $payload,
+        CURLOPT_HTTPHEADER     => [
+          "accept: application/json",
+          "content-type: application/json",
+          'Content-Length: ' . strlen($payload),
+        ],
+      ]
+    )
+  );
+
+  $response = curl_exec($curl);
+  $err      = curl_error($curl);
+
+  curl_close($curl);
+
+  return $response;
+
+}
+
 /**
  * Esta função tem por propósito preparar a lista de elementos
  * separada por vírgulas em um string de elementos encerrados em
