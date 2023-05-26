@@ -3,6 +3,13 @@
 repo*
 **/api
 **/core
+*.code-workspace
+
+config/*
+
+test-load.php
+vendor/*
+composer.lock 
 
 # Logs
 logs

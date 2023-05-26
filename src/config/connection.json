@@ -1,0 +1,33 @@
+{
+    "redis": {
+        "server": "redis",
+        "_server": "127.0.0.1",
+        "port": 6379,
+        "password": "4nibalEmR0ma",
+        "halt_on_error": true
+    },
+    "pdo": {
+        "driver": "pgsql",
+        "server": "db",
+        "_server": "127.0.0.1",
+        "port": 5432,
+        "dbname": "main",
+        "schema": "public",
+        "user": "postgres",
+        "password": "4lexandreMagnoEmT1ro",
+        "halt_on_error": true,
+        "pool": 1
+    },
+    "voice_db": {
+        "driver": "pgsql",
+        "server": "db",
+        "_server": "127.0.0.1",
+        "port": 5432,
+        "dbname": "main",
+        "schema": "public",
+        "user": "postgres",
+        "password": "4lexandreMagnoEmT1ro",
+        "halt_on_error": true,
+        "pool": 1
+    }
+}
