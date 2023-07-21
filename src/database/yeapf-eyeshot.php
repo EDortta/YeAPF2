@@ -40,20 +40,16 @@ class EyeShotRelation extends \YeAPF\SanitizedKeyData{
       $rightFieldName  = $relation['rightFieldName'];
       $logicalOperator = $relation['logicalOperator'];
 
-      // Handle join type
       if ($index === 0) {
-        // The first relation does not require a join type
         $sqlCommand .= sprintf('%s', $leftFieldName);
       } else {
         $joinType = $joinTypes[$operator] ?? '';
         $sqlCommand .= sprintf(' %s %s', $joinType, $leftFieldName);
       }
 
-      // Handle comparison operator
       $comparisonOperator = $comparisonOperators[$operator] ?? '';
       $sqlCommand .= sprintf(' %s %s', $comparisonOperator, $rightFieldName);
 
-      // Handle logical operator
       if ($logicalOperator !== null) {
         $logicalOperator = $logicalOperators[$logicalOperator] ?? '';
         $sqlCommand .= sprintf(' %s', $logicalOperator);
@@ -64,7 +60,6 @@ class EyeShotRelation extends \YeAPF\SanitizedKeyData{
   }
 
   public function __construct(...$params) {
-    // Check if the number of parameters is valid
     if (count($params) < 3 || count($params) % 4 !== 1) {
       throw new \YeAPF\YeAPFException('Invalid number of parameters', YeAPF_INVALID_NUMBER_OF_PARAMETERS);
     }

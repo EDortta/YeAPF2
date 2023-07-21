@@ -9,7 +9,7 @@ class yLogger {
   static private $lastFile  = null;
 
   static function getAssetsFolder(): string {
-    return __DIR__ . "/../../logs";
+    return realpath(__DIR__ . "/../../logs");
   }
 
   static function canWorkWithoutAssets(): bool {

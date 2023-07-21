@@ -22,7 +22,16 @@ class Bulletin extends \YeAPF\SanitizedKeyData
         echo "Charactet Set: ".$this->charactetSet."\n";
         $response->header("Content-Type", $this->contentType.';'.$this->charactetSet);
         $response->header("Response-Code", $return_code);
-        $response->end(json_encode($this->exportData()));
+        if (!empty($this->__jsonFile)) {
+            $response->header("Content-Disposition", "attachment; filename=\"".$this->__filename??'file.json'."\"");
+            $response->end($this->__jsonFile);
+        } else {
+            if (!empty($this->__json)) {
+                $response->end($this->__json);
+            } else {
+                $response->end(json_encode($this->exportData()));
+            }
+        }
     }
 
 }

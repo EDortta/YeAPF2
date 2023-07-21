@@ -249,7 +249,7 @@ class KeyData implements \ArrayAccess, \Iterator
  * @example treco.php
  */
 class SanitizedKeyData extends KeyData {
-  private static $__constraints = [];
+  private $__constraints = [];
 
   /**
    * Sets a constraint for a given key in the YeAPF library.
@@ -290,7 +290,7 @@ class SanitizedKeyData extends KeyData {
         throw new \YeAPF\YeAPFException("Key already exists", YeAPF_INVALID_KEY_VALUE);
       }
       if (null == $keyType) {
-        unset(self::$__constraints[$keyName]);
+        unset($this->__constraints[$keyName]);
       } else {
         switch ($keyType) {
         case YeAPF_TYPE_STRING:
@@ -379,7 +379,7 @@ class SanitizedKeyData extends KeyData {
 
         if (null !== $protobufOrder) {
           if (0 == $protobufOrder) {
-            foreach (self::$__constraints as $key => $value) {
+            foreach ($this->__constraints as $key => $value) {
               if ($value["protobufOrder"] > $protobufOrder) {
                 $protobufOrder = $value["protobufOrder"];
               }
@@ -387,7 +387,7 @@ class SanitizedKeyData extends KeyData {
             $protobufOrder++;
             $protobufOrder = max(1, $protobufOrder);
           } else {
-            foreach (self::$__constraints as $key => $value) {
+            foreach ($this->__constraints as $key => $value) {
               if ($protobufOrder == $value["protobufOrder"]) {
                 new \YeAPF\YeAPFException("Protobuf order is not unique", YeAPF_PROTOBUF_ORDER_IS_NOT_UNIQUE);
               }
@@ -395,7 +395,7 @@ class SanitizedKeyData extends KeyData {
           }
         }
 
-        self::$__constraints[$keyName] = [
+        $this->__constraints[$keyName] = [
           "type"          => $keyType,
           "length"        => $length,
           "decimals"      => $decimals,
@@ -420,7 +420,7 @@ class SanitizedKeyData extends KeyData {
    * @return mixed The constraint associated with the given key name.
    */
   public function getConstraint(string $keyName) {
-    return self::$__constraints[$keyName];
+    return $this->__constraints[$keyName];
   }
 
   /**
@@ -429,7 +429,7 @@ class SanitizedKeyData extends KeyData {
    * @return array The constraints associated with this object.
    */
   public function getConstraints() {
-    return self::$__constraints;
+    return $this->__constraints;
   }
 
   /**
@@ -445,13 +445,13 @@ class SanitizedKeyData extends KeyData {
    * @return mixed The validated value if it satisfies the constraint
    */
   public function checkConstraint(string $keyName, mixed $value) {
-    if (isset(self::$__constraints[$keyName])) {
-      $type       = self::$__constraints[$keyName]["type"];
-      $length     = self::$__constraints[$keyName]["length"] ?? 0;
-      $decimals   = self::$__constraints[$keyName]["decimals"] ?? 0;
-      $acceptNULL = self::$__constraints[$keyName]["acceptNULL"] ?? false;
-      $minValue   = self::$__constraints[$keyName]["minValue"] ?? null;
-      $maxValue   = self::$__constraints[$keyName]["maxValue"] ?? null;
+    if (isset($this->__constraints[$keyName])) {
+      $type       = $this->__constraints[$keyName]["type"];
+      $length     = $this->__constraints[$keyName]["length"] ?? 0;
+      $decimals   = $this->__constraints[$keyName]["decimals"] ?? 0;
+      $acceptNULL = $this->__constraints[$keyName]["acceptNULL"] ?? false;
+      $minValue   = $this->__constraints[$keyName]["minValue"] ?? null;
+      $maxValue   = $this->__constraints[$keyName]["maxValue"] ?? null;
 
       if (null == $value && !$acceptNULL) {
         throw new \YeAPF\YeAPFException("Null not allowed in " . get_class() . " -> " . $keyName, YeAPF_NULL_NOT_ALLOWED);

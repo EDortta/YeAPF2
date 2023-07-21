@@ -5,42 +5,63 @@ namespace YeAPF\ORM;
 use Swoole;
 use Swoole\Coroutine;
 
-
 /**
  * This class is used to simulate a Redis database
  * in order to avoid the problem that surge when the
  * database is not connected.
  */
-class VirtualRedis {
-    public function set($name, $value) {}
-    public function get($name) { return null; }
-    public function exists($name) { return false; }
-    public function delete($name) {}
-    public function clear() {}
-    public function list() { return []; }
-    public function getConnected() { return false; }
+class VirtualRedis
+{
+    public function set($name, $value)
+    {
+    }
+    public function get($name)
+    {
+        return null;
+    }
+    public function exists($name)
+    {
+        return false;
+    }
+    public function delete($name)
+    {
+    }
+    public function clear()
+    {
+    }
+    public function list()
+    {
+        return [];
+    }
+    public function getConnected()
+    {
+        return false;
+    }
 }
 
-class DocumentModel extends \YeAPF\SanitizedKeyData {
+class DocumentModel extends \YeAPF\SanitizedKeyData
+{
     private $context;
     private $collectionName;
     private $pskData;
 
     public function __construct(
         \YeAPF\Connection\PersistenceContext $context,
-        string $collectionName)
-    {
+        string $collectionName
+    ) {
         $this->context = $context;
         $this->collectionName = $collectionName;
         $this->pskData = new \YeAPF\ORM\PersistentSanitizedKeyData($context);
         parent::__construct();
     }
 
-    public function getCollectionName() {
+    public function getCollectionName()
+    {
         return $this->collectionName;
     }
 
-    private function SQLColumnDefinition2Constraint($columnDefinition) {
+    private function SQLColumnDefinition2Constraint($columnDefinition)
+    {
         // echo "[SQLColumnDefinition2Constraint]";
         // echo "\tAnalyzed info: ".json_encode($columnDefinition, JSON_PRETTY_PRINT);
         $constraint = [];
@@ -56,15 +77,15 @@ class DocumentModel extends \YeAPF\SanitizedKeyData {
             $constraint['keyType'] = YeAPF_TYPE_STRING;
             $constraint['length'] = $columnDefinition['character_maximum_length'];
         } else {
-            if ("character varying" == $columnDefinition['data_type'])
-              $constraint['keyType'] = YeAPF_TYPE_STRING;
-            else {
-                if ("numeric" == substr($columnDefinition['data_type'], 0, 7)){
+            if ("character varying" == $columnDefinition['data_type']) {
+                $constraint['keyType'] = YeAPF_TYPE_STRING;
+            } else {
+                if ("numeric" == substr($columnDefinition['data_type'], 0, 7)) {
                     $constraint['keyType'] = YeAPF_TYPE_FLOAT;
                     $constraint['decimals'] = $columnDefinition['numeric_precision'];
                     $constraint['length'] = $columnDefinition['numeric_scale'];
                 } else {
-                    switch($columnDefinition['data_type']){
+                    switch($columnDefinition['data_type']) {
                         case "boolean":
                             $constraint['keyType'] = YeAPF_TYPE_BOOL;
                             break;
@@ -101,47 +122,56 @@ class DocumentModel extends \YeAPF\SanitizedKeyData {
         return $constraint;
     }
 
-    public function importModelFromDB() {
+    public function importModelFromDB()
+    {
         // echo "Importing model from collection ".$this->collectionName."\n";
         $pdo = null;
         $this->pskData->gainPDOConnection($pdo);
-        $columns = $pdo->columns($this->collectionName);
-        // echo "Columns: \n".json_encode($columns, JSON_PRETTY_PRINT);
+        try {
 
-        $pbo = 0;
-        foreach($columns as $k => $column) {
-            // echo "Column definition: \n".json_encode($column, JSON_PRETTY_PRINT);
-            $constraint = self::SQLColumnDefinition2Constraint($column);
-            // echo "Resultant constraint: \n".json_encode($constraint, JSON_PRETTY_PRINT);
-
-            $this->setConstraint(
-                keyName: $constraint['keyName'],
-                keyType: $constraint['keyType'],
-                length: $constraint['length'],
-                unique: $constraint['unique'],
-                primary: $constraint['primary'],
-                required: $constraint['required'],
-                protobufOrder: $pbo++
-            );
+            $columns = $pdo->columns($this->collectionName);
+            // echo "Columns: \n".json_encode($columns, JSON_PRETTY_PRINT);
+    
+            $pbo = 0;
+            foreach($columns as $k => $column) {
+                // echo "Column definition: \n".json_encode($column, JSON_PRETTY_PRINT);
+                $constraint = self::SQLColumnDefinition2Constraint($column);
+                // echo "Resultant constraint: \n".json_encode($constraint, JSON_PRETTY_PRINT);
+    
+                $this->setConstraint(
+                    keyName: $constraint['keyName'],
+                    keyType: $constraint['keyType'],
+                    length: $constraint['length'],
+                    unique: $constraint['unique'],
+                    primary: $constraint['primary'],
+                    required: $constraint['required'],
+                    protobufOrder: $pbo++
+                );
+            }
+        } finally {
+            $this->pskData->giveBackPDOConnection($pdo);
         }
         return $this;
     }
 
-    public function getDocumentModelConstraints($voidRegex = false) {
+    public function getDocumentModelConstraints($voidRegex = false)
+    {
         $ret = [];
         foreach($this->getConstraints() as $key => $constraint) {
             $ret[$key] = [];
             foreach($constraint as $field => $value) {
-                if (!$voidRegex || $field!='regExpression'){
-                  if (null != $value)
-                    $ret[$key][$field] = $value;
+                if (!$voidRegex || $field!='regExpression') {
+                    if (null != $value) {
+                        $ret[$key][$field] = $value;
+                    }
                 }
             }
         }
         return $ret;
     }
 
-    public function exportDocumentModel(int $format) {
+    public function exportDocumentModel(int $format)
+    {
         $ret = null;
 
         switch($format) {
@@ -157,10 +187,11 @@ class DocumentModel extends \YeAPF\SanitizedKeyData {
                 $fields = $this->getDocumentModelConstraints(true);
                 $orderedList = [];
                 foreach($fields as $key => $constraint) {
-                    if (null !== $constraint['protobufOrder'])
+                    if (null !== $constraint['protobufOrder']) {
                         $orderedList[$key]=$constraint;
+                    }
                 }
-                uasort($orderedList, function($a, $b) {
+                uasort($orderedList, function ($a, $b) {
                     return $a['protobufOrder'] - $b['protobufOrder'];
                 });
 
@@ -208,7 +239,8 @@ class DocumentModel extends \YeAPF\SanitizedKeyData {
         return $ret;
     }
 
-    private function getModelsAssetsFolder() {
+    private function getModelsAssetsFolder()
+    {
         $folder = \YeAPF\YeAPFConfig::getGLobalAssetsFolder().'/documentModels/';
         if (!is_dir($folder)) {
             mkdir($folder, 0777, true);
@@ -216,12 +248,14 @@ class DocumentModel extends \YeAPF\SanitizedKeyData {
         return $folder;
     }
 
-    public function assetsFolderModelExists() {
+    public function assetsFolderModelExists()
+    {
         $folder = $this->getModelsAssetsFolder();
         return file_exists($folder.$this->getCollectionName().'.json');
     }
 
-    public function exportModelToAssetFolder() {
+    public function exportModelToAssetFolder()
+    {
         $folder = $this->getModelsAssetsFolder();
         if (!is_writable($folder)) {
             throw new \YeAPF\YeAPFException("Assets folder is not writable", YeAPF_ASSETS_FOLDER_NOT_WRITABLE);
@@ -232,7 +266,8 @@ class DocumentModel extends \YeAPF\SanitizedKeyData {
         return file_put_contents($folder.$this->getCollectionName().'.json', $json);
     }
 
-    public function importModelFromAssetFolder() {
+    public function importModelFromAssetFolder()
+    {
         $folder = $this->getModelsAssetsFolder();
         try {
             $json = file_get_contents($folder.$this->getCollectionName().'.json');
@@ -242,11 +277,13 @@ class DocumentModel extends \YeAPF\SanitizedKeyData {
         return $this->importModel(YeAPF_JSON_FORMAT, $json);
     }
 
-    public function exportModel(int $format) {
+    public function exportModel(int $format)
+    {
 
     }
 
-    public function importModel(int $format, mixed $model) {
+    public function importModel(int $format, mixed $model)
+    {
         switch($format) {
             case YeAPF_JSON_FORMAT:
                 $aux = json_decode($model, true);
@@ -272,7 +309,8 @@ class DocumentModel extends \YeAPF\SanitizedKeyData {
  * SharedSanitizedKeyData is an intermediate class that
  * is used to determine if we're using a real or a virtualized Redis connection.
  */
-class SharedSanitizedKeyData extends \YeAPF\SanitizedKeyData {
+class SharedSanitizedKeyData extends \YeAPF\SanitizedKeyData
+{
     private static $virtualRedis=null;
     private static $context=null;
 
@@ -283,7 +321,8 @@ class SharedSanitizedKeyData extends \YeAPF\SanitizedKeyData {
      *
      * @return void
      */
-    public function __construct(\YeAPF\Connection\PersistenceContext $context) {
+    public function __construct(\YeAPF\Connection\PersistenceContext $context)
+    {
         parent::__construct();
         self::$virtualRedis = new VirtualRedis();
         self::$context = $context;
@@ -296,12 +335,13 @@ class SharedSanitizedKeyData extends \YeAPF\SanitizedKeyData {
      *
      * @return RedisConnection Returns a Redis connection object.
      */
-    public static function getRedisConnection() {
+    public static function getRedisConnection()
+    {
         $aux = self::$context->getRedisConnection()??null;
         if (null==$aux || !$aux->getConnected()) {
-          return self::$virtualRedis;
-        }else {
-          return $aux;
+            return self::$virtualRedis;
+        } else {
+            return $aux;
         }
     }
 }
@@ -311,8 +351,10 @@ class SharedSanitizedKeyData extends \YeAPF\SanitizedKeyData {
  * is used to determine if the database is connected or not.
  * If the database is not connected, then an exception is triggered.
  */
-class PersistentSanitizedKeyData extends \YeAPF\ORM\SharedSanitizedKeyData {
-    public function __construct(\YeAPF\Connection\PersistenceContext $context) {
+class PersistentSanitizedKeyData extends \YeAPF\ORM\SharedSanitizedKeyData
+{
+    public function __construct(\YeAPF\Connection\PersistenceContext $context)
+    {
         parent::__construct($context);
     }
 
@@ -326,7 +368,8 @@ class PersistentSanitizedKeyData extends \YeAPF\ORM\SharedSanitizedKeyData {
      * @throws \YeAPF\YeAPFException when the database is not connected
      * @return \PDO the PDO database connection
      */
-    public static function getPDOConnection() {
+    public static function getPDOConnection()
+    {
         global $yeapfPDOConnection;
         _log("[ getPDOConnection ]");
 
@@ -340,7 +383,8 @@ class PersistentSanitizedKeyData extends \YeAPF\ORM\SharedSanitizedKeyData {
         }
     }
 
-    public static function do($func) {
+    public static function do($func)
+    {
 
         if (null==($mainConn=\YeAPF\Connection\DB\GetMainPDOConnection())) {
             $mainConn = \YeAPF\Connection\DB\CreateMainPDOConnection();
@@ -355,7 +399,8 @@ class PersistentSanitizedKeyData extends \YeAPF\ORM\SharedSanitizedKeyData {
         }
     }
 
-    public static function gainPDOConnection(&$pdo):void {
+    public static function gainPDOConnection(&$pdo):void
+    {
 
         if (null==($mainConn=\YeAPF\Connection\DB\GetMainPDOConnection())) {
             $mainConn = \YeAPF\Connection\DB\CreateMainPDOConnection();
@@ -364,7 +409,8 @@ class PersistentSanitizedKeyData extends \YeAPF\ORM\SharedSanitizedKeyData {
         $mainConn->popConnection($pdo);
     }
 
-    public static function giveBackPDOConnection(mixed $pdo):void {
+    public static function giveBackPDOConnection(mixed $pdo):void
+    {
 
         if (null==($mainConn=\YeAPF\Connection\DB\GetMainPDOConnection())) {
             $mainConn = \YeAPF\Connection\DB\CreateMainPDOConnection();
@@ -383,12 +429,14 @@ class PersistentSanitizedKeyData extends \YeAPF\ORM\SharedSanitizedKeyData {
 class SharedSanitizedRecord extends \YeAPF\ORM\SharedSanitizedKeyData
 {
 
-    public function __set(string $name, mixed $value) {
+    public function __set(string $name, mixed $value)
+    {
         parent::__set($name, $value);
         self::getRedisConnection()->set($name, $value);
     }
 
-    public function __get(string $name) {
+    public function __get(string $name)
+    {
         $ret = null;
         if (self::getRedisConnection()->getConnected()) {
             $ret = self::getRedisConnection()->get($name);
@@ -398,7 +446,8 @@ class SharedSanitizedRecord extends \YeAPF\ORM\SharedSanitizedKeyData
         return $ret;
     }
 
-    public function __isset($name) {
+    public function __isset($name)
+    {
         $ret = false;
         if (self::getRedisConnection()->getConnected()) {
             $ret = self::getRedisConnection()->exists($name);
@@ -408,44 +457,53 @@ class SharedSanitizedRecord extends \YeAPF\ORM\SharedSanitizedKeyData
         return $ret;
     }
 
-    public function __unset($name) {
+    public function __unset($name)
+    {
         $ret = false;
         self::getRedisConnection()->delete($name);
         $ret = parent::__unset($name);
         return $ret;
     }
 
-    public function set($name, $value) {
+    public function set($name, $value)
+    {
         return self::__set($name, $value);
     }
 
-    public function get($name) {
+    public function get($name)
+    {
         return self::__get($name);
     }
 
-    public function delete($name) {
+    public function delete($name)
+    {
         return self::__unset($name);
     }
 
-    public function clear() {
+    public function clear()
+    {
         throw new \YeAPF\YeAPFException("Not implemented", YeAPF_METHOD_NOT_IMPLEMENTED);
     }
 
-    public function keys() {
+    public function keys()
+    {
         $aux = self::getRedisConnection()->keys();
         $ret = array_filter(
             $aux,
-            function($key) {
-                return !(in_array(
-                    self::getRedisConnection()->type($key),
-                    [
-                        \Redis::REDIS_LIST,
-                        \Redis::REDIS_SET,
-                        \Redis::REDIS_HASH,
-                        \Redis::REDIS_ZSET
-                    ])
+            function ($key) {
+                return !(
+                    in_array(
+                        self::getRedisConnection()->type($key),
+                        [
+                            \Redis::REDIS_LIST,
+                            \Redis::REDIS_SET,
+                            \Redis::REDIS_HASH,
+                            \Redis::REDIS_ZSET
+                        ]
+                    )
                 );
-            });
+            }
+        );
 
         return $ret;
     }
@@ -459,7 +517,8 @@ class SharedSanitizedRecord extends \YeAPF\ORM\SharedSanitizedKeyData
  * checking if a document exists or not, and listing all documents in the collection.
  * It also has a method for finding a document by a given sample.
  */
-interface iCollection {
+interface iCollection
+{
     public function __construct(
         \YeAPF\Connection\PersistenceContext $context,
         string $collectionName,
@@ -495,11 +554,13 @@ class SharedSanitizedCollection extends \YeAPF\ORM\SharedSanitizedKeyData implem
     private string $collectionName;
     private string $collectionIdName;
 
-    public function getCollectionName() {
+    public function getCollectionName()
+    {
         return $this->collectionName??null;
     }
 
-    public function getCollectionIdName() {
+    public function getCollectionIdName()
+    {
         return $this->collectionIdName??null;
     }
 
@@ -515,11 +576,13 @@ class SharedSanitizedCollection extends \YeAPF\ORM\SharedSanitizedKeyData implem
         $this->documentModel = $documentModel;
     }
 
-    public function getDocumentModel() {
+    public function getDocumentModel()
+    {
         return $this->documentModel;
     }
 
-    public function exportDocumentModel(int $format) {
+    public function exportDocumentModel(int $format)
+    {
         $ret = null;
         if (null == $this->getDocumentModel()) {
             throw new \YeAPF\YeAPFException("Document model not set", YeAPF_DOCUMENT_MODEL_NOT_SET);
@@ -529,11 +592,13 @@ class SharedSanitizedCollection extends \YeAPF\ORM\SharedSanitizedKeyData implem
         return $ret;
     }
 
-    public function hasDocument(string $id) {
+    public function hasDocument(string $id)
+    {
         return $this->getRedisConnection()->hget($this->collectionName.":$id", $this->collectionIdName) == $id ;
     }
 
-    public function collectionExists() {
+    public function collectionExists()
+    {
         $ret = false;
         if ($this->getRedisConnection()->getConnected()) {
             $ret = $this->getRedisConnection()->exists($this->collectionName);
@@ -541,7 +606,8 @@ class SharedSanitizedCollection extends \YeAPF\ORM\SharedSanitizedKeyData implem
         return $ret;
     }
 
-    public function getDocument(string $id) {
+    public function getDocument(string $id)
+    {
         $ret = false;
         if ($this->getRedisConnection()->getConnected()) {
             $ret = $this->getRedisConnection()->hgetall("$this->collectionName:$id");
@@ -549,20 +615,23 @@ class SharedSanitizedCollection extends \YeAPF\ORM\SharedSanitizedKeyData implem
         return $ret;
     }
 
-    public function setDocument(string|null $id, mixed &$data) {
+    public function setDocument(string|null $id, mixed &$data)
+    {
         $ret = false;
-        if (null == $id || 0==strlen(trim($id)))
-          $id = \YeAPF\generateUniqueId();
+        if (null == $id || 0==strlen(trim($id))) {
+            $id = \YeAPF\generateUniqueId();
+        }
 
         if ($this->getRedisConnection()->getConnected()) {
-          $data[$this->collectionIdName] = $id;
-          $ret = $this->getRedisConnection()->hset("$this->collectionName:$id", $data);
+            $data[$this->collectionIdName] = $id;
+            $ret = $this->getRedisConnection()->hset("$this->collectionName:$id", $data);
         }
         return $ret;
     }
 
 
-    public function deleteDocument(string $id) {
+    public function deleteDocument(string $id)
+    {
         $ret = false;
         if ($this->getRedisConnection()->getConnected()) {
             $ret = $this->getRedisConnection()->delete("$this->collectionName:$id");
@@ -570,14 +639,16 @@ class SharedSanitizedCollection extends \YeAPF\ORM\SharedSanitizedKeyData implem
         return $ret;
     }
 
-    public function listDocuments() {
+    public function listDocuments()
+    {
         $ret = [];
         if ($this->getRedisConnection()->getConnected()) {
             $aux = array_filter(
                 $this->getRedisConnection()->keys("$this->collectionName:*"),
-                function($key) {
+                function ($key) {
                     return $this->getRedisConnection()->type($key) == \Redis::REDIS_HASH;
-                });
+                }
+            );
 
             foreach($aux as $key) {
                 $ret[] = substr($key, strlen($this->collectionName)+1);
@@ -594,7 +665,8 @@ class SharedSanitizedCollection extends \YeAPF\ORM\SharedSanitizedKeyData implem
      *
      * @return mixed
      */
-    public function findByExample(mixed $example) {
+    public function findByExample(mixed $example)
+    {
         return $this->subsetByExample($example, 1)[0]??false;
     }
 
@@ -606,25 +678,28 @@ class SharedSanitizedCollection extends \YeAPF\ORM\SharedSanitizedKeyData implem
      * @param int $start The index of the first document to return.
      * @return mixed[] An array containing the matching documents.
      */
-    public function subsetByExample($example, $count, $start=0){
+    public function subsetByExample($example, $count, $start=0)
+    {
         $ret = [];
         if ($this->getRedisConnection()->getConnected()) {
             $pos=0;
             foreach($this->listDocuments() as $id) {
                 $documentFound = true;
                 foreach($example as $fieldName => $sampleValue) {
-                  $auxValue = $this->getRedisConnection()->hget("$this->collectionName:$id", $fieldName);
-                  if ($auxValue != $sampleValue) {
-                    $documentFound=false;
-                    break;
-                  }
+                    $auxValue = $this->getRedisConnection()->hget("$this->collectionName:$id", $fieldName);
+                    if ($auxValue != $sampleValue) {
+                        $documentFound=false;
+                        break;
+                    }
                 }
                 if ($documentFound) {
-                    if ($pos>=$start)
-                      $ret[]=$this->getDocument($id);
+                    if ($pos>=$start) {
+                        $ret[]=$this->getDocument($id);
+                    }
                     $pos++;
-                    if ($pos>=$count)
-                      break;
+                    if ($pos>=$count) {
+                        break;
+                    }
                 }
             }
         }
@@ -642,8 +717,8 @@ class SharedSanitizedCollection extends \YeAPF\ORM\SharedSanitizedKeyData implem
  */
 class PersistentCollection extends \YeAPF\ORM\SharedSanitizedCollection implements iCollection
 {
-     private \YeAPF\ORM\PersistentSanitizedKeyData $pskData;
-     private $cacheMode;
+    private \YeAPF\ORM\PersistentSanitizedKeyData $pskData;
+    private $cacheMode;
 
     /**
      * Constructor for the class that sets the collection name, collection ID name,
@@ -678,7 +753,8 @@ class PersistentCollection extends \YeAPF\ORM\SharedSanitizedCollection implemen
 
     }
 
-    public function grantCollection() {
+    public function grantCollection()
+    {
 
         _log(">>> Asking for connection");
         $pdo = null;
@@ -770,13 +846,14 @@ class PersistentCollection extends \YeAPF\ORM\SharedSanitizedCollection implemen
             _log(" * ".__LINE__."");
 
         } finally {
-            $this->pskData->giveBackPDOConnection( $pdo );
+            $this->pskData->giveBackPDOConnection($pdo);
         }
 
 
     }
 
-    private function internalType2SQLType($constraint) {
+    private function internalType2SQLType($constraint)
+    {
         $ret = null;
         switch ($constraint['type']) {
             case YeAPF_TYPE_BOOL:
@@ -790,9 +867,9 @@ class PersistentCollection extends \YeAPF\ORM\SharedSanitizedCollection implemen
             case YeAPF_TYPE_FLOAT:
                 if (null==$constraint['decimals']) {
                     if (null==$constraint['length']) {
-                    $ret.= "numeric ";
-                    } else{
-                    $ret.= "numeric( ".$constraint['length']." ) ";
+                        $ret.= "numeric ";
+                    } else {
+                        $ret.= "numeric( ".$constraint['length']." ) ";
                     }
                 } else {
                     $ret .= "numeric( ".$constraint['length'].",  ".$constraint['decimals']." ) ";
@@ -813,9 +890,9 @@ class PersistentCollection extends \YeAPF\ORM\SharedSanitizedCollection implemen
 
             case YeAPF_TYPE_STRING:
                 if (null==$constraint['length']) {
-                  $ret= "character varying ";
+                    $ret= "character varying ";
                 } else {
-                  $ret = "character varying( ".$constraint['length']." ) ";
+                    $ret = "character varying( ".$constraint['length']." ) ";
                 }
                 break;
 
@@ -830,13 +907,14 @@ class PersistentCollection extends \YeAPF\ORM\SharedSanitizedCollection implemen
         return $ret;
     }
 
-    private function constraint2SQLColumnDefinition($name, $constraint) {
+    private function constraint2SQLColumnDefinition($name, $constraint)
+    {
         $ret = [];
         $name = strtolower($name);
         $ret['column_name']=$name;
         $ret['column_default']=$constraint['default']??null;
         $ret['is_nullable'] = ($constraint['acceptNULL']??false)?"YES":"NO";
-        $ret['data_type']=trim(explode('(',$this->internalType2SQLType($constraint))[0]);
+        $ret['data_type']=trim(explode('(', $this->internalType2SQLType($constraint))[0]);
 
         $ret['character_maximum_length'] = null;
         $ret['numeric_precision'] = null;
@@ -844,8 +922,8 @@ class PersistentCollection extends \YeAPF\ORM\SharedSanitizedCollection implemen
         if (strpos($ret['data_type'], 'char')==false) {
             if ($ret['data_type']!='date') {
                 // _log($name." ".$ret['data_type']." ".strpos($ret['data_type'], 'date')." | ".strpos($ret['data_type'], 'time'));
-              $ret['numeric_precision'] = $constraint['decimals']??null;
-              $ret['numeric_scale'] = $constraint['length']??null;
+                $ret['numeric_precision'] = $constraint['decimals']??null;
+                $ret['numeric_scale'] = $constraint['length']??null;
             }
         } else {
             $ret['character_maximum_length'] = $constraint['length']??null;
@@ -854,7 +932,8 @@ class PersistentCollection extends \YeAPF\ORM\SharedSanitizedCollection implemen
     }
 
 
-    public function exportDocumentModel(int $format) {
+    public function exportDocumentModel(int $format)
+    {
         $ret = null;
         // echo "*********\n";
         if (null == $this->getDocumentModel()) {
@@ -891,11 +970,12 @@ class PersistentCollection extends \YeAPF\ORM\SharedSanitizedCollection implemen
         return $ret;
     }
 
-    private function hasDocumentInDatabase($id) {
+    private function hasDocumentInDatabase($id)
+    {
         $ret = null;
         $sql="select exists(select 1 from ".$this->getCollectionName()." where id=:id)";
         $params = [ $this->getCollectionIdName() => $id ];
-        $this->pskData->do(function($persistentData) use ($sql, $params, &$ret) {
+        $this->pskData->do(function ($persistentData) use ($sql, $params, &$ret) {
             $auxRet = $persistentData->queryAndFetch($sql, $params);
             $ret = (is_array($auxRet) && $auxRet['exists']??false);
             // \_log("IS ARRAY?".(is_array($auxRet)?"true":"false"));
@@ -907,16 +987,19 @@ class PersistentCollection extends \YeAPF\ORM\SharedSanitizedCollection implemen
         return $ret;
     }
 
-    private function saveDocumentInDatabase(string $id, mixed &$data) {
+    private function saveDocumentInDatabase(string $id, mixed &$data)
+    {
         $data[$this->getCollectionIdName()] = $id;
         if ($this->hasDocumentInDatabase($id)) {
             $sql = sprintf("update %s set ", $this->getCollectionName());
             $c=0;
             foreach($data as $key => $value) {
-                if (is_object($value))
-                  continue;
-                if ($c++>0)
-                  $sql.=", ";
+                if (is_object($value)) {
+                    continue;
+                }
+                if ($c++>0) {
+                    $sql.=", ";
+                }
                 $sql.=sprintf("%s=:%s ", $key, $key);
             }
             $sql.=sprintf("where %1s = :%1s", $this->getCollectionIdName(), $this->getCollectionIdName());
@@ -925,19 +1008,23 @@ class PersistentCollection extends \YeAPF\ORM\SharedSanitizedCollection implemen
             $sql .= "(";
             $c=0;
             foreach($data as $key => $value) {
-                if (is_object($value))
-                  continue;
-                if ($c++>0)
-                  $sql.=",";
+                if (is_object($value)) {
+                    continue;
+                }
+                if ($c++>0) {
+                    $sql.=",";
+                }
                 $sql.=sprintf("%s", $key);
             }
             $sql .= ") values (";
             $c=0;
             foreach($data as $key => $value) {
-                if (is_object($value))
-                  continue;
-                if ($c++>0)
-                  $sql.=",";
+                if (is_object($value)) {
+                    continue;
+                }
+                if ($c++>0) {
+                    $sql.=",";
+                }
                 $sql.=":".$key;
             }
             $sql .= ")";
@@ -948,7 +1035,7 @@ class PersistentCollection extends \YeAPF\ORM\SharedSanitizedCollection implemen
             $params = $data;
         }
         $this->pskData->do(
-            function($conn) use ($sql, &$ret, $params) {
+            function ($conn) use ($sql, &$ret, $params) {
                 $auxRet = $conn ->query($sql, $params);
             }
         );
@@ -958,7 +1045,8 @@ class PersistentCollection extends \YeAPF\ORM\SharedSanitizedCollection implemen
         return $auxRet;
     }
 
-    public function hasDocument(string $id) {
+    public function hasDocument(string $id)
+    {
         $ret = parent::hasDocument($id);
         if (!$ret) {
             $ret = $this->hasDocumentInDatabase($id);
@@ -966,7 +1054,8 @@ class PersistentCollection extends \YeAPF\ORM\SharedSanitizedCollection implemen
         return $ret;
     }
 
-    public function getDocument(string $id) {
+    public function getDocument(string $id)
+    {
         if (parent::hasDocument($id)) {
             $ret = new \YeAPF\SanitizedKeyData();
             $ret -> importData(parent::getDocument($id));
@@ -976,7 +1065,7 @@ class PersistentCollection extends \YeAPF\ORM\SharedSanitizedCollection implemen
             // $ret = $this->pskData->getPDOConnection()->queryAndFetch($sql, $params);
 
             $this->pskData->do(
-                function($conn) use ($sql, &$ret, $params) {
+                function ($conn) use ($sql, &$ret, $params) {
                     $data = $conn ->queryAndFetch($sql, $params);
                     parent::setDocument($id, $data);
                     $ret = new YeAPF\SanitizedKeyData();
@@ -988,7 +1077,8 @@ class PersistentCollection extends \YeAPF\ORM\SharedSanitizedCollection implemen
         return $ret;
     }
 
-    public function setDocument(string|null $id, mixed &$data){
+    public function setDocument(string|null $id, mixed &$data)
+    {
         /**
          * Here is the dilema: If I update a document in the cache first,
          * and the update in the database fails, the cache will contain wrong data
@@ -1003,8 +1093,9 @@ class PersistentCollection extends \YeAPF\ORM\SharedSanitizedCollection implemen
          * of this class.
          */
 
-        if (null == $id || 0==strlen(trim($id)))
-          $id = \YeAPF\generateUniqueId();
+        if (null == $id || 0==strlen(trim($id))) {
+            $id = \YeAPF\generateUniqueId();
+        }
 
         if (YeAPF_SAVE_CACHE_FIRST == $this->cacheMode) {
             parent::setDocument($id, $data);
@@ -1015,11 +1106,13 @@ class PersistentCollection extends \YeAPF\ORM\SharedSanitizedCollection implemen
         }
     }
 
-    public function deleteDocument(string $id){
+    public function deleteDocument(string $id)
+    {
         parent::deleteDocument($id);
         $sql="delete from ".$this->getCollectionName()." where id=:id";
         $params = [ $this->getCollectionIdName() => $id ];
-        $this->pskData->do(function($conn) use ($sql, $params) {
+        $this->pskData->do(
+            function ($conn) use ($sql, $params) {
                 $conn->query($sql, $params);
             }
         );
@@ -1027,30 +1120,35 @@ class PersistentCollection extends \YeAPF\ORM\SharedSanitizedCollection implemen
     }
 
 
-    public function listDocuments(){
+    public function listDocuments()
+    {
 
     }
 
 
-    public function findByExample($example){
+    public function findByExample($example)
+    {
         $data = $this->subsetByExample($example, 1)[0]??false;
         $ret = new \YeAPF\SanitizedKeyData();
         $ret->importData($data);
         return $ret;
     }
 
-    public function subsetByExample($example, $count, $start=0){
+    public function subsetByExample($example, $count, $start=0)
+    {
         $sql="select ".$this->getCollectionIdName()." from ".$this->getCollectionName()." where ";
         $c=0;
         foreach($example as $fieldName => $value) {
-            if ($c++>0)
-              $sql.=" and ";
+            if ($c++>0) {
+                $sql.=" and ";
+            }
             $sql.=sprintf("%s=:%s ", $fieldName, $fieldName);
         }
-        if ($count<=0)
-          $sql.="offset $start";
-        else
-          $sql.="limit $count offset $start";
+        if ($count<=0) {
+            $sql.="offset $start";
+        } else {
+            $sql.="limit $count offset $start";
+        }
 
         $sql ="select * from ".$this->getCollectionName()." where ".$this->getCollectionIdName()." in (".$sql.")";
 
@@ -1066,7 +1164,7 @@ class PersistentCollection extends \YeAPF\ORM\SharedSanitizedCollection implemen
 
         $ret = [];
         $this->pskData->do(
-            function($conn) use ($sql, &$ret, $params) {
+            function ($conn) use ($sql, &$ret, $params) {
                 if (empty($params)) {
                     _log("WARNING: NO PARAMS");
                 } else {
@@ -1084,4 +1182,3 @@ class PersistentCollection extends \YeAPF\ORM\SharedSanitizedCollection implemen
 
 
 }
-

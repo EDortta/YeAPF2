@@ -19,6 +19,7 @@ require_once __DIR__ . "/yeapf-config.php";
     "misc/yAnalyzer.php",
     "misc/yLock.php",
     "misc/yParser.php",
+    "misc/yDataFiller.php",
 
     "vendor/nusoap/nusoap.php",
 
@@ -38,6 +39,8 @@ require_once __DIR__ . "/yeapf-config.php";
 
     "database/yeapf-collections.php",
     "database/yeapf-eyeshot.php",
+
+    "service/yeapf-http2-service.php",
   ];
   foreach ($libraryList as $libFilename) {
     \_log("  Loading '$libFilename'");

@@ -12,19 +12,23 @@ class YeAPFConfig  {
   }
 
   public static function getAssetsFolder(): string {
-    return __DIR__ . "/../config";
+    return realpath(__DIR__ . "/../config");
   }
   public static function canWorkWithoutAssets(): bool {
     return false;
   }
 
   public static function getGLobalAssetsFolder(): string {
-    return __DIR__ . "/../assets";
+    if (!is_dir(__DIR__."/../assets")) {
+      mkdir(__DIR__."/../assets", 0777, true);
+    }
+    return realpath(__DIR__ . "/../assets");
   }
 
   public static function open() {
     if (empty(self::$configAreas)) {
       $configFolder = self::getAssetsFolder();
+      echo "CONFIG DEVICE: " . $configFolder . "\n";
       \_log("Reading configuration files from $configFolder");
       foreach (scandir($configFolder) as $file) {
         if (strpos($file, ".json") !== false) {
