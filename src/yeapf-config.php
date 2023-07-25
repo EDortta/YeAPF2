@@ -12,6 +12,9 @@ class YeAPFConfig  {
   }
 
   public static function getAssetsFolder(): string {
+    if (!is_dir(__DIR__ . "/../config")) {
+      mkdir(__DIR__ . "/../config", 0777, true);
+    }
     return realpath(__DIR__ . "/../config");
   }
   public static function canWorkWithoutAssets(): bool {

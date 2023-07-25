@@ -9,6 +9,9 @@ class yLogger {
   static private $lastFile  = null;
 
   static function getAssetsFolder(): string {
+    if (!is_dir(__DIR__ . "/../../logs")) {
+      mkdir(__DIR__ . "/../../logs", 0777, true);
+    }
     return realpath(__DIR__ . "/../../logs");
   }
 
