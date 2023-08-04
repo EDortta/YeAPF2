@@ -12,20 +12,39 @@ class YeAPFConfig  {
   }
 
   public static function getAssetsFolder(): string {
-    if (!is_dir(__DIR__ . "/../config")) {
-      mkdir(__DIR__ . "/../config", 0777, true);
+    $configFolder = self::getApplicationFolder()."/config";
+
+    if (is_dir($configFolder)) {
+      $configFolder = realpath($configFolder);
     }
-    return realpath(__DIR__ . "/../config");
+
+    return $configFolder;
   }
   public static function canWorkWithoutAssets(): bool {
     return false;
   }
 
   public static function getGLobalAssetsFolder(): string {
-    if (!is_dir(__DIR__."/../assets")) {
-      mkdir(__DIR__."/../assets", 0777, true);
+    $assetsFolder = self::getApplicationFolder()."/assets";
+    $folderOk = is_dir($assetsFolder);
+    if (!$folderOk) {
+      $folderOk = mkdir($assetsFolder, 0777, true);
+      if (!$folderOk) {
+        throw new \Exception("Assets folder $assetsFolder cannot be created", 1);
+      }
     }
-    return realpath(__DIR__ . "/../assets");
+    $folderOk = $folderOk && is_writable($assetsFolder);
+    if (!$folderOk) {
+      if (!self::canWorkWithoutAssets()) {
+        throw new \Exception("Assets folder $assetsFolder cannot be written", 1);
+      }
+    }
+
+    if ($folderOk)
+      $assetsFolder = realpath($assetsFolder);
+
+    return $assetsFolder;
+
   }
 
   public static function open() {

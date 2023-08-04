@@ -5,7 +5,9 @@ repo*
 **/core
 *.code-workspace
 
+src/config/*
 config/*
+**/config
 
 test-load.php
 vendor/*

@@ -41,6 +41,8 @@ require_once __DIR__ . "/yeapf-config.php";
     "database/yeapf-eyeshot.php",
 
     "service/yeapf-http2-service.php",
+
+    "webapp/yeapf-webapp.php",
   ];
   foreach ($libraryList as $libFilename) {
     \_log("  Loading '$libFilename'");

@@ -54,7 +54,7 @@ class Translator extends \YeAPF\Plugins\ServicePlugin implements \YeAPF\Plugins\
 
   }
 
-  static function getAssetsFolder(): string {
+  static function getAssetsFolder(): string {    
     return \YeAPF\YeAPFConfig::getGLobalAssetsFolder()."/i18n/";
   }
 

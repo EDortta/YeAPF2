@@ -39,7 +39,11 @@ abstract class HTTP2Service
     abstract function shutdown();
     abstract function answerQuery(\YeAPF\Bulletin &$bulletin, string $uri);
 
-    public function setHandler(string $path, callable $attendant, array $methods = ['GET'], callable $attendantConstraints = null)
+    public function setHandler(
+        string $path,
+        callable $attendant,
+        array $methods = ['GET'],
+        callable $attendantConstraints = null)
     {
         // clean path
         $path = implode('/', $this->getPathFromURI($path));
@@ -60,6 +64,7 @@ abstract class HTTP2Service
                     if (is_callable($attendantConstraints)) {
                         $constraints = $attendantConstraints(\YeAPF_GET_CONSTRAINTS);
                         if ($constraints) {
+                            _log("constraints****: " . print_r($constraints, true));
                             $this->handlers[$method][$fnPath]['constraints'] = $constraints->getConstraints();
                         }
 
@@ -210,7 +215,7 @@ abstract class HTTP2Service
             }
         }
 
-        $openAPI['paths'] = [];
+        $openApi['paths'] = [];
 
         $removeCurlyBrakets = function ($str) {
             $str = trim($str);
@@ -247,7 +252,7 @@ abstract class HTTP2Service
                     ];
 
                     if (null != $details['description']) {
-                        $openAPI['paths'][$path][$method]['description'] = $details['description'];
+                        $openApi['paths'][$path][$method]['description'] = $details['description'];
                     }
 
                     if (null != $details['operationId'])
@@ -282,6 +287,7 @@ abstract class HTTP2Service
                     if ($method === 'post' && !empty($details['constraints'])) {
                         $properties = [];
                         $required = [];
+                        \_log("CONSTRAINTS: ".json_encode($details['constraints']));
                         foreach ($details['constraints'] as $fieldName => $constraint) {
                             $properties[$fieldName] = [
                                 'type' => $constraint['type'],
@@ -294,26 +300,37 @@ abstract class HTTP2Service
                             }
                         }
 
-                        // application/json
-                        // multipart/form-data
-                        $openApi['paths'][$path][$method]['requestBody'] = [
+                        $cleanPath = ucfirst(preg_replace('/[^a-zA-Z_0-9]/', '', $path))."RequestBody";
+
+                        $openApi["components"]["requestBodies"][$cleanPath] = [
                             'content' => [
                                 'application/json' => [
                                     'schema' => [
                                         'type' => 'object',
-                                        'properties' => $properties,
-                                        'required' => $required
+                                        'properties' => $properties
                                     ]
                                 ],
                                 'multipart/form-data' => [
                                     'schema' => [
                                         'type' => 'object',
-                                        'properties' => $properties,
-                                        'required' => $required
+                                        'properties' => $properties
                                     ]
                                 ]
                             ]
+
                         ];
+
+                        // application/json
+                        // multipart/form-data
+                        $openApi['paths'][$path][$method]['requestBody'] = [
+                            '$ref' => '#/components/requestBodies/'.$cleanPath
+                        ];
+
+                        if (!empty($required)) {
+                            $openApi["components"]["requestBodies"][$cleanPath]['content']['application/json']['schema']['required'] = $required;
+                            $openApi["components"]["requestBodies"][$cleanPath]['content']['multipart/form-data']['schema']['required'] = $required;
+                        }
+
                     }
                 }
             }
@@ -353,7 +370,8 @@ abstract class HTTP2Service
         return $ret;
     }
 
-    private function configureAndStartup() {
+    private function configureAndStartup()
+    {
         $this->startup();
 
         $this->setHandler(
@@ -444,6 +462,16 @@ abstract class HTTP2Service
                 // $this->configureAndStartup();
             });
 
+            /**
+             * Other events
+             *   'WorkerStart': Triggered when a worker process starts.
+             *   'WorkerStop': Triggered when a worker process stops.
+             *   'WorkerError': Triggered when an error occurs in a worker process.
+             *   'Task': Triggered when a task is received by the worker process.
+             *   'Finish': Triggered when a task is finished by the worker process.
+             *   'Receive': Triggered when a TCP/UDP connection receives data.
+             */
+
             $server->on('Request', function (Request $request, Response $response) {
                 global $currentURI;
 
@@ -471,6 +499,8 @@ abstract class HTTP2Service
                     $params['post'] = json_decode($jsonData, true);
                 }
 
+                $ret_code = 406;
+
                 try {
                     $method = $request->server['request_method'];
                     _log("START $uri ($method)");
@@ -490,24 +520,37 @@ abstract class HTTP2Service
                     \_log('PARAMS: ' . json_encode($params));
 
                     $handler = $this->findHandler($method, $uri);
+
                     \_log('HANDLER: ' . json_encode($handler));
                     if (null !== $handler) {
+
+                        $inlineVariables = new \YeAPF\SanitizedKeyData($handler['constraints']);
                         $pathSegments = explode('/', $handler['path']);
                         $uriSegments = $this->getPathFromURI($uri);
-                        $inlineVariables = [];
+
                         foreach ($handler['inlineParams'] as $inlineParam => $inlineName) {
                             $paramIndex = array_search($inlineParam, $pathSegments);
                             $inlineVariables[$inlineName] = $uriSegments[$paramIndex];
                         }
                         \_log('INLINES: ' . json_encode($inlineVariables));
-                        $ret_code = $handler['attendant']($aBulletin, $uri, $params, ...$inlineVariables) ?? 500;
+
+                        $aux = new \YeAPF\SanitizedKeyData($handler['constraints']);
+                        try {
+                            $aux->importData($params);
+                            $ret_code = $handler['attendant']($aBulletin, $uri, $params, ...$inlineVariables) ?? 500;
+                        } catch (\Exception $e) {
+                            \_log($e->getMessage());
+                            $ret_code = 500;
+                        }
+
                     } else {
                         $ret_code = $this->answerQuery($aBulletin, $uri, $params) ?? 204;
                     }
 
+                } finally {
                     _log("RETURN: $ret_code BODY: " . json_encode($aBulletin->exportData()));
                     $aBulletin($ret_code, $request, $response);
-                } finally {
+
                     _log("FINNISH $uri");
                     $this->closeContext();
                 }
