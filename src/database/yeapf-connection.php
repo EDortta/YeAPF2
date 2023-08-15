@@ -18,22 +18,6 @@ class DBConnection
 
         $result->config = \YeAPF\YeAPFConfig::getSection("connection");
 
-
-        // if (file_exists(\YeAPF\YeAPFConfig::getConfigFile())) {
-
-        //     $result->configFile = \YeAPF\YeAPFConfig::getConfigFile();
-
-        //     $config = file_get_contents($result->configFile);
-        //     if ($config !== false) {
-        //         $result->config = json_decode($config, false);
-        //     } else {
-        //         throw new \Exception("Config file \YeAPF\YeAPFConfig::getConfigFile() cannot be readed", 1);
-        //     }
-        // } else {
-        //     throw new \Exception("Config file \YeAPF\YeAPFConfig::getConfigFile() not found", 1);
-        // }
-
-
         return $result;
     }
 

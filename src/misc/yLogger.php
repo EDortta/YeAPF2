@@ -9,10 +9,13 @@ class yLogger {
   static private $lastFile  = null;
 
   static function getAssetsFolder(): string {
-    if (!is_dir(__DIR__ . "/../../logs")) {
-      mkdir(__DIR__ . "/../../logs", 0777, true);
+    $logFolder = self::getApplicationFolder()."/logs";
+
+    if (is_dir($logFolder)) {
+      $logFolder = realpath($logFolder);
     }
-    return realpath(__DIR__ . "/../../logs");
+
+    return $logFolder;
   }
 
   static function canWorkWithoutAssets(): bool {
@@ -22,7 +25,7 @@ class yLogger {
   static private function startup() {
     if (null == self::$logFolder) {
       self::$logFolder = self::getAssetsFolder();
-      echo "LOG DEVICE: " . self::$logFolder . "\n";
+      // echo "LOG DEVICE: " . self::$logFolder . "\n";
       if (!is_dir(self::$logFolder)) {
         mkdir(self::$logFolder, 0777, true);
       }
