@@ -20,6 +20,7 @@ class YeAPFConfig  {
 
     return $configFolder;
   }
+
   public static function canWorkWithoutAssets(): bool {
     return false;
   }
@@ -50,11 +51,11 @@ class YeAPFConfig  {
   public static function open() {
     if (empty(self::$configAreas)) {
       $configFolder = self::getAssetsFolder();
-      echo "CONFIG DEVICE: " . $configFolder . "\n";
+      // echo "CONFIG DEVICE: " . $configFolder . "\n";
       \_log("Reading configuration files from $configFolder");
       foreach (scandir($configFolder) as $file) {
+        // echo "[ $file ]";
         if (strpos($file, ".json") !== false) {
-          // _log("$file ... ".basename($file, ".json"));
           $config = file_get_contents($configFolder . "/" . $file);
           if ($config !== false) {
             self::$configAreas[basename($file, ".json")] = json_decode($config, false);

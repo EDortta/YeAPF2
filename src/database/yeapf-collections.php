@@ -292,12 +292,10 @@ class DocumentModel extends \YeAPF\SanitizedKeyData
                             // primary: $constraintDefinition['primary'] ? true : false,
                             // required: $constraintDefinition['required'] ? true : false,
                             // protobufOrder: $constraintDefinition['protobufOrder']
-
-
                             keyType: $constraintDefinition['type'],
                             length: $constraintDefinition['length'],
                             decimals: $constraintDefinition['decimals'],
-                            acceptNULL: $constraintDefinition['acceptNULL'] ? true:false,
+                            acceptNULL: $constraintDefinition['acceptNULL'] ? true : false,
                             minValue: $constraintDefinition['minValue'],
                             maxValue: $constraintDefinition['maxValue'],
                             regExpression: $constraintDefinition['regExpression'],
@@ -526,7 +524,8 @@ interface iCollection
         \YeAPF\Connection\PersistenceContext $context,
         string $collectionName,
         string $collectionIdName = 'id',
-        \YeAPF\ORM\DocumentModel $documentModel = null
+        \YeAPF\ORM\DocumentModel $documentModel = null,
+        int $cacheExpiration = 0
     );
 
     public function getCollectionName();
@@ -560,6 +559,7 @@ class SharedSanitizedCollection extends \YeAPF\ORM\SharedSanitizedKeyData implem
     private \YeAPF\ORM\DocumentModel|null $documentModel;
     private string $collectionName;
     private string $collectionIdName;
+    private int $cacheExpiration;
 
     public function getCollectionName()
     {
@@ -575,12 +575,14 @@ class SharedSanitizedCollection extends \YeAPF\ORM\SharedSanitizedKeyData implem
         \YeAPF\Connection\PersistenceContext $context,
         string $collectionName,
         string $collectionIdName = 'id',
-        \YeAPF\ORM\DocumentModel $documentModel = null
+        \YeAPF\ORM\DocumentModel $documentModel = null,
+        int $cacheExpiration = 0
     ) {
         parent::__construct($context);
         $this->collectionName = $collectionName;
         $this->collectionIdName = $collectionIdName;
         $this->documentModel = $documentModel;
+        $this->cacheExpiration = $cacheExpiration;
     }
 
     public function getDocumentModel()
@@ -631,7 +633,7 @@ class SharedSanitizedCollection extends \YeAPF\ORM\SharedSanitizedKeyData implem
 
         if ($this->getRedisConnection()->getConnected()) {
             $data[$this->collectionIdName] = $id;
-            $ret = $this->getRedisConnection()->hset("$this->collectionName:$id", $data);
+            $ret = $this->getRedisConnection()->hset("$this->collectionName:$id", $data, $this->cacheExpiration);
         }
         return $ret;
     }
@@ -742,6 +744,7 @@ class PersistentCollection extends \YeAPF\ORM\SharedSanitizedCollection implemen
         string $collectionName,
         string $collectionIdName = 'id',
         \YeAPF\ORM\DocumentModel $documentModel = null,
+        int $cacheExpiration = 0,
         int $cacheMode = YeAPF_SAVE_CACHE_FIRST
     ) {
         $cachedEnabledModes = [YeAPF_SAVE_CACHE_FIRST, YeAPF_SAVE_CACHE_LAST];
@@ -749,7 +752,7 @@ class PersistentCollection extends \YeAPF\ORM\SharedSanitizedCollection implemen
         if (in_array($cacheMode, $cachedEnabledModes)) {
             $this->cacheMode = $cacheMode;
             $this->pskData = new \YeAPF\ORM\PersistentSanitizedKeyData($context);
-            parent::__construct($context, $collectionName, $collectionIdName, $documentModel);
+            parent::__construct($context, $collectionName, $collectionIdName, $documentModel, $cacheExpiration);
             $this->grantCollection();
             _log(' * ' . __LINE__ . '');
         } else {
@@ -982,7 +985,7 @@ class PersistentCollection extends \YeAPF\ORM\SharedSanitizedCollection implemen
             // \_log(print_r($auxRet, true));
             // \_log("ret = ".($ret?"true":"false"));
         });
-        _log("HasDocument $id in " . $this->getCollectionName() . '? ' . ($ret ? 'true' : 'false'));
+        _log("HasDocumentInDatabase $id in " . $this->getCollectionName() . '? ' . ($ret ? 'true' : 'false'));
         return $ret;
     }
 
@@ -1044,16 +1047,24 @@ class PersistentCollection extends \YeAPF\ORM\SharedSanitizedCollection implemen
 
     public function hasDocument(string $id)
     {
-        $ret = parent::hasDocument($id);
-        if (!$ret) {
-            $ret = $this->hasDocumentInDatabase($id);
+        $id=trim($id);
+        if ($id>'') {
+            $ret = parent::hasDocument($id);
+            if ($ret==false) {
+                $ret = $this->hasDocumentInDatabase($id);
+            }
+        } else {
+            $ret = false;
         }
+        \_log("HasDocument $id in " . $this->getCollectionName() . '? ' . ($ret ? 'true' : 'false'));
         return $ret;
     }
 
     public function getDocument(string $id)
     {
+        $ret = null;
         if (parent::hasDocument($id)) {
+            \_log("Using cached data for ".$this->getCollectionName().".$id");
             $ret = new \YeAPF\SanitizedKeyData();
             $ret->importData(parent::getDocument($id));
         } else {
@@ -1061,20 +1072,23 @@ class PersistentCollection extends \YeAPF\ORM\SharedSanitizedCollection implemen
             $params = [$this->getCollectionIdName() => $id];
             // $ret = $this->pskData->getPDOConnection()->queryAndFetch($sql, $params);
 
+            $ret = new \YeAPF\SanitizedKeyData();
             $this->pskData->do(
-                function ($conn) use ($sql, &$ret, $params) {
+                function ($conn) use ($id, $sql, &$ret, $params) {
                     $data = $conn->queryAndFetch($sql, $params);
+                    \_log("DATA: ".print_r($data, true));
                     parent::setDocument($id, $data);
-                    $ret = new YeAPF\SanitizedKeyData();
                     $ret->importData(parent::getDocument($id));
                 }
             );
         }
+        \_log("RET: ".print_r($ret->exportData(), true));
         return $ret;
     }
 
     public function setDocument(string|null $id, mixed &$data)
     {
+        $ret = null;
         /**
          * Here is the dilema: If I update a document in the cache first,
          * and the update in the database fails, the cache will contain wrong data
@@ -1093,12 +1107,13 @@ class PersistentCollection extends \YeAPF\ORM\SharedSanitizedCollection implemen
         }
 
         if (YeAPF_SAVE_CACHE_FIRST == $this->cacheMode) {
-            parent::setDocument($id, $data);
+            $ret = parent::setDocument($id, $data);
             $this->saveDocumentInDatabase($id, $data);
         } else {
             $this->saveDocumentInDatabase($id, $data);
-            parent::setDocument($id, $data);
+            $ret = parent::setDocument($id, $data);
         }
+        return $ret;
     }
 
     public function deleteDocument(string $id)
@@ -1114,7 +1129,28 @@ class PersistentCollection extends \YeAPF\ORM\SharedSanitizedCollection implemen
         // $this->pskData->getPDOConnection()->query($sql, $params);
     }
 
-    public function listDocuments() {}
+    /**
+     * As we're looking for information in the database and in the redis
+     * at the same time, and the most resilient data is on the database,
+     * the correct is to return the data from the database.
+     */
+    public function listDocuments()
+    {
+        $ret = [];
+        $sql = 'select ' . $this->getCollectionIdName() . ' from ' . $this->getCollectionName();
+        $params = [];
+        $this->pskData->do(
+            function ($conn) use ($sql, $params, &$ret) {
+                \_log("SQL: " . $sql);
+                $stmt = $conn->query($sql, $params);
+                while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
+                    $ret[] = $row[$this->getCollectionIdName()];
+                }
+                \_log("RET: ".print_r($ret, true));
+            }
+        );
+        return $ret;
+    }
 
     public function findByExample($example)
     {

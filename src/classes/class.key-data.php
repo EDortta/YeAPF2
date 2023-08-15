@@ -535,7 +535,7 @@ class SanitizedKeyData extends KeyData
       $minValue = $this->__constraints[$keyName]['minValue'] ?? null;
       $maxValue = $this->__constraints[$keyName]['maxValue'] ?? null;
 
-      if (null == $value && !$acceptNULL) {
+      if (null === $value && !$acceptNULL) {
         throw new \YeAPF\YeAPFException('Null not allowed in ' . get_class() . ' -> ' . $keyName, YeAPF_NULL_NOT_ALLOWED);
       } else {
         if (YeAPF_TYPE_STRING == $type) {

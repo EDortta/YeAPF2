@@ -245,7 +245,7 @@ function isEmpty(obj) {
             var ret = null;
             if (aKeyName) {
               var aColList;
-              if (!isArray(aObj))
+              if (!Array.isArray(aObj))
                 aColList = aObj;
               else {
                 aColList = {};

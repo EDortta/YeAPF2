@@ -93,16 +93,16 @@ if (typeof window == "object") {
             return arrReturnElements;
         };
 
-        window.createDOMEvent = function(eventName) {
+        window.createDOMEvent = function (eventName) {
             var ret = null;
             if (yDevice.isOnMobile()) {
-              ret = document.createEvent('Event');
-              ret.initEvent(eventName, true, true);
+                ret = document.createEvent('Event');
+                ret.initEvent(eventName, true, true);
             } else {
-              ret = new Event(eventName);
+                ret = new Event(eventName);
             }
             return ret;
-          };
+        };
     }
 }
 
@@ -112,6 +112,317 @@ class yDom {
 
     static suggestRowColor(rowGroup) {
         return yDom.cfgColors[rowGroup % 2];
+    }
+
+    static getFormElements(aFormId, aLineSpec, aOnReady) {
+        aLineSpec = aLineSpec || {};
+
+        var ret = {},
+            formContainFiles = false,
+            aElements = this.selectElements(aFormId),
+            fieldName, fieldType, fieldValue,
+            editMask,
+            storageMask,
+            valueType,
+            busyCount = 0,
+            canChangeRetValue, form = y$(aFormId);
+
+        if (form) {
+          var fieldPrefix = aLineSpec.elementPrefixName || aLineSpec.prefix ||
+            form.getAttribute('data-prefix') || '';
+          var fieldPostfix = aLineSpec.elementPostixName || aLineSpec.postfix ||
+            form.getAttribute('data-postfix') || '';
+
+          for (var i = 0; i < aElements.length; i++) {
+            if (aElements[i].getAttribute) {
+              editMask = aElements[i].getAttribute('data-edit-mask') ||
+                aElements[i].getAttribute('editMask');
+              storageMask = aElements[i].getAttribute(
+                'data-storage-mask') || aElements[i].getAttribute(
+                'storageMask');
+              valueType = aElements[i].getAttribute('data-value-type') ||
+                aElements[i].getAttribute('valueType') || 'text';
+            } else {
+              editMask = '';
+              storageMask = '';
+              valueType = 'text';
+            }
+            canChangeRetValue = true;
+
+            fieldType = aElements[i].type.toLowerCase();
+            fieldName = aElements[i].name || aElements[i].id;
+            // aOnReady() needs the correct complete fieldname
+            var originalFieldName = fieldName;
+
+            if ((fieldName.substr(fieldName.length, -(fieldPostfix.length)) ==
+                fieldPostfix) &&
+              (fieldName.substr(0, fieldPrefix.length) == fieldPrefix)) {
+
+              fieldName = fieldName.substr(fieldPrefix.length);
+              fieldName = fieldName.substr(0, fieldName.length - (
+                fieldPostfix.length));
+
+              if (fieldName > '') {
+                fieldValue = '';
+
+                if ((fieldType == 'radio') ||
+                  (fieldType == 'checkbox')) {
+                  canChangeRetValue = false;
+                  if (typeof ret[fieldName] == 'undefined')
+                    ret[fieldName] = '';
+                }
+
+                switch (fieldType) {
+
+                  case "text":
+                  case "password":
+                  case "textarea":
+                  case "email":
+                  case "hidden":
+                  case "color":
+                  case "date":
+                  case "datetime":
+                  case "datetime-local":
+                  case "month":
+                  case "search":
+                  case "tel":
+                  case "time":
+                  case "url":
+                  case "week":
+                    fieldValue = aElements[i].value + "";
+                    if ((editMask > '') && (storageMask > '')) {
+                      if (valueType.indexOf('date') >= 0) {
+                        fieldValue = dateTransform(fieldValue, editMask,
+                          storageMask);
+                        fieldValue = fieldValue ? fieldValue + "" : "";
+                      }
+                    }
+                    break;
+                  case "number":
+                  case "range":
+                    fieldValue = aElements[i].value;
+                    if (isNumber(fieldValue))
+                      fieldValue = fieldValue.toFloat();
+                    break;
+
+                  case "radio":
+                  case "checkbox":
+                    fieldValue = aElements[i].checked ? aElements[i].value :
+                      '';
+                    canChangeRetValue = (fieldValue !== '');
+                    break;
+
+                  case "select-one":
+                  case "select-multi":
+                    fieldValue = aElements[i].selectedIndex;
+                    if (aElements[i].options[fieldValue]) {
+                      var aux_idFieldName = aElements[i].parentNode.getAttribute(
+                        "data-id-fieldname") || "id";
+                      fieldValue = aElements[i].options[fieldValue].getAttribute(
+                        aux_idFieldName) || aElements[i].options[
+                        fieldValue].value;
+                    }
+                    break;
+
+                  case "file":
+                    if (aElements[i].files[0]) {
+
+                      if (typeof aOnReady == 'function') {
+                        formContainFiles = true;
+                        /*
+                        http://stackoverflow.com/questions/12090996/waiting-for-a-file-to-load-onload-javascript
+                        http://stackoverflow.com/questions/6978156/get-base64-encode-file-data-from-input-form
+                        http://igstan.ro/posts/2009-01-11-ajax-file-upload-with-pure-javascript.html
+                        https://developer.tizen.org/dev-guide/web/2.3.0/org.tizen.mobile.web.appprogramming/html/tutorials/w3c_tutorial/comm_tutorial/upload_ajax.htm
+                        */
+                        var reader = new FileReader();
+                        busyCount++;
+                        reader._fieldName = fieldName;
+                        reader.addEventListener("load", function() {
+                          ret[this._fieldName] = this.result;
+                          busyCount--;
+                          if (busyCount <= 0) {
+                            ret['__ready']=true;
+                            aOnReady(ret);
+                          }
+                        });
+                        reader.readAsDataURL(aElements[i].files[0]);
+                        canChangeRetValue = false;
+                      } else {
+                        console.error("ycomm.dom.getFormElements need onReady callback function");
+                        fieldValue =
+                        "aOnReady() not present in js call to getFormElements()";
+                      }
+                    }
+                    break;
+                }
+                if (typeof fieldValue == 'string') {
+                  if (fieldValue.indexOf(',') >= 0)
+                    fieldValue = encodeURIComponent(fieldValue);
+                }
+
+                if (canChangeRetValue)
+                  ret[fieldName] = fieldValue;
+              }
+            }
+          }
+        }
+
+        if ('function' == typeof(aOnReady)) {
+          ret['__ready']=(busyCount==0);
+          aOnReady(ret);
+        }
+
+        return ret;
+      }
+
+    static selectElements(aElementId, aFieldListFilter) {
+        var aElements = [],
+        knownFieldType, allElements, i, fieldType;
+
+        var aForm = y$(aElementId);
+        if (aForm) {
+            allElements = aForm.getElementsByTagName('*');
+            for (i = 0; i < allElements.length; i++) {
+                if (allElements[i].type) {
+                    fieldType = allElements[i].type.toLowerCase();
+                    knownFieldType = false;
+
+                    if (aFieldListFilter) {
+                        if (aFieldListFilter.indexOf(allElements[i].name ||
+                            allElements[i].id) < 0)
+                            fieldType = '--AVOID--';
+                    }
+
+                    switch (fieldType) {
+
+                        case "text":
+                        case "password":
+                        case "textarea":
+                        case "hidden":
+                        case "email":
+                        case "radio":
+                        case "checkbox":
+                        case "select-one":
+                        case "select-multi":
+                        case "file":
+                            knownFieldType = true;
+                            break;
+
+                        case "color":
+                        case "date":
+                        case "datetime":
+                        case "datetime-local":
+                        case "month":
+                        case "number":
+                        case "range":
+                        case "search":
+                        case "tel":
+                        case "time":
+                        case "url":
+                        case "week":
+                            knownFieldType = true;
+                            break;
+                    }
+
+                    if (knownFieldType)
+                        aElements[aElements.length] = allElements[i];
+                }
+            }
+        }
+        return aElements;
+    }
+
+    static cleanElement(aElement) {
+        if (typeof aElement == 'string')
+            aElement = y$(aElement);
+        if (aElement) {
+            var reservedFields = ['__cmd5p__'],
+                fieldModified,
+                fieldType, aux;
+
+            fieldType = aElement.type ? aElement.type.toLowerCase() :
+                aElement.nodeName ? aElement.nodeName.toLowerCase() :
+                    'UNKNOWN';
+            fieldModified = false;
+            if (reservedFields.indexOf(aElement.id) < 0) {
+                switch (fieldType) {
+
+                    case "text":
+                    case "password":
+                    case "textarea":
+                    case "hidden":
+                    case "color":
+                    case "date":
+                    case "datetime":
+                    case "datetime-local":
+                    case "month":
+                    case "number":
+                    case "range":
+                    case "search":
+                    case "tel":
+                    case "email":
+                    case "time":
+                    case "url":
+                    case "week":
+                        fieldModified = (aElement.value > '');
+                        aElement.value = "";
+                        break;
+
+                    case "radio":
+                    case "checkbox":
+                        fieldModified = (aElement.checked !== false);
+                        aElement.checked = false;
+                        break;
+
+                    case "select-one":
+                    case "select-multi":
+                        fieldModified = (aElement.selectedIndex > -1);
+                        aElement.selectedIndex = -1;
+                        break;
+                    case "table":
+                        if (aElement.getElementsByTagName('tbody').length > 0)
+                            aElement = aElement.getElementsByTagName('tbody')[0];
+                        while (aElement.rows.length > 0)
+                            aElement.deleteRow(aElement.rows.length - 1);
+                        break;
+                    case "ul":
+                        while (aElement.firstChild) {
+                            aElement.removeChild(aElement.firstChild);
+                        }
+
+                        break;
+                }
+            }
+        } else
+            _dumpy(2, 1, "null element when calling cleanElement()");
+    }
+
+    static cleanForm(aFormId, aFieldList) {
+        /*
+          <button>
+          <datalist>
+          <fieldset>
+          <form>
+          <input>
+          <keygen>
+          <label>
+          <legend>
+          <meter>
+          <optgroup>
+          <option>
+          <output>
+          <progress>
+          <select>
+          <textarea>
+        */
+        var i, aElements;
+
+        aElements = this.selectElements(aFormId, aFieldList);
+        for (i = 0; i < aElements.length; i++) {
+            yDom.cleanElement(aElements[i]);
+        }
+        return aElements;
     }
 
     static fillElement(aElementID, xData, aLineSpec,
@@ -233,10 +544,10 @@ class yDom {
             };
 
 
-            var oTable,  j, cNdx, newCell,
+            var oTable, j, cNdx, newCell,
                 internalRowId =
-                (new Date()).getTime() - 1447265735470,
-                rowGroup=0,
+                    (new Date()).getTime() - 1447265735470,
+                rowGroup = 0,
                 xDataItem;
 
 
@@ -257,7 +568,7 @@ class yDom {
                     if (!templateExists) {
                         yDom._elem_templates[aElementID].rows = [];
                         for (let i = 0; i < oTable.rows.length; i++) {
-                            yDom._elem_templates[aElementID].rows[i] = (oTable.rows[i].innerHTML.trim() + "").replace(/\s+/g, '');
+                            yDom._elem_templates[aElementID].rows[i] = (oTable.rows[i].innerHTML.trim() + "").replace(/\s+\ /g, '');
                         }
                     } else {
                         yDom._elem_templates[aElementID].columns = aLineSpec.columns;
@@ -269,8 +580,8 @@ class yDom {
                 mergeObject(yDom._elem_templates[aElementID], aLineSpec, true);
 
                 templateExists = typeof aLineSpec.columns !== 'undefined' ||
-                typeof aLineSpec.rows !== 'undefined' ||
-                typeof aLineSpec.html !== 'undefined';
+                    typeof aLineSpec.rows !== 'undefined' ||
+                    typeof aLineSpec.html !== 'undefined';
 
 
                 if (aFlags.deleteRows) {
@@ -754,7 +1065,8 @@ class yDom {
                                     if (!Array.isArray(aLineSpec.columns)) {
                                         valueType = aLineSpec.columns[colName].type;
 
-                                        editMask = aLineSpec.columns[colName].editMask || editMask; storageMask = aLineSpec.columns[colName].storageMask || storageMask;
+                                        editMask = aLineSpec.columns[colName].editMask || editMask;
+                                        storageMask = aLineSpec.columns[colName].storageMask || storageMask;
                                     }
                                 }
 
@@ -925,8 +1237,7 @@ class yDom {
     }
 
     static getClientSize() {
-        var auxDE = (document && document.documentElement) ? document.documentElement :
-            { clientWidth: 800, clientHeight: 600 };
+        var auxDE = (document && document.documentElement) ? document.documentElement : { clientWidth: 800, clientHeight: 600 };
         var auxW = (window) ? window : { innerWidth: 800, innerHeight: 600 };
         var w = Math.max(auxDE.clientWidth, auxW.innerWidth || 0);
         var h = Math.max(auxDE.clientHeight, auxW.innerHeight || 0);
@@ -960,5 +1271,55 @@ class yDom {
         }
     };
 
+    static addEvent(elem, eventName, eventHandler) {
+        if (typeof elem == 'string') elem = y$(elem);
+        if ((elem === null) || (typeof elem === 'undefined')) return;
 
+        var i;
+
+        if ((elem.nodeName != 'SELECT') && ((Array.isArray(elem)) || ((typeof elem == "object") && (typeof elem.length == "number")))) {
+            for (i = 0; i < elem.length; i++)
+                yDom.addEvent(elem[i], eventName, eventHandler);
+        } else {
+            var eventList = eventName.split(" "),
+                aEventName;
+            for (i = 0; i < eventList.length; i++) {
+                aEventName = eventList[i];
+                if (elem.addEventListener) {
+                    elem.addEventListener(aEventName, eventHandler, aEventName.toUpperCase() == "change");
+                } else if (elem.attachEvent) {
+                    elem.attachEvent("on" + aEventName, eventHandler);
+                } else {
+                    elem["on" + aEventName] = eventHandler;
+                }
+            }
+        }
+
+    };
+
+    static removeEvent(elem, eventName, eventHandler) {
+        if (typeof elem == 'string') elem = y$(elem);
+        if ((elem === null) || (typeof elem === 'undefined')) return;
+
+        var i;
+
+        if (Array.isArray(elem)) {
+            for (i = 0; i < elem.length; i++)
+                yDom.removeEvent(elem[i], eventHandler);
+        } else {
+            var eventList = eventName.split(" "),
+                aEventName;
+            for (i = 0; i < eventList.length; i++) {
+                aEventName = eventList[i];
+                if (elem.addEventListener) {
+                    elem.removeEventListener(aEventName, eventHandler, false);
+                } else if (elem.detachEvent) {
+                    elem.detachEvent("on" + aEventName, eventHandler);
+                } else {
+                    elem["on" + aEventName] = null;
+                }
+            }
+        }
+
+    };
 };
