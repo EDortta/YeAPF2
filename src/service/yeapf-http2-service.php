@@ -291,8 +291,10 @@ abstract class HTTP2Service
                         foreach ($details['constraints'] as $fieldName => $constraint) {
                             $properties[$fieldName] = [
                                 'type' => $constraint['type'],
-                                'maxLength' => $constraint['length'],
                             ];
+                            if ($constraint['length']) {
+                                $properties[$fieldName]['maxLength'] = $constraint['length'];
+                            }
 
                             if ($constraint['required']) {
                                 $properties[$fieldName]['minimum'] = 1;

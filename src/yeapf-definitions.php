@@ -13,9 +13,9 @@
  * Basic types for YeAPF
  */
 define("YeAPF_TYPE_STRING", "string");
-define("YeAPF_TYPE_INT", "int");
+define("YeAPF_TYPE_INT", "integer");
 define("YeAPF_TYPE_FLOAT", "float");
-define("YeAPF_TYPE_BOOL", "bool");
+define("YeAPF_TYPE_BOOL", "boolean");
 define("YeAPF_TYPE_DATE", "date");
 define("YeAPF_TYPE_TIME", "time");
 define("YeAPF_TYPE_DATETIME", "datetime");

@@ -6,6 +6,7 @@ require_once __DIR__ . "/yeapf-assets.php";
 
 require_once __DIR__ . "/misc/yLogger.php";
 require_once __DIR__ . "/yeapf-single-logger.php";
+\YeAPF\yLogger::defineLogTagAndLevel("YeAPF StubLoader", LOG_NOTICE);
 
 require_once __DIR__ . "/yeapf-library.php";
 require_once __DIR__ . "/yeapf-exception.php";

@@ -7,6 +7,7 @@ class yLogger {
 
   static private $logFolder = null;
   static private $lastFile  = null;
+  static private $syslogOpened = false;
 
   static function getAssetsFolder(): string {
     $logFolder = self::getApplicationFolder()."/logs";
@@ -34,6 +35,14 @@ class yLogger {
     return $ret;
   }
 
+  static public function defineLogTagAndLevel(string $tag, int $option) {
+    if (self::$syslogOpened) {
+      closelog();
+      self::$syslogOpened = false;
+    }
+    self::$syslogOpened = openlog($tag, $option, LOG_LOCAL0);
+  }
+
   static public function log(int $area, int $warningLevel, string $message) {
     global $currentURI;
     if (self::startup()) {
@@ -51,9 +60,10 @@ class yLogger {
         $preamble .= "  " . str_pad(" " . $dbg[1]['line'], 4, ' ', STR_PAD_LEFT) . ": ";
       }
 
-      // echo $preamble;
       $message = str_replace("\n", " ", $message) . "\n";
-      // echo "$message";
+
+      syslog(LOG_INFO, $message);
+
       $fileName = self::$logFolder . "/" . date("Y-m-d") . ".log";
       $fp       = fopen($fileName, "a+");
       if ($fp) {
