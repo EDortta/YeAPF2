@@ -1,5 +1,5 @@
-<?php
-declare (strict_types = 1);
+<?php declare(strict_types=1);
+
 namespace YeAPF;
 
 /**
@@ -20,7 +20,8 @@ class KeyData implements \ArrayAccess, \Iterator
   private $__data = [];
   private $__position;
 
-  public function __construct() {
+  public function __construct()
+  {
     $this->__position = 0;
   }
 
@@ -36,7 +37,8 @@ class KeyData implements \ArrayAccess, \Iterator
    * @param mixed $offset the key to check for existence
    * @return bool true if the offset exists, false otherwise
    */
-  public function offsetExists(mixed $offset): bool {
+  public function offsetExists(mixed $offset): bool
+  {
     return isset($this->__data[$offset]);
   }
 
@@ -46,7 +48,8 @@ class KeyData implements \ArrayAccess, \Iterator
    * @param mixed $offset The offset to retrieve the value from.
    * @return mixed|null The value at the specified offset or null if it does not exist.
    */
-  public function offsetGet(mixed $offset): mixed {
+  public function offsetGet(mixed $offset): mixed
+  {
     return $this->__get($offset);
   }
 
@@ -58,7 +61,8 @@ class KeyData implements \ArrayAccess, \Iterator
    * @param mixed $value The value to set.
    * @return void
    */
-  public function offsetSet(mixed $offset, mixed $value): void {
+  public function offsetSet(mixed $offset, mixed $value): void
+  {
     $this->__set($offset, $value);
   }
 
@@ -68,7 +72,8 @@ class KeyData implements \ArrayAccess, \Iterator
    * @param mixed $offset the key to be unset
    * @return void
    */
-  public function offsetUnset(mixed $offset): void {
+  public function offsetUnset(mixed $offset): void
+  {
     unset($this->__data[$offset]);
   }
 
@@ -83,7 +88,8 @@ class KeyData implements \ArrayAccess, \Iterator
    *
    * @return mixed|null The value of the current element or null if it doesn't exist
    */
-  public function current(): mixed {
+  public function current(): mixed
+  {
     $keys = array_keys($this->__data);
     // return $this->__data[$keys[$this->__position]] ?? null;
     return $this->__get($keys[$this->__position]);
@@ -94,7 +100,8 @@ class KeyData implements \ArrayAccess, \Iterator
    *
    * @return mixed
    */
-  public function key(): mixed {
+  public function key(): mixed
+  {
     $keys = array_keys($this->__data);
     return $keys[$this->__position];
   }
@@ -104,7 +111,8 @@ class KeyData implements \ArrayAccess, \Iterator
    *
    * @return void
    */
-  public function next(): void {
+  public function next(): void
+  {
     ++$this->__position;
   }
 
@@ -114,7 +122,8 @@ class KeyData implements \ArrayAccess, \Iterator
    * @throws None
    * @return void
    */
-  public function rewind(): void {
+  public function rewind(): void
+  {
     $this->__position = 0;
   }
 
@@ -123,7 +132,8 @@ class KeyData implements \ArrayAccess, \Iterator
    *
    * @return bool True if the current position is valid, false otherwise.
    */
-  public function valid(): bool {
+  public function valid(): bool
+  {
     $keys = array_keys($this->__data);
     return isset($keys[$this->__position]);
   }
@@ -134,7 +144,8 @@ class KeyData implements \ArrayAccess, \Iterator
    *
    * @return mixed
    */
-  public function exportData() {
+  public function exportData()
+  {
     $ret = [];
     foreach ($this->__data as $key => $value) {
       $ret[$key] = $this->__get($key);
@@ -142,7 +153,8 @@ class KeyData implements \ArrayAccess, \Iterator
     return $ret;
   }
 
-  public function exportRawData() {
+  public function exportRawData()
+  {
     return $this->__data;
   }
 
@@ -153,13 +165,19 @@ class KeyData implements \ArrayAccess, \Iterator
    * @throws Exception If there is an error importing the data.
    * @return void
    */
-  public function importData(mixed $data) {
+  public function importData(mixed $data)
+  {
     if (!is_array($data) && !is_bool($data)) {
       throw new \YeAPF\YeAPFException('Invalid data type. Only array or bool.');
     }
     foreach ($data as $key => $value) {
       $this->__set($key, $value);
     }
+  }
+
+  function empty()
+  {
+    return empty($this->__data);
   }
 
   /**
@@ -171,7 +189,8 @@ class KeyData implements \ArrayAccess, \Iterator
    *
    * @return void
    */
-  public function __set(string $name, mixed $value) {
+  public function __set(string $name, mixed $value)
+  {
     $this->__data[$name] = $value;
   }
 
@@ -183,7 +202,8 @@ class KeyData implements \ArrayAccess, \Iterator
    *
    * @return void
    */
-  public function __get(string $name) {
+  public function __get(string $name)
+  {
     return $this->__data[$name] ?? null;
   }
 
@@ -193,7 +213,8 @@ class KeyData implements \ArrayAccess, \Iterator
    * @param string $name The name of the property to check.
    * @return bool Returns true if the property is set, false otherwise.
    */
-  public function __isset($name) {
+  public function __isset($name)
+  {
     return isset($this->__data[$name]);
   }
 
@@ -206,7 +227,8 @@ class KeyData implements \ArrayAccess, \Iterator
    * @throws null
    * @return void
    */
-  public function __unset($name) {
+  public function __unset($name)
+  {
     unset($this->__data[$name]);
   }
 
@@ -216,14 +238,16 @@ class KeyData implements \ArrayAccess, \Iterator
    * @param mixed $name the key to delete
    * @throws Exception if the key does not exist
    */
-  public function delete($name) {
+  public function delete($name)
+  {
     $this->__unset($name);
   }
 
   /**
    * Clears the data of the object.
    */
-  public function clear() {
+  public function clear()
+  {
     $this->__data = [];
   }
 
@@ -232,10 +256,10 @@ class KeyData implements \ArrayAccess, \Iterator
    *
    * @return array The keys of the data array.
    */
-  public function keys() {
+  public function keys()
+  {
     return array_keys($this->__data);
   }
-
 }
 
 /**
@@ -248,8 +272,17 @@ class KeyData implements \ArrayAccess, \Iterator
  *
  * @example treco.php
  */
-class SanitizedKeyData extends KeyData {
+class SanitizedKeyData extends KeyData
+{
   private $__constraints = [];
+
+  public function __construct(array $constraints = null)
+  {
+    parent::__construct();
+    if (null !== $constraints) {
+      $this->importConstraints($constraints);
+    }
+  }
 
   /**
    * Sets a constraint for a given key in the YeAPF library.
@@ -281,56 +314,57 @@ class SanitizedKeyData extends KeyData {
     bool $unique = false,
     bool $required = false,
     bool $primary = false,
-    int $protobufOrder = null) {
+    int $protobufOrder = null,
+    string $tag = null
+  ) {
     $validTypes = [YeAPF_TYPE_STRING, YeAPF_TYPE_INT, YeAPF_TYPE_FLOAT, YeAPF_TYPE_BOOL, YeAPF_TYPE_DATE, YeAPF_TYPE_TIME, YeAPF_TYPE_DATETIME, YeAPF_TYPE_BYTES];
     if (!in_array($keyType, $validTypes)) {
-      throw new \YeAPF\YeAPFException("Invalid key type", YeAPF_INVALID_KEY_TYPE);
+      throw new \YeAPF\YeAPFException('Invalid key type', YeAPF_INVALID_KEY_TYPE);
     } else {
       if (self::__isset($keyName)) {
-        throw new \YeAPF\YeAPFException("Key already exists", YeAPF_INVALID_KEY_VALUE);
+        throw new \YeAPF\YeAPFException('Key already exists', YeAPF_INVALID_KEY_VALUE);
       }
       if (null == $keyType) {
         unset($this->__constraints[$keyName]);
       } else {
         switch ($keyType) {
-        case YeAPF_TYPE_STRING:
-          if (null == $regExpression) {
-            $regExpression = "[0-9a-zA-Z_.,\-\+\*\/\@\#\!\$\%\^\&\]*";
-          }
+          case YeAPF_TYPE_STRING:
+            if (null == $regExpression) {
+              $regExpression = '[0-9a-zA-Z_.,\-\+\*\/\@\#\!$\%\^\&\]*';
+            }
 
-          break;
+            break;
 
-        case YeAPF_TYPE_INT:
-          $regExpression = YeAPF_INT_REGEX;
-          break;
+          case YeAPF_TYPE_INT:
+            $regExpression = YeAPF_INT_REGEX;
+            break;
 
-        case YeAPF_TYPE_FLOAT:
-          $regExpression = YeAPF_FLOAT_REGEX;
-          break;
+          case YeAPF_TYPE_FLOAT:
+            $regExpression = YeAPF_FLOAT_REGEX;
+            break;
 
-        case YeAPF_TYPE_BOOL:
-          $regExpression = YeAPF_BOOL_REGEX;
-          break;
+          case YeAPF_TYPE_BOOL:
+            $regExpression = YeAPF_BOOL_REGEX;
+            break;
 
-        case YeAPF_TYPE_DATE:
-          $regExpression = YeAPF_DATE_REGEX;
-          break;
+          case YeAPF_TYPE_DATE:
+            $regExpression = YeAPF_DATE_REGEX;
+            break;
 
-        case YeAPF_TYPE_TIME:
-          $regExpression = YeAPF_TIME_REGEX;
-          break;
+          case YeAPF_TYPE_TIME:
+            $regExpression = YeAPF_TIME_REGEX;
+            break;
 
-        case YeAPF_TYPE_DATETIME:
-          $regExpression = YeAPF_DATETIME_REGEX;
-          break;
+          case YeAPF_TYPE_DATETIME:
+            $regExpression = YeAPF_DATETIME_REGEX;
+            break;
 
-        case YeAPF_TYPE_BYTES:
-          $regExpression = "(.*)";
-          break;
+          case YeAPF_TYPE_BYTES:
+            $regExpression = '(.*)';
+            break;
 
-        default:
-          throw new \YeAPF\YeAPFException("Not implemented key type [ $keyType ]", YeAPF_UNIMPLEMENTED_KEY_TYPE);
-
+          default:
+            throw new \YeAPF\YeAPFException("Not implemented key type [ $keyType ]", YeAPF_UNIMPLEMENTED_KEY_TYPE);
         }
         if (YeAPF_TYPE_INT == $keyType && null != $minValue) {
           $minValue = intval($minValue);
@@ -345,34 +379,34 @@ class SanitizedKeyData extends KeyData {
           $minValue = null;
           $maxValue = null;
           $decimals = null;
-          $length   = null;
+          $length = null;
         }
 
         if (YeAPF_TYPE_DATE == $keyType) {
           $minValue = null;
           $maxValue = null;
           $decimals = null;
-          $length   = 10;
+          $length = 10;
         }
 
         if (YeAPF_TYPE_TIME == $keyType) {
           $minValue = null;
           $maxValue = null;
           $decimals = null;
-          $length   = 8;
+          $length = 8;
         }
 
         if (YeAPF_TYPE_DATETIME == $keyType) {
           $minValue = null;
           $maxValue = null;
           $decimals = null;
-          $length   = 19;
+          $length = 19;
         }
 
         if (YeAPF_TYPE_FLOAT == $keyType) {
           if (null != $decimals) {
             if (null == $length) {
-              throw new \YeAPF\YeAPFException("Length is required quen using decimals", YeAPF_LENGTH_IS_REQUIRED);
+              throw new \YeAPF\YeAPFException('Length is required quen using decimals', YeAPF_LENGTH_IS_REQUIRED);
             }
           }
         }
@@ -380,37 +414,42 @@ class SanitizedKeyData extends KeyData {
         if (null !== $protobufOrder) {
           if (0 == $protobufOrder) {
             foreach ($this->__constraints as $key => $value) {
-              if ($value["protobufOrder"] > $protobufOrder) {
-                $protobufOrder = $value["protobufOrder"];
+              if ($value['protobufOrder'] > $protobufOrder) {
+                $protobufOrder = $value['protobufOrder'];
               }
             }
             $protobufOrder++;
             $protobufOrder = max(1, $protobufOrder);
           } else {
             foreach ($this->__constraints as $key => $value) {
-              if ($protobufOrder == $value["protobufOrder"]) {
-                new \YeAPF\YeAPFException("Protobuf order is not unique", YeAPF_PROTOBUF_ORDER_IS_NOT_UNIQUE);
+              if ($protobufOrder == $value['protobufOrder']) {
+                new \YeAPF\YeAPFException('Protobuf order is not unique', YeAPF_PROTOBUF_ORDER_IS_NOT_UNIQUE);
               }
             }
           }
         }
 
+        if (null == $tag)
+          $tag = '*';
+
+        $tag = preg_replace('/[^a-zA-Z_0-9;]/', '', $tag);
+
         $this->__constraints[$keyName] = [
-          "type"          => $keyType,
-          "length"        => $length,
-          "decimals"      => $decimals,
-          "acceptNULL"    => $acceptNULL,
-          "minValue"      => $minValue,
-          "maxValue"      => $maxValue,
-          "regExpression" => $regExpression,
-          "unique"        => $unique,
-          "required"      => $required,
-          "primary"       => $primary,
-          "protobufOrder" => $protobufOrder,
+          'type' => $keyType,
+          'length' => $length,
+          'decimals' => $decimals,
+          'acceptNULL' => $acceptNULL,
+          'minValue' => $minValue,
+          'maxValue' => $maxValue,
+          'regExpression' => $regExpression,
+          'unique' => $unique,
+          'required' => $required,
+          'primary' => $primary,
+          'protobufOrder' => $protobufOrder,
+          'tag' => ';' . join(';', explode(';', $tag)) . ';'
         ];
       }
     }
-
   }
 
   /**
@@ -419,7 +458,8 @@ class SanitizedKeyData extends KeyData {
    * @param string $keyName The name of the key to retrieve the constraint for.
    * @return mixed The constraint associated with the given key name.
    */
-  public function getConstraint(string $keyName) {
+  public function getConstraint(string $keyName)
+  {
     return $this->__constraints[$keyName];
   }
 
@@ -428,8 +468,49 @@ class SanitizedKeyData extends KeyData {
    *
    * @return array The constraints associated with this object.
    */
-  public function getConstraints() {
-    return $this->__constraints;
+  public function getConstraints(bool $asInterface = null, string $tag = null)
+  {
+    if (is_null($asInterface) && is_null($tag)) {
+      return $this->__constraints;
+    } else {
+      $ret = [];
+      if (null != $tag) {
+        $tag = ';' . preg_replace('/[^a-zA-Z_0-9]/', '', $tag) . ';';
+      }
+      foreach ($this->__constraints as $key => $value) {
+        if (null == $tag || strpos($value['tag'], $tag) !== false || $value['tag'] == ';*;') {
+          if ($asInterface) {
+            if ($value['protobufOrder'] > 0) {
+              $ret[$key] = $value;
+            }
+          } else {
+            $ret[$key] = $value;
+          }
+        }
+      }
+      return $ret;
+    }
+  }
+
+  public function importConstraints(array $constraints)
+  {
+    $this->__constraints = [];
+    foreach ($constraints as $keyName => $constraint) {
+      $this->__constraints[$keyName] = [
+        'type' => $constraint['type'],
+        'length' => $constraint['length'],
+        'decimals' => $constraint['decimals'],
+        'acceptNULL' => $constraint['acceptNULL'],
+        'minValue' => $constraint['minValue'],
+        'maxValue' => $constraint['maxValue'],
+        'regExpression' => $constraint['regExpression'],
+        'unique' => $constraint['unique'],
+        'required' => $constraint['required'],
+        'primary' => $constraint['primary'],
+        'protobufOrder' => $constraint['protobufOrder'],
+        'tag' => $constraint['tag']
+      ];
+    }
   }
 
   /**
@@ -444,98 +525,98 @@ class SanitizedKeyData extends KeyData {
    *
    * @return mixed The validated value if it satisfies the constraint
    */
-  public function checkConstraint(string $keyName, mixed $value) {
+  public function checkConstraint(string $keyName, mixed $value)
+  {
     if (isset($this->__constraints[$keyName])) {
-      $type       = $this->__constraints[$keyName]["type"];
-      $length     = $this->__constraints[$keyName]["length"] ?? 0;
-      $decimals   = $this->__constraints[$keyName]["decimals"] ?? 0;
-      $acceptNULL = $this->__constraints[$keyName]["acceptNULL"] ?? false;
-      $minValue   = $this->__constraints[$keyName]["minValue"] ?? null;
-      $maxValue   = $this->__constraints[$keyName]["maxValue"] ?? null;
+      $type = $this->__constraints[$keyName]['type'];
+      $length = $this->__constraints[$keyName]['length'] ?? 0;
+      $decimals = $this->__constraints[$keyName]['decimals'] ?? 0;
+      $acceptNULL = $this->__constraints[$keyName]['acceptNULL'] ?? false;
+      $minValue = $this->__constraints[$keyName]['minValue'] ?? null;
+      $maxValue = $this->__constraints[$keyName]['maxValue'] ?? null;
 
-      if (null == $value && !$acceptNULL) {
-        throw new \YeAPF\YeAPFException("Null not allowed in " . get_class() . " -> " . $keyName, YeAPF_NULL_NOT_ALLOWED);
+      if (null === $value && !$acceptNULL) {
+        throw new \YeAPF\YeAPFException('Null not allowed in ' . get_class() . ' -> ' . $keyName, YeAPF_NULL_NOT_ALLOWED);
       } else {
         if (YeAPF_TYPE_STRING == $type) {
           if ($length > 0 && strlen($value) > $length) {
-            throw new \YeAPF\YeAPFException("String value too long in " . get_class() . "." . $keyName, YeAPF_INVALID_KEY_VALUE);
+            throw new \YeAPF\YeAPFException('String value too long in ' . get_class() . '.' . $keyName, YeAPF_INVALID_KEY_VALUE);
           }
         } elseif (YeAPF_TYPE_INT == $type) {
           if (!(null === $value && $acceptNULL)) {
             if (!is_int($value)) {
-              throw new \YeAPF\YeAPFException("Invalid integer value in " . get_class() . "." . $keyName, YeAPF_INVALID_KEY_VALUE);
+              throw new \YeAPF\YeAPFException('Invalid integer value in ' . get_class() . '.' . $keyName, YeAPF_INVALID_KEY_VALUE);
             }
             if (null !== $minValue) {
               if ($value < $minValue) {
-                throw new \YeAPF\YeAPFException("Invalid integer value: out of bounds in " . get_class() . "." . $keyName, YeAPF_VALUE_OUT_OF_RANGE);
+                throw new \YeAPF\YeAPFException('Invalid integer value: out of bounds in ' . get_class() . '.' . $keyName, YeAPF_VALUE_OUT_OF_RANGE);
               }
             }
 
             if (null !== $maxValue) {
               if ($value > $maxValue) {
-                throw new \YeAPF\YeAPFException("Invalid integer value: out of bounds in " . get_class() . "." . $keyName, YeAPF_VALUE_OUT_OF_RANGE);
+                throw new \YeAPF\YeAPFException('Invalid integer value: out of bounds in ' . get_class() . '.' . $keyName, YeAPF_VALUE_OUT_OF_RANGE);
               }
             }
           }
         } elseif (YeAPF_TYPE_FLOAT == $type) {
           if (!(null === $value && $acceptNULL)) {
             if (!is_numeric($value)) {
-              throw new \YeAPF\YeAPFException("Invalid float value in " . get_class() . "." . $keyName, YeAPF_INVALID_KEY_VALUE);
+              throw new \YeAPF\YeAPFException('Invalid float value in ' . get_class() . '.' . $keyName, YeAPF_INVALID_KEY_VALUE);
             }
             if (null !== $minValue) {
               if ($value < $minValue) {
-                throw new \YeAPF\YeAPFException("Invalid float value: out of bounds in " . get_class() . "." . $keyName, YeAPF_VALUE_OUT_OF_RANGE);
+                throw new \YeAPF\YeAPFException('Invalid float value: out of bounds in ' . get_class() . '.' . $keyName, YeAPF_VALUE_OUT_OF_RANGE);
               }
             }
             if (null !== $maxValue) {
               if ($value > $maxValue) {
-                throw new \YeAPF\YeAPFException("Invalid float value: out of bounds in " . get_class() . "." . $keyName, YeAPF_VALUE_OUT_OF_RANGE);
+                throw new \YeAPF\YeAPFException('Invalid float value: out of bounds in ' . get_class() . '.' . $keyName, YeAPF_VALUE_OUT_OF_RANGE);
               }
             }
           }
         } elseif (YeAPF_TYPE_BOOL == $type) {
           if (!(null === $value && $acceptNULL)) {
             if (!is_bool($value)) {
-              throw new \YeAPF\YeAPFException("Invalid boolean value in " . get_class() . "." . $keyName, YeAPF_INVALID_KEY_VALUE);
+              throw new \YeAPF\YeAPFException('Invalid boolean value in ' . get_class() . '.' . $keyName, YeAPF_INVALID_KEY_VALUE);
             }
           }
         } elseif (YeAPF_TYPE_DATE == $type) {
           if (!(null === $value && $acceptNULL)) {
             if (!is_string($value)) {
-              throw new \YeAPF\YeAPFException("Invalid date type (string expected) in " . get_class() . "." . $keyName, YeAPF_INVALID_DATE_TYPE);
+              throw new \YeAPF\YeAPFException('Invalid date type (string expected) in ' . get_class() . '.' . $keyName, YeAPF_INVALID_DATE_TYPE);
             } else {
               if (!preg_match(YeAPF_DATE_REGEX, $value)) {
-                throw new \YeAPF\YeAPFException("Invalid date value in " . get_class() . "." . $keyName, YeAPF_INVALID_DATE_VALUE);
+                throw new \YeAPF\YeAPFException('Invalid date value in ' . get_class() . '.' . $keyName, YeAPF_INVALID_DATE_VALUE);
               }
               if (strlen($value) > $length) {
-                throw new \YeAPF\YeAPFException("Date value too long in " . get_class() . "." . $keyName, YeAPF_VALUE_TOO_LONG);
+                throw new \YeAPF\YeAPFException('Date value too long in ' . get_class() . '.' . $keyName, YeAPF_VALUE_TOO_LONG);
               }
             }
           }
         } elseif (YeAPF_TYPE_DATETIME == $type) {
           if (!(null === $value && $acceptNULL)) {
             if (!is_string($value)) {
-              throw new \YeAPF\YeAPFException("Invalid datetime type (string expected) in " . get_class() . "." . $keyName, YeAPF_INVALID_DATE_TYPE);
+              throw new \YeAPF\YeAPFException('Invalid datetime type (string expected) in ' . get_class() . '.' . $keyName, YeAPF_INVALID_DATE_TYPE);
             } else {
               if (!preg_match(YeAPF_DATETIME_REGEX, $value)) {
-                throw new \YeAPF\YeAPFException("Invalid datetime value in " . get_class() . "." . $keyName, YeAPF_INVALID_DATE_VALUE);
+                throw new \YeAPF\YeAPFException('Invalid datetime value in ' . get_class() . '.' . $keyName, YeAPF_INVALID_DATE_VALUE);
               }
             }
           }
         } elseif (YeAPF_TYPE_TIME == $type) {
           if (!(null === $value && $acceptNULL)) {
             if (!is_string($value)) {
-              throw new \YeAPF\YeAPFException("Invalid time type (string expected) in " . get_class() . "." . $keyName, YeAPF_INVALID_DATE_TYPE);
+              throw new \YeAPF\YeAPFException('Invalid time type (string expected) in ' . get_class() . '.' . $keyName, YeAPF_INVALID_DATE_TYPE);
             } else {
               if (!preg_match(YeAPF_TIME_REGEX, $value)) {
-                throw new \YeAPF\YeAPFException("Invalid time value in " . get_class() . "." . $keyName, YeAPF_INVALID_DATE_VALUE);
+                throw new \YeAPF\YeAPFException('Invalid time value in ' . get_class() . '.' . $keyName, YeAPF_INVALID_DATE_VALUE);
               }
             }
           }
         } else {
-          throw new \YeAPF\YeAPFException("Invalid key type in " . get_class() . "." . $keyName, YeAPF_INVALID_KEY_TYPE);
+          throw new \YeAPF\YeAPFException('Invalid key type in ' . get_class() . '.' . $keyName, YeAPF_INVALID_KEY_TYPE);
         }
-
       }
     }
     return $value;
@@ -551,7 +632,8 @@ class SanitizedKeyData extends KeyData {
    * @param mixed $value the value to sanitize
    * @return mixed the sanitized value
    */
-  private function sanitize($value) {
+  private function sanitize($value)
+  {
     if (is_array($value)) {
       $result = [];
       foreach ($value as $item) {
@@ -570,7 +652,8 @@ class SanitizedKeyData extends KeyData {
     return $value;
   }
 
-  private function unsanitize($value) {
+  private function unsanitize($value)
+  {
     if (is_array($value)) {
       $result = [];
       foreach ($value as $item) {
@@ -600,14 +683,16 @@ class SanitizedKeyData extends KeyData {
    * @param mixed $value the value to set the property to
    * @throws YeAPF\YeAPFException if an error occurs during constraint checking
    */
-  public function __set(string $name, mixed $value) {
+  public function __set(string $name, mixed $value)
+  {
     $value = $this->sanitize($value);
     // \_log("  :: setting '$name' with ".print_r($value, true)."\n");
     $value = $this->checkConstraint($name, $value);
     parent::__set($name, $value);
   }
 
-  public function __get(string $name) {
+  public function __get(string $name)
+  {
     // \_log("  :: getting '$name' -> ");
     $value = parent::__get($name);
     // \_log(print_r($value,true) ." -> ");
@@ -616,17 +701,18 @@ class SanitizedKeyData extends KeyData {
     return $value;
   }
 
-  public function __get_raw_value(string $name) {
+  public function __get_raw_value(string $name)
+  {
     // \_log("  :: getting raw value '$name' -> ");
     $value = parent::__get($name);
     // \_log("$value\n");
     return $value;
   }
-
 }
 
-function translateObject($source, $destinationClassName) {
-  $sourceReflection      = new \ReflectionObject($source);
+function translateObject($source, $destinationClassName)
+{
+  $sourceReflection = new \ReflectionObject($source);
   $destinationReflection = new \ReflectionClass($destinationClassName);
 
   $destination = $destinationReflection->newInstanceWithoutConstructor();

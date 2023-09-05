@@ -10,6 +10,7 @@ define("YeAPF_CONNECTION_BASE", 0x00000200);
 define("YeAPF_COLLECTION_BASE", 0x00000300);
 define("YeAPF_EYESHOT_BASE", 0x00000400);
 define("YeAPF_SERVICE_BASE", 0x00000500);
+define("YeAPF_SECURITY_BASE", 0x00000600);
 
 require_once "yeapf-definitions.php";
 

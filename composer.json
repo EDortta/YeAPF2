@@ -2,6 +2,7 @@
     "name": "yeapf/v2",
     "description": "Yet Another PHP Framework v2",
     "type": "framework",
+    "homepage": "https://www.yeapf.com/v2",
     "license": "MIT",
     "autoload": {
         "psr-4": {
@@ -13,7 +14,7 @@
     },
     "authors": [
         {
-            "name": "Esteban Dortta",
+            "name": "Esteban D.Dortta",
             "email": "dortta@yahoo.com"
         }
     ],

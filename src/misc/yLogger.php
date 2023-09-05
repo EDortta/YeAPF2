@@ -7,12 +7,16 @@ class yLogger {
 
   static private $logFolder = null;
   static private $lastFile  = null;
+  static private $syslogOpened = false;
 
   static function getAssetsFolder(): string {
-    if (!is_dir(__DIR__ . "/../../logs")) {
-      mkdir(__DIR__ . "/../../logs", 0777, true);
+    $logFolder = self::getApplicationFolder()."/logs";
+
+    if (is_dir($logFolder)) {
+      $logFolder = realpath($logFolder);
     }
-    return realpath(__DIR__ . "/../../logs");
+
+    return $logFolder;
   }
 
   static function canWorkWithoutAssets(): bool {
@@ -22,13 +26,21 @@ class yLogger {
   static private function startup() {
     if (null == self::$logFolder) {
       self::$logFolder = self::getAssetsFolder();
-      echo "LOG DEVICE: " . self::$logFolder . "\n";
+      // echo "LOG DEVICE: " . self::$logFolder . "\n";
       if (!is_dir(self::$logFolder)) {
         mkdir(self::$logFolder, 0777, true);
       }
     }
     $ret = is_dir(self::$logFolder) && is_writable(self::$logFolder);
     return $ret;
+  }
+
+  static public function defineLogTagAndLevel(string $tag, int $option) {
+    if (self::$syslogOpened) {
+      closelog();
+      self::$syslogOpened = false;
+    }
+    self::$syslogOpened = openlog($tag, $option, LOG_LOCAL0);
   }
 
   static public function log(int $area, int $warningLevel, string $message) {
@@ -48,9 +60,10 @@ class yLogger {
         $preamble .= "  " . str_pad(" " . $dbg[1]['line'], 4, ' ', STR_PAD_LEFT) . ": ";
       }
 
-      // echo $preamble;
       $message = str_replace("\n", " ", $message) . "\n";
-      // echo "$message";
+
+      syslog(LOG_INFO, $message);
+
       $fileName = self::$logFolder . "/" . date("Y-m-d") . ".log";
       $fp       = fopen($fileName, "a+");
       if ($fp) {
