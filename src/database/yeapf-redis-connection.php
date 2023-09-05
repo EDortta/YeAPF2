@@ -31,9 +31,11 @@ class RedisConnection extends \YeAPF\Connection\DBConnection
                 } else {
                     _log('+----------------------');
                     _log('| REDIS NOT AVAILABLE! ');
+                    _log('|   at '.$auxConfig->server ?? 'undefined');
+                    _log('|    @ '.$auxConfig->port ?? 'undefined');
                     _log('| ' . $th->getMessage() . '');
                     _log('+----------------------');
-                    sleep(1);
+                    sleep(5);
                 }
             }
         } while (!self::getConnected());
