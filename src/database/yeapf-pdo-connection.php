@@ -81,6 +81,7 @@ class PDOConnection extends \YeAPF\Connection\DBConnection
                     } else {
                         \_log("+----------------------");
                         \_log("| PDO NOT AVAILABLE! ");
+                        \_log("|   at ".self::$connectionString);
                         \_log("| ".$th->getMessage()."");
                         \_log("+----------------------");
                     }
