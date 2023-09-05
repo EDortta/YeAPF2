@@ -51,8 +51,8 @@ class YeAPFConfig  {
   public static function open() {
     if (empty(self::$configAreas)) {
       $configFolder = self::getAssetsFolder();
-      echo __FILE__.":".__LINE__;
-      echo "CONFIG DEVICE: " . $configFolder . "\n";
+      // echo __FILE__.":".__LINE__;
+      // echo "CONFIG DEVICE: " . $configFolder . "\n";
       \_log("Reading configuration files from $configFolder");
       foreach (scandir($configFolder) as $file) {
         // echo "[ $file ]";
