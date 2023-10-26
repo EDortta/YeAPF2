@@ -105,7 +105,7 @@ class RedisConnection extends \YeAPF\Connection\DBConnection
     {
         $ret = false;
         if (self::getConnected()) {
-            $ctl = true;
+            $ret = true;
             if (is_iterable($data)) {
                 foreach ($data as $key => $value) {
                     if (!is_numeric($key)) {
@@ -119,10 +119,14 @@ class RedisConnection extends \YeAPF\Connection\DBConnection
             } else {
                 throw new \YeAPF\YeAPFException("It's not an iterable data", YeAPF_INVALID_DATA);
             }
-            $ret = (true != $ctl);
+            // $ret = (true != $ctl);
+            \_log("HSET data: ".json_encode($data));
+            \_log("HSET  ret: $ret");
             if ($expiration !== null) {
                 self::$redis->expire($name, $expiration);
             }
+        } else {
+            \_log("HSET    : Not connected");
         }
         return $ret;
     }

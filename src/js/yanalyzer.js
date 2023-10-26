@@ -1,3 +1,6 @@
+/*jslint browser: true */
+/*global yMisc, window */
+
 /**
  * @name YeAPF2
  * @version 2.0
@@ -6,8 +9,8 @@
  *
  * (c) 2004-2023 Esteban D.Dortta <dortta@yahoo.com>
  * Website: https://www.yeapf.com
+ *
  */
-
 
 
 /*********************************************
@@ -20,33 +23,40 @@ function yAnalise(aLine, aStack, aObject) {
     "use strict";
     if (aLine !== undefined) {
 
-        if ("string" == typeof aLine)
+        if ("string" === typeof aLine) {
             aLine = yMisc.unmaskHTML(aLine);
-        if (true === window.__allowInsecureJSCalls__) {
+        }
+        if (window && true === window.allowInsecureJSCalls) {
             aObject = aObject || window;
         } else {
             aObject = aObject || {};
         }
 
         /* var yPattern = /%[+(\w)]|[]\(/gi; */
-        var yPattern = /\%(|\w+)\(/gi;
-        var yFunctions = ',int,integer,intz,intn,decimal,ibdate,tsdate,tstime,tsdatetime,date,time,lat2deg,lon2deg,words,image,nl2br,quoted,singleQuoted,condLabel,checked,rg,cpf,cnpj,phone,cep,brDocto,bool2str,str2bool,';
-        var p, p1, p2, c1, c2, p3;
-        var aValue = '';
+        var yPattern = /\%(|\w+)\(/gi,
+            yFunctions = ',int,integer,intz,intn,decimal,ibdate,tsdate,tstime,tsdatetime,date,time,lat2deg,lon2deg,words,image,nl2br,quoted,singleQuoted,condLabel,checked,rg,cpf,cnpj,phone,cep,brDocto,bool2str,str2bool,',
+            p,
+            p1,
+            p2,
+            c1,
+            c2,
+            p3,
+            aValue = '';
 
-        while ((typeof aLine == 'string') && (p = aLine.search(yPattern)) >= 0) {
+        while ((typeof aLine === 'string') && (p = aLine.search(yPattern)) >= 0) {
             p1 = aLine.slice(p).search(/\(/);
             if (p1 >= 0) {
                 c1 = aLine.slice(p + p1 + 1, p + p1 + 2);
-                if ((c1 == '"') || (c1 == "'")) {
+                if ((c1 === '"') || (c1 === "'")) {
                     p3 = p + p1 + 1;
                     do {
-                        p3++;
+                        p3 = p3 + 1;
                         c2 = aLine.slice(p3, p3 + 1);
-                    } while ((c2 != c1) && (p3 < aLine.length));
+                    } while ((c2 !== c1) && (p3 < aLine.length));
                     p2 = p3 + aLine.slice(p3).search(/\)/) - p;
-                } else
+                } else {
                     p2 = aLine.slice(p).search(/\)/);
+                }
 
                 var funcName = aLine.slice(p + 1, p + p1);
                 var funcParams = aLine.slice(p + p1 + 1, p + p2);

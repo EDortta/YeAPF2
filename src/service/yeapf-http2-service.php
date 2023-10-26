@@ -510,14 +510,6 @@ abstract class HTTP2Service
                         $params[strtolower($method)] = json_decode($jsonData, true);
                         array_pop($data);
 
-                        // $authorizationHeader = '';
-                        // foreach ($headers as $header) {
-                        //     if (strpos($header, 'authorization:') === 0) {
-                        //         $authorizationHeader = preg_replace('/authorization: (.*)/i', '$1', $header);
-                        //         break;
-                        //     }
-                        // }
-                        // \_log("AUTHORIZATION: $authorizationHeader");
                     } else {
                     }
                     $headers = $request->header;
@@ -629,6 +621,7 @@ abstract class HTTP2Service
                                         \_log("Decoded token:".print_r($aJWT->exportData(), true));
                                     } else {
                                         $tokenExpirationAchieved = true;
+                                        $aBulletin->message = "Token cannot be used: " . $aJWT->explainImportResult();
                                         \_log("Token cannot be used. Import result: ".$aJWT->explainImportResult());
                                     }
                                 }

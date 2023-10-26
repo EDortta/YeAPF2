@@ -1,5 +1,10 @@
 .DS_Store
-
+**/.phpdoc
+**/vendor
+**/docs
+**/logs
+**/jwt-bin
+**/CORONA
 repo*
 **/api
 **/core
@@ -118,4 +123,4 @@ dist
 # TernJS port file
 .tern-port
 
-/vendor/
+tools/.phpunit.result.cache

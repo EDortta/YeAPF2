@@ -1,92 +1,99 @@
-<?php
-declare (strict_types = 1);
+<?php declare(strict_types=1);
+
 namespace YeAPF\i18n;
 
-use OpenSwoole;
-use OpenSwoole\Coroutine;
-use OpenSwoole\Coroutine\WaitGroup;
 use OpenSwoole\Coroutine\Channel;
+use OpenSwoole\Coroutine\WaitGroup;
+use OpenSwoole\Coroutine;
+use OpenSwoole;
 
 class Translator extends \YeAPF\Plugins\ServicePlugin implements \YeAPF\Plugins\ServicePluginInterface
 {
   use \YeAPF\Assets;
+
   private static $config;
   private static $assetsFolder;
   private static $context;
   private static $persistentTranslations;
 
-  private static function grantStructure() {
-    $i18nDataModel = new \YeAPF\ORM\DOcumentModel(self::$context, "translations");
+  private static function grantStructure()
+  {
+    $i18nDataModel = new \YeAPF\ORM\DOcumentModel(self::$context, 'translations');
     $i18nDataModel->setConstraint(
-      keyName:"id",
-      keyType:YeAPF_TYPE_STRING,
-      length:36,
-      primary:true,
-      protobufOrder:0
+      keyName: 'id',
+      keyType: YeAPF_TYPE_STRING,
+      length: 36,
+      primary: true,
+      protobufOrder: 0
     );
 
     $i18nDataModel->setConstraint(
-      keyName:"tag",
-      keyType:YeAPF_TYPE_STRING,
-      length:64,
-      protobufOrder:1
+      keyName: 'tag',
+      keyType: YeAPF_TYPE_STRING,
+      length: 64,
+      protobufOrder: 1
     );
 
     $i18nDataModel->setConstraint(
-      keyName:"lang",
-      keyType:YeAPF_TYPE_STRING,
-      protobufOrder:2,
-      length:5
+      keyName: 'lang',
+      keyType: YeAPF_TYPE_STRING,
+      protobufOrder: 2,
+      length: 5
     );
 
     $i18nDataModel->setConstraint(
-      keyName:"text",
-      keyType:YeAPF_TYPE_STRING,
-      protobufOrder:0
+      keyName: 'text',
+      keyType: YeAPF_TYPE_STRING,
+      protobufOrder: 0
     );
 
     self::$persistentTranslations = new \YeAPF\ORM\PersistentCollection(
       self::$context,
-      "translations",
-      "id",
+      'translations',
+      'id',
       $i18nDataModel
     );
-
   }
 
-  static function getAssetsFolder(): string {    
-    return \YeAPF\YeAPFConfig::getGLobalAssetsFolder()."/i18n/";
+  static function getAssetsFolder(): string
+  {
+    return \YeAPF\YeAPFConfig::getGLobalAssetsFolder() . '/i18n/';
   }
 
-  static function canWorkWithoutAssets(): bool {
+  static function canWorkWithoutAssets(): bool
+  {
     return false;
   }
 
-  function __construct() {
+  function __construct()
+  {
     _log("Building i18n plugin\n");
     parent::__construct(__FILE__);
     if (!is_dir(self::getAssetsFolder())) {
       mkdir(self::getAssetsFolder(), 0777, true);
     }
     if (!is_writable(self::getAssetsFolder())) {
-      throw new \Exception("Assets folder ". self::getAssetsFolder() .  " is not writable");
+      throw new \YeAPF\YeAPFException('Assets folder ' . self::getAssetsFolder() . ' is not writable', YeAPF_ASSETS_FOLDER_NOT_WRITABLE);
     }
-    self::$config = \YeAPF\YeAPFConfig::getSection("i18n");
+    self::$config = \YeAPF\YeAPFConfig::getSection('i18n');
     self::$context = new \YeAPF\Connection\PersistenceContext(
-        new \YeAPF\Connection\DB\RedisConnection(),
-        new \YeAPF\Connection\DB\PDOConnection()
+      new \YeAPF\Connection\DB\RedisConnection(),
+      new \YeAPF\Connection\DB\PDOConnection()
     );
+    \_log('Granting i18n plugin structure');
     $this->grantStructure();
   }
 
-  private function saveIntoAssets(\YeAPF\SanitizedKeyData $data) {
-    $filename = self::getAssetsFolder() . "/". $data->tag . "/". $data->lang . ".txt";
+  private function saveIntoAssets(\YeAPF\SanitizedKeyData $data)
+  {
+    $filename = self::getAssetsFolder() . '/' . $data->tag . '/' . $data->lang . '.txt';
     mkdir(dirname($filename), 0777, true);
     file_put_contents($filename, $data->text);
   }
 
-  private function loadFromAssets(\YeAPF\SanitizedKeyData $data) {
-    $filename = self::getAssetsFolder() . "/". $data->tag . "/". $data->lang . ".txt";
+  private function loadFromAssets(\YeAPF\SanitizedKeyData $data)
+  {
+    $filename = self::getAssetsFolder() . '/' . $data->tag . '/' . $data->lang . '.txt';
     if (file_exists($filename))
       $data->text = file_get_contents($filename);
   }
@@ -105,145 +112,150 @@ class Translator extends \YeAPF\Plugins\ServicePlugin implements \YeAPF\Plugins\
 
     $tags = explode(':', $tag);
 
+    \_log('Tags: ' . json_encode($tags) . "\n");
+
     // $waitGroup = new WaitGroup();
     $channel = new Channel(count($tags));
 
-
     foreach ($tags as $tag) {
+      _log("  tag = $tag");
       // $waitGroup->add();
       Coroutine::create(function () use ($tag, $scope, $targetLang, $DOMText, $channel, &$ret) {
         $channel->push(true);
         try {
           $result = [];
           $tag = trim($tag);
-          if (0<strlen($tag)) {
+          if (0 < strlen($tag)) {
+            _log('Into coroutine');
+
             /**
              * Check it the text is already in database
              */
-            $translatedText       = clone self::$persistentTranslations->getDocumentModel();
-            $translatedText->tag  = $tag;
-            $translatedText->lang = $targetLang;
+            try {
+              $translatedText = clone self::$persistentTranslations->getDocumentModel();
+              
+              _log('After clone: ' . json_encode($translatedText));
+              _log('Classname: '.get_class($translatedText));
 
-            _log("Translated: " . json_encode($translatedText) . "\n");
+              $translatedText->tag = $tag;
+              _log('After clone and tagged: ' . json_encode($translatedText) . "\n");
+              $translatedText->lang = $targetLang;
 
-            $alreadyTranslated = self::$persistentTranslations->findByExample($translatedText);
+              _log('Translated: ' . json_encode($translatedText) . "\n");
 
-            _log("Already translated: " . json_encode($alreadyTranslated) . "\n");
+              $alreadyTranslated = self::$persistentTranslations->findByExample($translatedText);
 
-            if ($alreadyTranslated && !empty($alreadyTranslated['text'])) {
-              $result['text'] = $alreadyTranslated['text'];
-              $result['cached']  = true;
-            } else {
-              $translationRequired = ($targetLang != 'en');
+              _log('Already translated: ' . json_encode($alreadyTranslated) . "\n");
 
-              /**
-               * Get the original text from database
-               */
-              $originalText       = clone self::$persistentTranslations->getDocumentModel();
-              $originalText->tag  = $tag;
-              $originalText->lang = 'en';
+              if ($alreadyTranslated && !empty($alreadyTranslated['text'])) {
+                $result['text'] = $alreadyTranslated['text'];
+                $result['cached'] = true;
+              } else {
+                $translationRequired = ($targetLang != 'en');
 
-              $original = self::$persistentTranslations->findByExample($originalText);
-              _log("Original: " . json_encode($original) . "\n");
-              _log("  id: " . $original['id'] . "\n");
+                /**
+                 * Get the original text from database
+                 */
+                $originalText = clone self::$persistentTranslations->getDocumentModel();
+                $originalText->tag = $tag;
+                $originalText->lang = 'en';
 
-              if (false == $original || empty($original['text'])) {
-                if (null != $DOMText && 0<strlen($DOMText)) {
+                $original = self::$persistentTranslations->findByExample($originalText);
+                _log('Original: ' . json_encode($original) . "\n");
+                _log('  id: ' . $original['id'] . "\n");
 
+                if (false == $original || empty($original['text'])) {
+                  if (null != $DOMText && 0 < strlen($DOMText)) {
+                  }
+                  if (null != $DOMText && 0 < strlen($DOMText)) {
+                    /**
+                     * TODO
+                     *   Check the operational mode is development or at least "not-production"
+                     */
+                    _log("DOMText: $DOMText\n");
+                    $originalText->text = trim(html_entity_decode($DOMText, ENT_QUOTES, 'UTF-8'));
+                    _log('Text to be saved: ' . $originalText->text);
+                    $originalText->id = \YeAPF\generateUniqueId();
+                    _log('Saving original version');
+                    self::$persistentTranslations->setDocument($originalText->id, $originalText);
+                    _log('Saved text: ' . $originalText->text);
+                    $original = clone $originalText;
+                  } else {
+                    $translationRequired = false;
+                  }
                 }
-                if (null != $DOMText && 0<strlen($DOMText)) {
-                  /**
-                   * TODO
-                   *   Check the operational mode is development or at least "not-production"
-                   */
-                  _log("DOMText: $DOMText\n");
-                  $originalText->text = trim(html_entity_decode($DOMText, ENT_QUOTES, "UTF-8"));
-                  _log("Text to be saved: ".$originalText->text);
-                  $originalText->id   = \YeAPF\generateUniqueId();
-                  _log("Saving original version");
-                  self::$persistentTranslations->setDocument($originalText->id, $originalText);
-                  _log("Saved text: ".$originalText->text);
-                  $original = clone $originalText;
-                } else {
-                  $translationRequired = false;
-                }
-              }
 
-              if ($translationRequired) {
-                if ("watson" == self::$config->model) {
-                  $wordCount = str_word_count($original->text??'');
+                if ($translationRequired) {
+                  if ('watson' == self::$config->model) {
+                    $wordCount = str_word_count($original->text ?? '');
 
-                  _log("Translation required\n");
-                  _log("Current 'original' state " . json_encode($original) . "\n");
-                  _log("'original' id: '" . $original->id . "'\n");
-                  _log("'original' text: '" . $original->text . "'\n");
-                  _log("Words to be translated: " . $wordCount . "\n");
-                  $url    = self::$config->url;
-                  $apikey = self::$config->apikey;
+                    _log("Translation required\n");
+                    _log("Current 'original' state " . json_encode($original) . "\n");
+                    _log("'original' id: '" . $original->id . "'\n");
+                    _log("'original' text: '" . $original->text . "'\n");
+                    _log('Words to be translated: ' . $wordCount . "\n");
+                    $url = self::$config->url;
+                    $apikey = self::$config->apikey;
 
-                  if (0 < $wordCount) {
+                    if (0 < $wordCount) {
+                      $auxText = trim(html_entity_decode($original->text, ENT_QUOTES, 'UTF-8'));
 
-                    $auxText = trim(html_entity_decode($original->text, ENT_QUOTES, "UTF-8"));
+                      _log("Text to be translated: $auxText\n");
+                      self::loadFromAssets($translatedText);
+                      if (is_null($translatedText->text) || 0 == strlen($translatedText->text)) {
+                        $watson = \YeAPF\Request::do($url, 'POST', [
+                          'text' => [$auxText],
+                          'model_id' => 'en-' . $targetLang,
+                        ], [
+                          'username' => 'apikey',
+                          'password' => $apikey,
+                        ]);
 
-                    _log("Text to be translated: $auxText\n");
-                    self::loadFromAssets($translatedText);
-                    if (is_null($translatedText->text) || 0==strlen($translatedText->text)) {
-                      $watson = \YeAPF\Request::do($url, "POST", [
-                        "text"     => [$auxText],
-                        "model_id" => 'en-' . $targetLang,
-                      ], [
-                        "username" => "apikey",
-                        "password" => $apikey,
-                      ]);
+                        _log(var_dump($watson));
 
-                      _log(var_dump($watson));
-
-                      $translatedPhrase = "";
-                      $aux              = json_decode($watson, true);
-                      $trans            = $aux['translations'];
-                      foreach ($trans as $line) {
-                        if ($translatedPhrase > '') {
-                          $translatedPhrase .= "\n";
+                        $translatedPhrase = '';
+                        $aux = json_decode($watson, true);
+                        $trans = $aux['translations'];
+                        foreach ($trans as $line) {
+                          if ($translatedPhrase > '') {
+                            $translatedPhrase .= "\n";
+                          }
+                          $translatedPhrase .= $line['translation'];
                         }
-                        $translatedPhrase .= $line['translation'];
+
+                        $result['translated'] = true;
+                        $translatedText->text = $translatedPhrase;
+                        $result['cached'] = false;
+                      } else {
+                        \_log('Using translation saved on assets: ' . $translatedText->text);
+                        $translatedPhrase = $translatedText->text;
+                        $result['cached'] = true;
                       }
 
-                      $result['translated'] = true;
-                      $translatedText->text   = $translatedPhrase;
-                      $result['cached']  = false;
+                      $translatedText->id = \YeAPF\generateUniqueId();
+                      self::$persistentTranslations->setDocument($translatedText->id, $translatedText);
+                      $result['text'] = $translatedPhrase;
+
+                      $originalText->text = $auxText;
+                      self::saveIntoAssets($originalText);
+                      self::saveIntoAssets($translatedText);
                     } else {
-                      \_log("Using translation saved on assets: ". $translatedText->text);
-                      $translatedPhrase = $translatedText->text;
-                      $result['cached']  = true;
+                      _log("No text to be translated\n");
+                      $result['text'] = 'No text to be translated';
                     }
-
-                    $translatedText->id     = \YeAPF\generateUniqueId();
-                    self::$persistentTranslations->setDocument($translatedText->id, $translatedText);
-                    $result['text'] = $translatedPhrase;
-
-                    $originalText->text=$auxText;
-                    self::saveIntoAssets($originalText);
-                    self::saveIntoAssets($translatedText);
-
-                  } else {
-                    _log("No text to be translated\n");
-                    $result['text'] = "No text to be translated";
                   }
                 }
               }
-
+            } catch (\Throwable $th) {
+              throw new \YeAPF\YeAPFException($th->getMessage(), YeAPF_EXCEPTION);
             }
-
 
             $ret[$tag] = $result;
           }
-
-
         } finally {
           // $waitGroup->done();
           $channel->pop();
         }
-
       });
     }
 
@@ -252,12 +264,8 @@ class Translator extends \YeAPF\Plugins\ServicePlugin implements \YeAPF\Plugins\
       Coroutine::yield();
     }
 
-
-
     return $ret;
   }
 
-  public function registerServiceMethods($server) {
-
-  }
+  public function registerServiceMethods($server) {}
 }
