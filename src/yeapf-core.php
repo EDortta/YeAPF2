@@ -56,3 +56,5 @@ require_once __DIR__ . "/yeapf-config.php";
 
 \YeAPF\Plugins\PluginList::loadPlugins(__DIR__ . "/plugins");
 \YeAPF\Plugins\PluginList::loadPlugins("plugins");
+
+\YeAPF\yLogger::defineLogTagAndLevel("Application", LOG_NOTICE);

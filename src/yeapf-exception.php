@@ -30,7 +30,9 @@ class YeAPFException extends \Exception{
       }
 
     }
-    parent::__construct($hex . $from . $message, $code);
+    $finalMessage = $hex . $from . $message;
+    _log($finalMessage);
+    parent::__construct($finalMessage, $code);
   }
 }
 

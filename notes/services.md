@@ -108,7 +108,7 @@ A route to attend `/hello` and answer "Woooow!" always.
 
 A route to attend `/*/clients` and answer with a json containing a list.
 
-`*`means "whatever" and here just serve to introduce the concept. 
+`*`means "whatever" and here just serve to introduce the concept.
 
 ```php
 function clients(\YeAPF\Bulletin&$bulletin) {
@@ -216,7 +216,6 @@ This can be easly tested using `curl`
 curl --request POST \
   --url https://localhost:8443/edit/28a49h9875/19600 \
   --header 'Content-Type: multipart/form-data' \
-  --cookie stag=check \
   --form name=urano \
   --form type=planet
 ```

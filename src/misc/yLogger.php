@@ -1,16 +1,18 @@
-<?php
-declare (strict_types = 1);
+<?php declare(strict_types=1);
+
 namespace YeAPF;
 
-class yLogger {
+class yLogger
+{
   use \YeAPF\Assets;
 
   static private $logFolder = null;
-  static private $lastFile  = null;
+  static private $lastFile = null;
   static private $syslogOpened = false;
 
-  static function getAssetsFolder(): string {
-    $logFolder = self::getApplicationFolder()."/logs";
+  static function getAssetsFolder(): string
+  {
+    $logFolder = self::getApplicationFolder() . '/logs';
 
     if (is_dir($logFolder)) {
       $logFolder = realpath($logFolder);
@@ -19,11 +21,13 @@ class yLogger {
     return $logFolder;
   }
 
-  static function canWorkWithoutAssets(): bool {
+  static function canWorkWithoutAssets(): bool
+  {
     return true;
   }
 
-  static private function startup() {
+  static private function startup()
+  {
     if (null == self::$logFolder) {
       self::$logFolder = self::getAssetsFolder();
       // echo "LOG DEVICE: " . self::$logFolder . "\n";
@@ -35,7 +39,8 @@ class yLogger {
     return $ret;
   }
 
-  static public function defineLogTagAndLevel(string $tag, int $option) {
+  static public function defineLogTagAndLevel(string $tag, int $option)
+  {
     if (self::$syslogOpened) {
       closelog();
       self::$syslogOpened = false;
@@ -43,32 +48,35 @@ class yLogger {
     self::$syslogOpened = openlog($tag, $option, LOG_LOCAL0);
   }
 
-  static public function log(int $area, int $warningLevel, string $message) {
+  static public function log(int $area, int $warningLevel, string $message)
+  {
     global $currentURI;
+
     if (self::startup()) {
-      $dbg      = debug_backtrace();
-      $time     = date("h:i:s ");
+      $dbg = debug_backtrace();
+      $time = date('h:i:s ');
       $preamble = "$time";
-      if (self::$lastFile != $dbg[1]["file"]) {
-        self::$lastFile = $dbg[1]["file"];
+      if (self::$lastFile != $dbg[1]['file']) {
+        self::$lastFile = $dbg[1]['file'];
         $preamble .= self::$lastFile . "---\n$time";
         // echo json_encode($dbg[1],JSON_PRETTY_PRINT);
       }
       if ($currentURI > '') {
-        $preamble .= "  " . str_pad(" " . $dbg[1]['line'], 4, ' ', STR_PAD_LEFT) . ": [" . $currentURI . "] ";
+        $preamble .= '  ' . str_pad(' ' . $dbg[1]['line'], 4, ' ', STR_PAD_LEFT) . ': [' . $currentURI . '] ';
       } else {
-        $preamble .= "  " . str_pad(" " . $dbg[1]['line'], 4, ' ', STR_PAD_LEFT) . ": ";
+        $preamble .= '  ' . str_pad(' ' . $dbg[1]['line'], 4, ' ', STR_PAD_LEFT) . ': ';
       }
 
-      $message = str_replace("\n", " ", $message) . "\n";
+      $message = str_replace("\n", ' ', $message);
+      if (trim($message) > '') {
+        syslog(LOG_INFO, $message);
 
-      syslog(LOG_INFO, $message);
-
-      $fileName = self::$logFolder . "/" . date("Y-m-d") . ".log";
-      $fp       = fopen($fileName, "a+");
-      if ($fp) {
-        fwrite($fp, "$preamble $message");
-        fclose($fp);
+        $fileName = self::$logFolder . '/' . date('Y-m-d') . '.log';
+        $fp = fopen($fileName, 'a+');
+        if ($fp) {
+          fwrite($fp, "$preamble $message\n");
+          fclose($fp);
+        }
       }
     }
   }

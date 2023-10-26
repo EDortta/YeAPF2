@@ -166,6 +166,7 @@ class DocumentModel extends \YeAPF\SanitizedKeyData
                 }
             }
         }
+        \_log("DocumentModel constraints: ".json_encode($ret));
         return $ret;
     }
 
@@ -587,7 +588,10 @@ class SharedSanitizedCollection extends \YeAPF\ORM\SharedSanitizedKeyData implem
 
     public function getDocumentModel()
     {
-        return $this->documentModel;
+        _log("Getting Document Model");
+        $ret =  $this->documentModel;
+        _log("Returning Document Model".(is_null($ret) ? " (null)" : json_encode($ret)));
+        return $ret;
     }
 
     public function exportDocumentModel(int $format)
