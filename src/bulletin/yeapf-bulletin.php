@@ -28,7 +28,7 @@ class Bulletin extends \YeAPF\SanitizedKeyData
             $response->end($this->__jsonFile);
         } else {
             if (!empty($this->__json)) {
-                if (is_array($__json))
+                if (is_array($this->__json))
                     $response->end(json_encode($this->__json));
                 else
                     $response->end($this->__json);

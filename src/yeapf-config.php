@@ -59,8 +59,9 @@ class YeAPFConfig  {
         if (strpos($file, ".json") !== false) {
           $config = file_get_contents($configFolder . "/" . $file);
           if ($config !== false) {
-            self::$configAreas[basename($file, ".json")] = json_decode($config, false);
-            if (null == self::$configAreas[basename($file)] && json_last_error() !== JSON_ERROR_NONE) {
+            $areaNdx=basename($file, ".json");
+            self::$configAreas[$areaNdx] = json_decode($config, false);
+            if (null == self::$configAreas[$areaNdx] && json_last_error() !== JSON_ERROR_NONE) {
               throw new \Exception("Config file " . $configFolder . "/" . $file . " cannot be parsed", 1);
             }
           } else {

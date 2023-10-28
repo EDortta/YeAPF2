@@ -45,6 +45,7 @@ abstract class HTTP2Service
         array $methods = ['GET'],
         callable $attendantConstraints = null
     ) {
+        $debug = false;
         // clean path
         $path = implode('/', $this->getPathFromURI($path));
         if (is_callable($attendant)) {
@@ -64,7 +65,7 @@ abstract class HTTP2Service
                     if (is_callable($attendantConstraints)) {
                         $constraints = $attendantConstraints(\YeAPF_GET_CONSTRAINTS);
                         if ($constraints) {
-                            _log('constraints****: ' . print_r($constraints, true));
+                            if($debug) _log('constraints****: ' . print_r($constraints, true));
                             $this->handlers[$method][$fnPath]['constraints'] = $constraints->getConstraints();
                         }
 
@@ -83,14 +84,14 @@ abstract class HTTP2Service
                             if (is_string($security)) {
                                 $security = [$security];
                             }
-                            \_log('SCHEMES in path: ' . implode(',', $security));
+                            _log('SCHEMES in path: ' . implode(',', $security));
                             $knownSchemes = $this->getAPIDetail('components', 'securitySchemes');
                             $schemes = array_keys($knownSchemes);
-                            \_log('SCHEMES in components: ' . implode(',', $schemes));
+                            _log('SCHEMES in components: ' . implode(',', $schemes));
 
                             foreach ($security as $requiredSec) {
                                 if (!in_array($requiredSec, $schemes)) {
-                                    \_log("Invalid security scheme $requiredSec");
+                                    _log("Invalid security scheme $requiredSec");
                                     throw new \Exception("Invalid security scheme $requiredSec");
                                 }
                             }
@@ -99,7 +100,7 @@ abstract class HTTP2Service
 
                             $this->handlers[$method][$fnPath]['security'] = $security;
                         } else {
-                            \_log('No security');
+                            _log('No security');
                         }
                     } else {
                         $this->handlers[$method][$fnPath]['privatePath'] = false;
@@ -121,7 +122,7 @@ abstract class HTTP2Service
         foreach ($this->handlers[$method] as $pathPattern => $attendant) {
             _log("Analyzing $path against " . $pathPattern);
             if (fnmatch($pathPattern, $path)) {
-                \_log('Found!');
+                _log('Found!');
                 $ret = $attendant;
                 break;
             }
@@ -144,9 +145,9 @@ abstract class HTTP2Service
             $sanitizedPathElements[] = $sanitizedPathElement;
         }
 
-        \_log('ARGS: ' . func_num_args());
-        \_log('PATH: ' . json_encode($path));
-        \_log('URI: ' . $uri);
+        _log('ARGS: ' . func_num_args());
+        _log('PATH: ' . json_encode($path));
+        _log('URI: ' . $uri);
 
         $ret = $sanitizedPathElements;
         if (func_num_args() > 1) {
@@ -287,7 +288,7 @@ abstract class HTTP2Service
                     if ($method === 'post' && !empty($details['constraints'])) {
                         $properties = [];
                         $required = [];
-                        \_log('CONSTRAINTS: ' . json_encode($details['constraints']));
+                        _log('CONSTRAINTS: ' . json_encode($details['constraints']));
                         foreach ($details['constraints'] as $fieldName => $constraint) {
                             $properties[$fieldName] = [
                                 'type' => $constraint['type'],
@@ -394,7 +395,7 @@ abstract class HTTP2Service
 
     private function openContext()
     {
-        $this->$context = new \YeAPF\Connection\PersistenceContext(
+        $this->context = new \YeAPF\Connection\PersistenceContext(
             new \YeAPF\Connection\DB\RedisConnection(),
             new \YeAPF\Connection\DB\PDOConnection()
         );
@@ -402,13 +403,13 @@ abstract class HTTP2Service
 
     public function getContext()
     {
-        return $this->$context;
+        return $this->context;
     }
 
     private function closeContext()
     {
         $this->shutdown();
-        $this->$context = null;
+        $this->context = null;
     }
 
     public function getExternalURL()
@@ -418,8 +419,8 @@ abstract class HTTP2Service
 
     public function start($port = 9501, $host = '0.0.0.0')
     {
-        \_log("Starting service on $host:$port");
-        if (!$this->$ready) {
+        _log("Starting service on $host:$port");
+        if (!$this->ready) {
             $this->setAPIDetail(
                 'components',
                 'securitySchemes',
@@ -456,7 +457,7 @@ abstract class HTTP2Service
             ]);
 
             $server->on('Start', function (Server $server) use ($host, $port) {
-                \_log("Service started at $host:$port\n");
+                _log("Service started at $host:$port\n");
                 // $this->configureAndStartup();
             });
 
@@ -479,8 +480,8 @@ abstract class HTTP2Service
                 //     $bearerToken = $matches[1];
                 // }
 
-                // \_log("Authorization: $authorizationHeader");
-                // \_log("Bearer token: $bearerToken");
+                // _log("Authorization: $authorizationHeader");
+                // _log("Bearer token: $bearerToken");
 
                 $uri = urldecode($request->server['request_uri']);
                 $currentURI = md5($uri);
@@ -494,10 +495,10 @@ abstract class HTTP2Service
                     $this->externalURL = $proto . '://' . $host . $entryURI;
                 })();
 
-                \_log('URL: ' . $this->externalURL);
+                _log('URL: ' . $this->externalURL);
 
-                \_log('PATH_INFO: ' . $request->server['path_info']);
-                \_log('REQUEST: ' . json_encode($request));
+                _log('PATH_INFO: ' . $request->server['path_info']);
+                _log('REQUEST: ' . json_encode($request));
                 $ret_code = 406;
 
                 try {
@@ -505,7 +506,7 @@ abstract class HTTP2Service
                     if ($request->header['content-type'] === 'application/json') {
                         $data = explode("\r\n", $request->getData());
 
-                        \_log('DATA: ' . json_encode($data));
+                        _log('DATA: ' . json_encode($data));
                         $jsonData = end($data);
                         $params[strtolower($method)] = json_decode($jsonData, true);
                         array_pop($data);
@@ -520,7 +521,7 @@ abstract class HTTP2Service
 
                     $aBulletin = new \YeAPF\Bulletin();
 
-                    \_log('ATTENDANTS: ' . json_encode($this->handlers));
+                    _log('ATTENDANTS: ' . json_encode($this->handlers));
 
                     $allowedParams = ['cookie', 'get', 'post', 'files'];
                     foreach ($request as $key => $value) {
@@ -528,28 +529,28 @@ abstract class HTTP2Service
                             $params[$key] = $value;
                     }
 
-                    \_log('PARAMS: ' . json_encode($params));
+                    _log('PARAMS: ' . json_encode($params));
 
                     $handler = $this->findHandler($method, $uri);
 
-                    \_log('HANDLER: ' . json_encode($handler));
+                    _log('HANDLER: ' . json_encode($handler));
                     if (null !== $handler) {
                         $bearerFormat = '';
                         $secToken = null;
 
                         $security = $handler['security'] ?? false;
                         if (false == $security) {
-                            \_log("WARNING: No security for $method $uri");
+                            _log("WARNING: No security for $method $uri");
                             $minSecOk = true;
                         } else {
                             $knownSchemes = $this->getAPIDetail('components', 'securitySchemes');
-                            \_log('KNOWN SCHEMES: ' . print_r($knownSchemes, true));
-                            \_log('CHOSEN SCHEME: ' . print_r($security, true));
+                            _log('KNOWN SCHEMES: ' . print_r($knownSchemes, true));
+                            _log('CHOSEN SCHEME: ' . print_r($security, true));
                             $secType = 'notFound';
                             $secScheme = 'notDefined';
                             if (is_array($security)) {
                                 foreach ($security as $k => $sec) {
-                                    \_log("KEY: $k VALUE: $sec");
+                                    _log("KEY: $k VALUE: $sec");
                                     $secType = $knownSchemes[$sec]['type'];
                                     if ('http' == $secType) {
                                         $secScheme = $knownSchemes[$sec]['scheme'];
@@ -569,17 +570,17 @@ abstract class HTTP2Service
                                     }
                                 }
                             }
-                            \_log("SECURITY TYPE: $secType");
-                            \_log("SECURITY SCHEME: $secScheme");
+                            _log("SECURITY TYPE: $secType");
+                            _log("SECURITY SCHEME: $secScheme");
 
                             if ('notFound' == $secType) {
                                 $minSecOk = false;
-                                \_log("ERROR: Security declared for $method $uri but not found");
+                                _log("ERROR: Security declared for $method $uri but not found");
                             } else {
                                 preg_match('/' . $secScheme . ' (.*)/i', $headers['authorization'] ?? '', $output_array);
                                 if ($output_array) {
                                     $secToken = $output_array[1];
-                                    \_log("SECURITY TOKEN: $secToken");
+                                    _log("SECURITY TOKEN: $secToken");
                                     $minSecOk = true;
                                 }
                             }
@@ -602,7 +603,7 @@ abstract class HTTP2Service
                                 $inlineVariables[$inlineName] = $uriSegment;
                             }
                         }
-                        \_log('INLINES: ' . json_encode($inlineVariables));
+                        _log('INLINES: ' . json_encode($inlineVariables));
 
                         $aux = new \YeAPF\SanitizedKeyData($handler['constraints']);
                         try {
@@ -614,42 +615,42 @@ abstract class HTTP2Service
                                         $expirationTime = $aJWT->exp;
 
                                         $tokenExpirationAchieved = ($expirationTime < time());
-                                        \_log("Expiration time: $expirationTime");
-                                        \_log("   Current Time: " . time());
-                                        \_log("      Time diff: ".($expirationTime - time()));
-                                        \_log("Token expiration: ". ($tokenExpirationAchieved ? 'Achieved' : 'Not achieved'));
-                                        \_log("Decoded token:".print_r($aJWT->exportData(), true));
+                                        _log("Expiration time: $expirationTime");
+                                        _log("   Current Time: " . time());
+                                        _log("      Time diff: ".($expirationTime - time()));
+                                        _log("Token expiration: ". ($tokenExpirationAchieved ? 'Achieved' : 'Not achieved'));
+                                        _log("Decoded token:".print_r($aJWT->exportData(), true));
                                     } else {
                                         $tokenExpirationAchieved = true;
                                         $aBulletin->message = "Token cannot be used: " . $aJWT->explainImportResult();
-                                        \_log("Token cannot be used. Import result: ".$aJWT->explainImportResult());
+                                        _log("Token cannot be used. Import result: ".$aJWT->explainImportResult());
                                     }
                                 }
                                 if ($tokenExpirationAchieved) {
-                                    \_log("TOKEN EXPIRED");
+                                    _log("TOKEN EXPIRED");
                                     $aBulletin->message = 'Token expired';
                                     $ret_code = 401;
                                 } else {
-                                    \_log("Calling handler >>>> $method $uri");
+                                    _log("Calling handler >>>> $method $uri");
                                     $aux->importData($params);
                                     $ret_code = $handler['attendant']($aBulletin, $uri, $params, ...$inlineVariables) ?? 500;
 
                                     if ($ret_code >= 200 && $ret_code <= 299) {
                                         if ('JWT' == $bearerFormat) {
                                             if ($aJWT->uot) {
-                                                \_log("Discarding token $secToken");
+                                                _log("Discarding token $secToken");
                                                 $aJWT->sendToBin($secToken);
                                             }
                                         }
                                     }
                                 }
                             } else {
-                                \_log('Security not satisfied');
+                                _log('Security not satisfied');
                                 $aBulletin->message = 'Method not allowed';
                                 $ret_code = 405;
                             }
                         } catch (\Exception $e) {
-                            \_log($e->getMessage());
+                            _log($e->getMessage());
                             $ret_code = 500;
                         }
                     } else {
@@ -666,7 +667,7 @@ abstract class HTTP2Service
 
             $server->on('Close', function (Server $server) use ($host, $port) {
                 $this->closeContext();
-                \_log("Service closed at $host:$port\n");
+                _log("Service closed at $host:$port\n");
             });
 
             $server->start();
