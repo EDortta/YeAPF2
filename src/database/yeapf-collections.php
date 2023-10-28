@@ -140,11 +140,11 @@ class DocumentModel extends \YeAPF\SanitizedKeyData
                 $this->setConstraint(
                     keyName: $constraint['keyName'],
                     keyType: $constraint['keyType'],
-                    length: $constraint['length'],
-                    unique: $constraint['unique'],
-                    primary: $constraint['primary'],
-                    required: $constraint['required'],
-                    protobufOrder: $pbo++
+                    length: $constraint['length']??null,
+                    unique: $constraint['unique']??null,
+                    primary: $constraint['primary']??null,
+                    required: $constraint['required']??null,
+                    protobufOrder: ++$pbo
                 );
             }
         } finally {
@@ -293,18 +293,18 @@ class DocumentModel extends \YeAPF\SanitizedKeyData
                             // primary: $constraintDefinition['primary'] ? true : false,
                             // required: $constraintDefinition['required'] ? true : false,
                             // protobufOrder: $constraintDefinition['protobufOrder']
-                            keyType: $constraintDefinition['type'],
-                            length: $constraintDefinition['length'],
-                            decimals: $constraintDefinition['decimals'],
-                            acceptNULL: $constraintDefinition['acceptNULL'] ? true : false,
-                            minValue: $constraintDefinition['minValue'],
-                            maxValue: $constraintDefinition['maxValue'],
-                            regExpression: $constraintDefinition['regExpression'],
-                            unique: $constraintDefinition['unique'] ? true : false,
-                            required: $constraintDefinition['required'] ? true : false,
-                            primary: $constraintDefinition['primary'] ? true : false,
-                            protobufOrder: $constraintDefinition['protobufOrder'],
-                            tag: $constraintDefinition['tag']
+                            keyType: $constraintDefinition['type'] ?? null,
+                            length: $constraintDefinition['length'] ?? null,
+                            decimals: $constraintDefinition['decimals'] ?? null,
+                            acceptNULL: ($constraintDefinition['acceptNULL'] ?? false) ? true : false,
+                            minValue: $constraintDefinition['minValue'] ?? null,
+                            maxValue: $constraintDefinition['maxValue'] ?? null,
+                            regExpression: $constraintDefinition['regExpression'] ?? null,
+                            unique: ($constraintDefinition['unique'] ?? false) ? true : false,
+                            required: ($constraintDefinition['required'] ?? false) ? true : false,
+                            primary: ($constraintDefinition['primary'] ?? false) ? true : false,
+                            protobufOrder: $constraintDefinition['protobufOrder'] ?? null,
+                            tag: $constraintDefinition['tag'] ?? null
                         );
                     }
                 }
@@ -766,21 +766,22 @@ class PersistentCollection extends \YeAPF\ORM\SharedSanitizedCollection implemen
 
     public function grantCollection()
     {
-        _log('>>> Asking for connection');
+        $debug = false;
+        if ($debug) _log('>>> Asking for connection');
         $pdo = null;
         $this->pskData->gainPDOConnection($pdo);
-        _log('>>> Ready to work');
+        if ($debug) _log('>>> Ready to work');
         // print_r($pdo);
         try {
-            _log(' * ' . __LINE__ . '');
+            if ($debug) _log(' * ' . __LINE__ . '');
             if (!$pdo->tableExists(self::getCollectionName())) {
                 $sql = self::exportDocumentModel(YeAPF_SQL_FORMAT);
                 $ret = $pdo->query($sql);
             }
-            _log(' * ' . __LINE__ . '');
+            if ($debug) _log(' * ' . __LINE__ . '');
 
             foreach ($this->getDocumentModel()->getConstraints() as $key => $constraint) {
-                _log('  * ' . __LINE__ . " $key " . json_encode($constraint));
+                if ($debug) _log('  * ' . __LINE__ . " $key " . json_encode($constraint));
                 $columnDefinition = $key . ' ' . self::internalType2SQLType($constraint);
 
                 if (false == $constraint['acceptNULL']) {
@@ -807,12 +808,9 @@ class PersistentCollection extends \YeAPF\ORM\SharedSanitizedCollection implemen
                     $diff = array_diff($internalColDef, $colDef);
 
                     if (!empty($diff)) {
-                        _log('Database Column Definition:');
-                        print_r($colDef);
-                        _log('Internal Column Definition:');
-                        print_r($internalColDef);
-                        _log('Differences:');
-                        print_r($diff);
+                        if ($debug) _log('Database Column Definition:'. print_r($colDef, true));
+                        if ($debug) _log('Internal Column Definition:'. print_r($internalColDef, true));
+                        if ($debug) _log('Differences:'. print_r($diff, true));
                         foreach ($diff as $colDefKey => $colDefValue) {
                             $sql = 'alter table ' . self::getCollectionName();
                             switch ($colDefKey) {
@@ -853,7 +851,7 @@ class PersistentCollection extends \YeAPF\ORM\SharedSanitizedCollection implemen
                     }
                 }
             }
-            _log(' * ' . __LINE__ . '');
+            if ($debug) _log(' * ' . __LINE__ . '');
         } finally {
             $this->pskData->giveBackPDOConnection($pdo);
         }

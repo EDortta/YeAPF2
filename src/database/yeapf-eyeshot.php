@@ -103,7 +103,7 @@ trait EyeShot {
   }
 
   public static function addRelatedCollection(
-    int $joinType = YeAPF_INNER_JOIN,
+    int $joinType,
     iCollection $collection,
     EyeShotRelation $relation
   ) {

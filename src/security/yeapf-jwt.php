@@ -29,7 +29,7 @@ class yJWT extends \YeAPF\SanitizedKeyData
         $this->algorithm = 'HS256';
         $this->exp = time() + 1800;
         $this->allowedSections = [];
-        $this->$jwtToken = null;
+        $this->jwtToken = null;
         $this->importResult = null;
 
         if ($aToken) {

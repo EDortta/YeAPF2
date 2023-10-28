@@ -14,8 +14,54 @@ define("YeAPF_SECURITY_BASE", 0x00000600);
 
 require_once "yeapf-definitions.php";
 
+function handleException($message, $code, $file, $line, $trace, $isException = true) {
+  $ret = [
+      'message' => str_replace("\t", "           ", $message),
+      'code'    => $code,
+      'file'    => $file,
+      'line'    => $line,
+      'trace'   => $trace,
+  ];
+
+  if (ob_get_length()) ob_clean();
+
+  $dbgInfo = "";
+
+  if (!YeAPFConsole::isTTY()) {
+      $dbgInfo .= "<PRE>";
+  }
+
+  $width = YeAPFConsole::getWidth();
+  $dbgInfo .= "\n" . str_repeat("=", $width) . "\n";
+  if ($isException)
+    $dbgInfo .= "EXCEPTION\n";
+  else 
+    $dbgInfo .= "ERROR\n";
+  if ($ret['code'] ?? 0 > 0) {
+      $dbgInfo .= "     CODE: " . dec2hex($ret['code']) . "\n";
+  }
+
+  $dbgInfo .= "  MESSAGE: " . trim(wordwrap("           " . $ret['message'], $width - 11, "\n           ")) . "\n";
+  $dbgInfo .= "     FILE: " . substr($ret['file'] . ':' . $ret['line'], -$width + 11) . "\n";
+  $dbgInfo .= "STACK TRC:\n";
+  foreach ($ret['trace'] as $trace) {
+    if (!empty($trace['file']))
+      $dbgInfo .= "    " . substr($trace['file'] . ':' . $trace['line'], -$width + 11) . "\n";
+  }
+  $dbgInfo .= str_repeat("=", $width) . "\n";
+
+  if (!YeAPFConsole::isTTY()) {
+      $dbgInfo .= "</pre>";
+  }
+
+  echo $dbgInfo;
+  _log($dbgInfo);
+  if ($isException)
+    exit($ret['code']);
+}
+
 class YeAPFException extends \Exception{
-  function __construct(string $message, int $code, \Throwable$previous = null) {
+  function __construct(string $message, int $code, \Exception $previous = null) {
     $hex  = '';
     $from = '';
 
@@ -32,53 +78,35 @@ class YeAPFException extends \Exception{
     }
     $finalMessage = $hex . $from . $message;
     _log($finalMessage);
+
+    $file = $this->getFile();
+    $line = $this->getLine();
+    $trace = $this->getTrace();
+    handleException($finalMessage, $code, $file, $line, $trace, true);
+  
     parent::__construct($finalMessage, $code);
   }
 }
 
 set_error_handler(function ($errno, $errstr, $errfile, $errline) {
+  $message = "PHP Error: $errstr";
+  $code = $errno;
+  $file = $errfile;
+  $line = $errline;
+  $trace = debug_backtrace();
+
+  handleException($message, $code, $file, $line, $trace, false);
 
 });
 
 set_exception_handler(function ($exception) {
 
-  $ret = [
-    'message' => str_replace("\t", "           ", $exception->getMessage()),
-    'code'    => $exception->getCode(),
-    'file'    => $exception->getFile(),
-    'line'    => $exception->getLine(),
-    'trace'   => $exception->getTrace(),
-  ];
+  $message = $exception->getMessage();
+  $code = $exception->getCode();
+  $file = $exception->getFile();
+  $line = $exception->getLine();
+  $trace = $exception->getTrace();
 
-  ob_clean();
-
-  $dbgInfo = "";
-
-  if (!YeAPFConsole::isTTY()) {
-    $dbgInfo .= "<PRE>";
-  }
-
-  $width = YeAPFConsole::getWidth();
-  $dbgInfo .= "\n" . str_repeat("=", $width) . "\n";
-  $dbgInfo .= "EXCEPTION\n";
-  if ($ret['code'] ?? 0 > 0) {
-    $dbgInfo .= "     CODE: " . dec2hex($ret['code']) . "\n";
-  }
-
-  $dbgInfo .= "  MESSAGE: " . trim(wordwrap("           " . $ret['message'], $width - 11, "\n           ")) . "\n";
-  $dbgInfo .= "     FILE: " . substr($ret['file'] . ':' . $ret['line'], -$width + 11) . "\n";
-  $dbgInfo .= "STACK TRC:\n";
-  foreach ($ret['trace'] as $trace) {
-    $dbgInfo .= "    " . substr($trace['file'] . ':' . $trace['line'], -$width + 11) . "\n";
-  }
-  $dbgInfo .= str_repeat("=", $width) . "\n";
-
-  if (!YeAPFConsole::isTTY()) {
-    $dbgInfo .= "</pre>";
-  }
-
-  echo $dbgInfo;
-  _log($dbgInfo);
-  exit($ret[$code]);
+  handleException($message, $code, $file, $line, $trace);
 
 });
