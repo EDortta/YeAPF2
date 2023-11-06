@@ -5,6 +5,11 @@
  * @version 2
  * @package YeAPF
  */
+define('YeAPF_LOG_DEBUG', 100);
+define('YeAPF_LOG_INFO', 200);
+define('YeAPF_LOG_WARNING', 300);
+define('YeAPF_LOG_ERROR', 400);
+define('YeAPF_LOG_FATAL', 500);
 
 /*****************************************/
 /* KEY-DATA */
@@ -27,6 +32,16 @@ define('YeAPF_TYPE_BYTES', 'bytes');
 /**
  * Exception codes
  */
+define('YeAPF_INVALID_SPACE_NAME', 0x00000001);
+define('YeAPF_METHOD_NOT_IMPLEMENTED', 0x00000002);
+
+define('YeAPF_DATA_EXCEPTION_BASE', 0x00000100);
+define('YeAPF_CONNECTION_BASE', 0x00000200);
+define('YeAPF_COLLECTION_BASE', 0x00000300);
+define('YeAPF_EYESHOT_BASE', 0x00000400);
+define('YeAPF_SERVICE_BASE', 0x00000500);
+define('YeAPF_SECURITY_BASE', 0x00000600);
+
 define('YeAPF_INVALID_KEY_TYPE', YeAPF_DATA_EXCEPTION_BASE + 1);
 define('YeAPF_INVALID_KEY_VALUE', YeAPF_DATA_EXCEPTION_BASE + 2);
 define('YeAPF_NULL_NOT_ALLOWED', YeAPF_DATA_EXCEPTION_BASE + 3);
@@ -37,6 +52,7 @@ define('YeAPF_VALUE_TOO_LONG', YeAPF_DATA_EXCEPTION_BASE + 7);
 define('YeAPF_LENGTH_IS_REQUIRED', YeAPF_DATA_EXCEPTION_BASE + 8);
 define('YeAPF_PROTOBUF_ORDER_IS_NOT_UNIQUE', YeAPF_DATA_EXCEPTION_BASE + 9);
 define('YeAPF_UNIMPLEMENTED_KEY_TYPE', YeAPF_DATA_EXCEPTION_BASE + 10);
+define('YeAPF_VALUE_DOES_NOT_SATISFY_REGEXP', YeAPF_DATA_EXCEPTION_BASE + 11);
 
 /**
  * Common regular expressions
@@ -49,7 +65,7 @@ define('YeAPF_TIME_REGEX', '/^([0-2]{1}[0-9]{1}):([0-5]{1}[0-9]{1}):([0-5]{1}[0-
 
 define('YeAPF_INT_REGEX', '/^([0-9]+$)/');
 define('YeAPF_FLOAT_REGEX', '/^([0-9]+)\.([0-9]+)$/');
-define('YeAPF_BOOL_REGEX', '/^(true|false)$/gi');
+define('YeAPF_BOOL_REGEX', '/^(true|false)$/i');
 define('YeAPF_STRING_REGEX', '/^[^\p{C}]*$/u');
 
 define('YeAPF_EMAIL_REGEX', '/^[a-zA-Z0-9.!#$%&’*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$/');
@@ -68,50 +84,49 @@ define('YeAPF_UUID_REGEX', '/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/');
  */
 
 // CANADA
-define('YeAPF_SED_CA_IN_SIN', "'/[^0-9]//");
-define('YeAPF_SED_CA_OUT_SIN', "'/(\d{3})(\d{3})(\d{3})/\$1 \$2 \$3'/");
+define('YeAPF_SED_CA_IN_SIN', "/[^0-9]//");
+define('YeAPF_SED_CA_OUT_SIN', "/(\d{3})(\d{3})(\d{3})/$1 $2 $3/");
 
 // UNITED STATES OF AMERICA
-define('YeAPF_SED_US_IN_SSN', "'/[^0-9]//");
-define('YeAPF_SED_US_OUT_SSN', "'/(\d{3})(\d{2})(\d{4})/\$1-\$2-\$3'/");
+define('YeAPF_SED_US_IN_SSN', "/[^0-9]//");
+define('YeAPF_SED_US_OUT_SSN', "/(\d{3})(\d{2})(\d{4})/$1-$2-$3/");
 
-define('YeAPF_SED_US_IN_EIN', "'/[^0-9]//");
-define('YeAPF_SED_US_OUT_EIN', "'/(\d{3})(\d{2})(\d{4})/\$1-\$2-\$3'/");
+define('YeAPF_SED_US_IN_EIN', "/[^0-9]//");
+define('YeAPF_SED_US_OUT_EIN', "/(\d{3})(\d{2})(\d{4})/$1-$2-$3/");
 
 // MEXICO
 define('YeAPF_SED_MX_IN_CURP', "'/[^A-Z0-9]//");
-define('YeAPF_SED_MX_OUT_CURP', "'/([A-Z]{4})(\d{6})([HM])([A-Z]{5})(\d{2})/$1$2$3$4$5'/");
+define('YeAPF_SED_MX_OUT_CURP', "/([A-Z]{4})(\d{6})([HM])([A-Z]{5})(\d{2})/$1$2$3$4$5/");
 
 define('YeAPF_SED_MX_IN_RFC', "'/[^A-Z0-9]//");
-define('YeAPF_SED_MX_OUT_RFC', "'/([A-Z]{4})(\d{6})([A-Z0-9]{3})/\$1\$2\$3'/");
+define('YeAPF_SED_MX_OUT_RFC', "/([A-Z]{4})(\d{6})([A-Z0-9]{3})/$1$2$3/");
 
 // BRAZIL
-define('YeAPF_SED_BR_IN_CNPJ', "'/[^0-9]//");
-define('YeAPF_SED_BR_OUT_CNPJ', "'/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/$1.$2.$3/$4-$5'/");
+define('YeAPF_SED_BR_IN_CNPJ', "/[^0-9]//");
+define('YeAPF_SED_BR_OUT_CNPJ', "/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/$1.$2.$3\/$4-$5/");
 
-define('YeAPF_SED_BR_IN_CPF', "'/[^0-9]//");
-define('YeAPF_SED_BR_OUT_CPF', "'/(\d{3})(\d{3})(\d{3})(\d{2})/$1.$2.$3-$4'/");
+define('YeAPF_SED_BR_IN_CPF', "/[^0-9]//");
+define('YeAPF_SED_BR_OUT_CPF', "/(\d{3})(\d{3})(\d{3})(\d{2})/$1.$2.$3-$4/");
 
 // VENEZUELA
-define("YeAPF_SED_VE_IN_CI", "'/[^0-9]//");
-define("YeAPF_SED_VE_OUT_CI", "'/(\d{1})(\d{3})(\d{3})(\d{1})/$1.$2.$3-$4'/");
+define('YeAPF_SED_VE_IN_CI', "/[^0-9]//");
+define('YeAPF_SED_VE_OUT_CI', "/(\d{1})(\d{3})(\d{3})(\d{1})/$1.$2.$3-$4/");
 
 // URUGUAY
-define('YeAPF_SED_UY_IN_CI', "'/[^0-9]//");
-define('YeAPF_SED_UY_OUT_CI', "'/(\d{2})(\d{5})(\d{1})/\$1.\$2-\$3'/");
+define('YeAPF_SED_UY_IN_CI', "/[^0-9]//");
+define('YeAPF_SED_UY_OUT_CI', "/(\d{2})(\d{5})(\d{1})/$1.$2-$3/");
 
 // PARAGUAY
-define('YeAPF_SED_PY_IN_CI', "'/[^0-9]//");
-define('YeAPF_SED_PY_OUT_CI', "'/(\d{1})(\d{3})(\d{2})(\d{2})/$1.$2.$3-$4'/");
+define('YeAPF_SED_PY_IN_CI', "/[^0-9]//");
+define('YeAPF_SED_PY_OUT_CI', "/(\d{1})(\d{3})(\d{2})(\d{2})/$1.$2.$3-$4/");
 
 // ARGENTINA
-define('YeAPF_SED_AR_IN_DNI', "'/[^0-9]//");
-define('YeAPF_SED_AR_OUT_DNI', "'/(\d{2})(\d{3})(\d{3})/\$1.\$2.\$3'/");
+define('YeAPF_SED_AR_IN_DNI', "/[^0-9]//");
+define('YeAPF_SED_AR_OUT_DNI', "/(\d{2})(\d{3})(\d{3})/$1.$2.$3/");
 
 // CHILE
-define("YeAPF_SED_CL_IN_RUT", "'/[^0-9Kk]//");
-define("YeAPF_SED_CL_OUT_RUT", "'/(\d{2})(\d{3})(\d{3})([0-9Kk])/$1.$2.$3-$4'/");
-
+define('YeAPF_SED_CL_IN_RUT', "'/[^0-9Kk]//");
+define('YeAPF_SED_CL_OUT_RUT', "/(\d{2})(\d{3})(\d{3})([0-9Kk])/$1.$2.$3-$4/");
 
 /**************************/
 /* CONNECTION */

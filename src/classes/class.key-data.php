@@ -538,13 +538,13 @@ class SanitizedKeyData extends KeyData
    */
   public function checkConstraint(string $keyName, mixed $value)
   {
-    $debug = false;
+    $debug = true;
     if ($debug)
       _log('Checkpoint#0');
     try {
-      if ($debug) {
-        _log('  constraints: '.print_r($this->__constraints, true));
-      }
+      // if ($debug) {
+      //   _log('  constraints: '.print_r($this->__constraints, true));
+      // }
       if (isset($this->__constraints[$keyName])) {
         $type = $this->__constraints[$keyName]['type'];
         $length = $this->__constraints[$keyName]['length'] ?? 0;
@@ -622,10 +622,19 @@ class SanitizedKeyData extends KeyData
           } elseif (YeAPF_TYPE_BOOL == $type) {
             if (!(null === $value && $acceptNULL)) {
               if (!is_bool($value)) {
-                list($message, $error) = ['Invalid boolean value in ' . get_class() . '.' . $keyName, YeAPF_INVALID_KEY_VALUE];
+                if (1==$value || 'Y'==strtoupper("$value")) {
+                  $value=true;
+                }
+
+                if (0==$value || 'N'==strtoupper("$value")) {
+                  $value=false;
+                }
+              }
+              if (!is_bool($value)) {
+                list($message, $error) = ['Invalid boolean value in ' . get_class() . '.' . $keyName.': '.print_r($value,true), YeAPF_INVALID_KEY_VALUE];
                 if ($debug)
                   _log($message);
-                throw new \YeAPF\YeAPFException($message);
+                throw new \YeAPF\YeAPFException($message, YeAPF_VALUE_OUT_OF_RANGE);
               }
             }
           } elseif (YeAPF_TYPE_DATE == $type) {
@@ -703,7 +712,7 @@ class SanitizedKeyData extends KeyData
               list($message, $error) = ["Value does not satisfies '$regExpression' in " . get_class() . ' -> ' . $keyName, YeAPF_INVALID_KEY_VALUE];
               if ($debug)
                 _log($message);
-              throw new \YeAPF\YeAPFException($message);
+              throw new \YeAPF\YeAPFException($message, YeAPF_VALUE_DOES_NOT_SATISFY_REGEXP);
             } else if ($debug)
               _log('Value satisfies the pattern.');
           }
@@ -820,13 +829,29 @@ class SanitizedKeyData extends KeyData
 
   public function __get(string $name)
   {
-    // \_log("  :: getting '$name' -> ");
-    $value = parent::__get($name);
-    // \_log(print_r($value,true) ." -> ");
-    $value = $this->unsanitize($value);
-    // \_log(print_r($value, true)."\n");
-    return $value;
-  }
+      $debug = false;
+      if ($debug) _log("  :: getting '$name' -> ");
+      $value = parent::__get($name);
+      if ($debug) _log(print_r($value, true) . " -> ");
+      $value = $this->unsanitize($value);
+      if ($debug) _log(print_r($value, true) . "\n");
+  
+      $sedOutputExpression = $this->__constraints[$name]['sedOutputExpression'] ?? null;
+      if (null !== $sedOutputExpression) {
+          if ($debug) _log("Applying sedOutputExpression $sedOutputExpression\n");
+          $expression = trim($sedOutputExpression, "'");
+          $expression = str_replace('\/', '#', $expression);
+          list($pattern, $replacement) = preg_split('/\//', $expression, -1, PREG_SPLIT_NO_EMPTY);
+          $pattern = str_replace('#', '\/', $pattern);
+          $replacement = str_replace('#', '/', $replacement);
+          $value2 = $value;
+
+          if ($debug) _log("$pattern -> $replacement on '$value'\n");
+          $value = preg_replace("/$pattern/", $replacement, $value2);
+      }
+  
+      return $value;
+  }  
 
   public function __get_raw_value(string $name)
   {

@@ -9,6 +9,8 @@ use OpenSwoole\Http\Server;
 
 abstract class HTTP2Service
 {
+    private $initialized = false;
+
     private $APIDetails = [];
 
     private $usedSecuritySchemes = [];
@@ -100,7 +102,7 @@ abstract class HTTP2Service
 
                             $this->handlers[$method][$fnPath]['security'] = $security;
                         } else {
-                            _log('No security');
+                            _log('No security for '.$path);
                         }
                     } else {
                         $this->handlers[$method][$fnPath]['privatePath'] = false;
@@ -373,24 +375,28 @@ abstract class HTTP2Service
 
     private function configureAndStartup()
     {
-        $this->startup();
+        if (!$this->initialized) {
+            $this->initialized = true;
+            
+            $this->startup();
 
-        $this->setHandler(
-            '/openapi/export',
-            [$this, 'exportOpenAPI'],
-            ['GET'],
-            [
-                $this, 'openAPIConstraints'
-            ]
-        );
-        $this->setHandler(
-            '/openapi/view',
-            [$this, 'viewOpenAPI'],
-            ['GET'],
-            [
-                $this, 'openAPIConstraints'
-            ]
-        );
+            $this->setHandler(
+                '/openapi/export',
+                [$this, 'exportOpenAPI'],
+                ['GET'],
+                [
+                    $this, 'openAPIConstraints'
+                ]
+            );
+            $this->setHandler(
+                '/openapi/view',
+                [$this, 'viewOpenAPI'],
+                ['GET'],
+                [
+                    $this, 'openAPIConstraints'
+                ]
+            );
+        }
     }
 
     private function openContext()
@@ -586,7 +592,7 @@ abstract class HTTP2Service
                             }
                         }
 
-                        $inlineVariables = new \YeAPF\SanitizedKeyData($handler['constraints']);
+                        $inlineVariables = new \YeAPF\SanitizedKeyData($handler['constraints']??null);
                         $pathSegments = explode('/', $handler['path']);
                         $uriSegments = $this->getPathFromURI($uri);
 
@@ -605,7 +611,7 @@ abstract class HTTP2Service
                         }
                         _log('INLINES: ' . json_encode($inlineVariables));
 
-                        $aux = new \YeAPF\SanitizedKeyData($handler['constraints']);
+                        $aux = new \YeAPF\SanitizedKeyData($handler['constraints']??null);
                         try {
                             if ($minSecOk) {
                                 $tokenExpirationAchieved = false;

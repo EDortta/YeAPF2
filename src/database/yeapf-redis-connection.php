@@ -5,13 +5,14 @@ namespace YeAPF\Connection\DB;
 class RedisConnection extends \YeAPF\Connection\DBConnection
 {
     private static $config;
-    private static $redis;
+    private static $redis;    
 
     private function connect()
     {
         $auxConfig = self::$config->redis ?? new \stdClass();
 
         _log('Trying to connect to Redis Server');
+        _log(print_r($auxConfig,true));
         do {
             try {
                 self::$redis = new \Redis();
@@ -24,15 +25,15 @@ class RedisConnection extends \YeAPF\Connection\DBConnection
                 }
                 self::setConnected(true);
                 _log('Connected to Redis');
-            } catch (\Throwable $th) {
+            } catch (\Exception $th) {
                 self::setConnected(false);
                 if ($auxConfig->halt_on_error ?? false) {
                     throw new \YeAPF\YeAPFException($th->getMessage(), YeAPF_REDIS_CONNECTION, $th);
                 } else {
                     _log('+----------------------');
                     _log('| REDIS NOT AVAILABLE! ');
-                    _log('|   at '.$auxConfig->server ?? 'undefined');
-                    _log('|    @ '.$auxConfig->port ?? 'undefined');
+                    _log('|   at '.($auxConfig->server ?? 'undefined'));
+                    _log('|    @ '.($auxConfig->port ?? 'undefined'));
                     _log('| ' . $th->getMessage() . '');
                     _log('+----------------------');
                     sleep(5);

@@ -9,7 +9,14 @@ class yLogger
   static private $logFolder = null;
   static private $lastFile = null;
   static private $syslogOpened = false;
+  static private $areas =[];
+  static private $minLogLevel = YeAPF_LOG_WARNING;
 
+  /**
+   * Retrieves the path to the assets folder.
+   *
+   * @return string The path to the assets folder.
+   */
   static function getAssetsFolder(): string
   {
     $logFolder = self::getApplicationFolder() . '/logs';
@@ -46,6 +53,11 @@ class yLogger
       self::$syslogOpened = false;
     }
     self::$syslogOpened = openlog($tag, $option, LOG_LOCAL0);
+  }
+
+  static public function defineLogFilters(array $areas, int $logLevel) {
+    self::$areas = $areas;
+    self::$minLogLevel = $logLevel;
   }
 
   static public function log(int $area, int $warningLevel, string $message)

@@ -1,7 +1,8 @@
 <?php
 namespace YeAPF;
 
-class DataFiller {
+class DataFiller
+{
     static function y_rand($min = 0, $max = null)
     {
         if ($max === null)
@@ -26,7 +27,7 @@ class DataFiller {
                 }
             }
             fclose($f);
-            $t = $min + $t % ($max - $min + 1);
+            $t = $min + fmod($t, ($max - $min + 1));
         }
         return $t;
     }
@@ -51,15 +52,15 @@ class DataFiller {
         }
 
         if (!$comBase) {
-            $n1 = self::y_rand(0, 9);
-            $n2 = self::y_rand(0, 9);
-            $n3 = self::y_rand(0, 9);
-            $n4 = self::y_rand(0, 9);
-            $n5 = self::y_rand(0, 9);
-            $n6 = self::y_rand(0, 9);
-            $n7 = self::y_rand(0, 9);
-            $n8 = self::y_rand(0, 9);
-            $n9 = self::y_rand(0, 9);
+            $n1 = intval(self::y_rand(0, 9));
+            $n2 = intval(self::y_rand(0, 9));
+            $n3 = intval(self::y_rand(0, 9));
+            $n4 = intval(self::y_rand(0, 9));
+            $n5 = intval(self::y_rand(0, 9));
+            $n6 = intval(self::y_rand(0, 9));
+            $n7 = intval(self::y_rand(0, 9));
+            $n8 = intval(self::y_rand(0, 9));
+            $n9 = intval(self::y_rand(0, 9));
         }
 
         $d1 = $n9 * 2 + $n8 * 3 + $n7 * 4 + $n6 * 5 + $n5 * 6 + $n4 * 7 + $n3 * 8 + $n2 * 9 + $n1 * 10;
@@ -86,14 +87,14 @@ class DataFiller {
 
     static function inventarCNPJ($compontos = false)
     {
-        $n1 = self::y_rand(0, 9);
-        $n2 = self::y_rand(0, 9);
-        $n3 = self::y_rand(0, 9);
-        $n4 = self::y_rand(0, 9);
-        $n5 = self::y_rand(0, 9);
-        $n6 = self::y_rand(0, 9);
-        $n7 = self::y_rand(0, 9);
-        $n8 = self::y_rand(0, 9);
+        $n1 = intval(self::y_rand(0, 9));
+        $n2 = intval(self::y_rand(0, 9));
+        $n3 = intval(self::y_rand(0, 9));
+        $n4 = intval(self::y_rand(0, 9));
+        $n5 = intval(self::y_rand(0, 9));
+        $n6 = intval(self::y_rand(0, 9));
+        $n7 = intval(self::y_rand(0, 9));
+        $n8 = intval(self::y_rand(0, 9));
         $n9 = 0;
         $n10 = 0;
         $n11 = 0;
@@ -122,7 +123,7 @@ class DataFiller {
 
     static function isAssoc($arr)
     {
-    return array_keys($arr) !== range(0, count($arr) - 1);
+        return array_keys($arr) !== range(0, count($arr) - 1);
     }
 
     static function fillFieldsWithJunk($aElements)
@@ -207,6 +208,7 @@ class DataFiller {
                 'Nunes',
                 'Rodrigues'
             ),
+            'tcnpj' => ['MEI', 'EI', 'LTDA', 'SLU', 'SS', 'SA'],
             'ch' => 'qwertyuiopasdfghjklzxcvbnmQAZWSXEDCRFVTGBYHNUJMIKOLP0123456789',
             'n' => '0123456789'
         );
@@ -230,7 +232,10 @@ class DataFiller {
             $ret = '';
             $n = null;
             $j = null;
-            $maxLen = floor(mt_rand(0, $maxLen) + $minLen);
+            // echo "Len from $minLen to $maxLen ... ";
+            $maxLen = self::y_rand(0,$maxLen);
+            $maxLen = intval($maxLen + $minLen, 0);
+            // echo "$maxLen\n";
             $j = 0;
             $maxLoop = 100;
             while (($j < $maxLen) && ($maxLoop > 0)) {
@@ -264,11 +269,14 @@ class DataFiller {
         };
 
         $cacheForNextField = [];
+        $nameEnterpiseType = '';
 
         foreach ($aElements as $elem) {
             $fieldType = strtolower($elem['type']);
             $fieldId = $elem['id'];
             $maxLength = isset($elem['maxlength']) ? intval($elem['maxlength']) : 100;
+            $maxLength = round(self::y_rand($maxLength * 0.25, $maxLength),0);
+            // echo "maxLength: $maxLength\n";
             $lClasses = isset($elem['className']) ? explode(' ', $elem['className']) : array();
             for ($n = 0; $n < count($lClasses); $n++) {
                 $lClasses[$n] = strtoupper($lClasses[$n]);
@@ -358,45 +366,45 @@ class DataFiller {
                                 $fieldValue = self::inventarCPF(true);
                             } else if ($classHasName($lClasses, 'cnpj')) {
                                 $fieldValue = self::inventarCNPJ(true);
+                                $randomIndex = array_rand($_scratch['tcnpj']);
+                                $nameEnterpiseType = $_scratch['tcnpj'][$randomIndex];
                             } else if ($classHasName($lClasses, 'ie')) {
                                 $fieldValue = $genString($_scratch['n'], 6, 12);
                             } else if ($classHasName($lClasses, 'cep')) {
-
-                                if (file_exists(__DIR__."/.data/cep.csv")) {
-                                    if (!is_dir(__DIR__."/.cache")) {
-                                        mkdir(__DIR__."/.cache", 0777, true);
+                                if (file_exists(__DIR__ . '/.data/cep.csv')) {
+                                    if (!is_dir(__DIR__ . '/.cache')) {
+                                        mkdir(__DIR__ . '/.cache', 0777, true);
                                     }
 
-                                    $cepList = file(__DIR__."/.data/cep.csv");
+                                    $cepList = file(__DIR__ . '/.data/cep.csv');
                                     array_shift($cepList);
-                                    $cacheForNextField=[];
+                                    $cacheForNextField = [];
                                     $alreadyFetched = [];
-                                    if (file_exists(__DIR__."/.cache/inexistent.json")) {
-                                        $inexistent = json_decode(file_get_contents(__DIR__."/.cache/inexistent.json"));
+                                    if (file_exists(__DIR__ . '/.cache/inexistent.json')) {
+                                        $inexistent = json_decode(file_get_contents(__DIR__ . '/.cache/inexistent.json'));
                                         $alreadyFetched = $inexistent;
                                     } else {
                                         $inexistent = [];
                                     }
 
-
                                     do {
                                         $errorFlag = false;
                                         do {
                                             $cepRow = $cepList[array_rand($cepList)];
-                                            $cepValues = explode(";", $cepRow);
+                                            $cepValues = explode(';', $cepRow);
                                             $cacheForNextField['uf'] = $cepValues[0];
                                             $cacheForNextField['min_cep'] = $cepValues[3];
                                             $cacheForNextField['max_cep'] = $cepValues[4];
                                             $fieldValue = mt_rand($cacheForNextField['min_cep'], $cacheForNextField['max_cep']);
                                             if (in_array($cacheForNextField['uf'], ['SP', 'RJ', 'MG', 'PR', 'SC', 'RS']))
-                                            $fieldValue = floor($fieldValue / 100) * 100;
+                                                $fieldValue = floor($fieldValue / 100) * 100;
                                             else
-                                            $fieldValue = floor($fieldValue / 1000) * 1000;
+                                                $fieldValue = floor($fieldValue / 1000) * 1000;
                                         } while (in_array($fieldValue, $alreadyFetched));
                                         $alreadyFetched[] = $fieldValue;
 
                                         echo "  $fieldValue\n";
-                                        if (!file_exists(__DIR__."/.cache/$fieldValue.json")) {
+                                        if (!file_exists(__DIR__ . "/.cache/$fieldValue.json")) {
                                             $url = "https://viacep.com.br/ws/$fieldValue/json/";
                                             // echo "URL: $url\n";
                                             $ch = curl_init();
@@ -409,28 +417,27 @@ class DataFiller {
                                             // print_r($result);
                                             $resultData = json_decode($result, true);
                                             if (empty($resultData['erro']))
-                                            file_put_contents(__DIR__."/.cache/$fieldValue.json", $result);
+                                                file_put_contents(__DIR__ . "/.cache/$fieldValue.json", $result);
                                             else {
-                                            $errorFlag = true;
-                                            $inexistent[] = $fieldValue;
+                                                $errorFlag = true;
+                                                $inexistent[] = $fieldValue;
                                             }
                                         }
                                     } while ($errorFlag);
 
-                                    file_put_contents(__DIR__."/.cache/inexistent.json", json_encode($inexistent));
+                                    file_put_contents(__DIR__ . '/.cache/inexistent.json', json_encode($inexistent));
 
-                                    $cacheForNextField = json_decode(file_get_contents(__DIR__."/.cache/$fieldValue.json"),true);
+                                    $cacheForNextField = json_decode(file_get_contents(__DIR__ . "/.cache/$fieldValue.json"), true);
                                     if (empty($cacheForNextField['logradouro'])) {
-                                        $logradouros = file(__DIR__."/.data/personalidades.csv");
-                                        $cacheForNextField['logradouro'] = preg_replace('/[^\x20-\x7E]/', '',$logradouros[array_rand($logradouros)]);
+                                        $logradouros = file(__DIR__ . '/.data/personalidades.csv');
+                                        $cacheForNextField['logradouro'] = preg_replace('/[^\x20-\x7E]/', '', $logradouros[array_rand($logradouros)]);
                                     }
 
                                     if (empty($cacheForNextField['bairro'])) {
-                                        $bairros = file(__DIR__."/.data/bairros.csv");
-                                        $bairro = explode(';',$bairros[array_rand($bairros)])[1];
+                                        $bairros = file(__DIR__ . '/.data/bairros.csv');
+                                        $bairro = explode(';', $bairros[array_rand($bairros)])[1];
                                         $cacheForNextField['bairro'] = preg_replace('/[^\x20-\x7E]/', '', $bairro);
                                     }
-
                                 } else {
                                     $fieldValue = $genNumber(10, 99, 2);
                                     $fieldValue .= '.' . $genNumber(0, 999, 3);
@@ -452,6 +459,10 @@ class DataFiller {
                                         $fieldValue = mb_strtolower($genString(array_merge($_scratch['fn'], $_scratch['mn']), 1, $maxLength / 2));
                                         $fieldValue .= ' ' . mb_strtoupper($genString($_scratch['sn'], 1, $maxLength - strlen($fieldValue)));
                                     }
+                                    if ($nameEnterpiseType>'') {
+                                      $fieldValue = mb_strtoupper("$fieldValue - $nameEnterpiseType");
+                                      $nameEnterpiseType="";
+                                    }
                                 } else {
                                     $fieldValue = $genString($_scratch['t'], 1, $maxLength);
                                 }
@@ -465,6 +476,7 @@ class DataFiller {
                 }
 
                 $ret[$fieldId] = $fieldValue;
+
             }
         }
         return $ret;

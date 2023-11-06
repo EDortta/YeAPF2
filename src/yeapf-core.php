@@ -2,6 +2,7 @@
 declare (strict_types = 1);
 namespace YeAPF;
 
+require_once __DIR__ . "/yeapf-definitions.php";
 require_once __DIR__ . "/yeapf-assets.php";
 
 require_once __DIR__ . "/misc/yLogger.php";

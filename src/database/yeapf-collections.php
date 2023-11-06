@@ -588,7 +588,7 @@ class SharedSanitizedCollection extends \YeAPF\ORM\SharedSanitizedKeyData implem
 
     public function getDocumentModel()
     {
-        _log("Getting Document Model");
+        _log("Getting Document Model on '".$this->collectionName."' @".get_class());
         $ret =  $this->documentModel;
         _log("Returning Document Model".(is_null($ret) ? " (null)" : json_encode($ret)));
         return $ret;
@@ -1038,6 +1038,7 @@ class PersistentCollection extends \YeAPF\ORM\SharedSanitizedCollection implemen
         } else {
             $params = $data;
         }
+        $auxRet = null;
         $this->pskData->do(
             function ($conn) use ($sql, &$ret, $params) {
                 $auxRet = $conn->query($sql, $params);
@@ -1067,14 +1068,16 @@ class PersistentCollection extends \YeAPF\ORM\SharedSanitizedCollection implemen
         $ret = null;
         if (parent::hasDocument($id)) {
             \_log("Using cached data for ".$this->getCollectionName().".$id");
-            $ret = new \YeAPF\SanitizedKeyData();
+            // 
+            $ret=clone $this->getDocumentModel();
             $ret->importData(parent::getDocument($id));
         } else {
             $sql = 'select * from ' . $this->getCollectionName() . ' where ' . $this->getCollectionIdName() . '=:id';
             $params = [$this->getCollectionIdName() => $id];
             // $ret = $this->pskData->getPDOConnection()->queryAndFetch($sql, $params);
 
-            $ret = new \YeAPF\SanitizedKeyData();
+            // 
+            $ret=clone $this->getDocumentModel();
             $this->pskData->do(
                 function ($conn) use ($id, $sql, &$ret, $params) {
                     $data = $conn->queryAndFetch($sql, $params);
