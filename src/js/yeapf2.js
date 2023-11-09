@@ -88,12 +88,15 @@
     }
 
     const currentScriptURI = getCurrentScriptURI();
+    var antiCacheParam = '';
+    if (currentScriptURI.indexOf('?') >= 0)
+        antiCacheParam = currentScriptURI.substring(currentScriptURI.indexOf('?'));
     const baseURI = currentScriptURI.substring(0, currentScriptURI.lastIndexOf('/') + 1);
 
 
     const libraries = ['yprototypes', 'ymisc', 'yanalyzer', 'ycolors', 'ydevice', 'ydom', 'ytab-manager'];
-    const promises = libraries.map(function(library) {
-        const scriptName = baseURI + library + '.js';
+    const promises = libraries.map(function (library) {
+        const scriptName = baseURI + library + '.js' + antiCacheParam;
         return loadScript(scriptName);
     });
 
