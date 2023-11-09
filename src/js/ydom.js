@@ -696,7 +696,8 @@ class yDom {
                         // Store rows in element templates if element has children
                         if (aElement.children.length > 0) {
                             yDom._elem_templates[aElementID] = {};
-                            yDom._elem_templates[aElementID].rows = Array.from(aElement.children).map(child => child.innerHTML.trim().replace(/\s+/g, ''));
+                            // yDom._elem_templates[aElementID].rows = Array.from(aElement.children).map(child => child.innerHTML.trim().replace(/\s+/g, ''));
+                            yDom._elem_templates[aElementID].rows = Array.from(aElement.children).map(child => child.outerHTML.trim());
                         }
                     } else {
                         // Store columns, rows, and html in element templates
