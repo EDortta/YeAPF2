@@ -721,7 +721,7 @@ class SanitizedKeyData extends KeyData
           _log('Checkpoint#3');
       } else {
         if ($debug)
-          _log("Checkpoint#4");
+          _log("Checkpoint#4: no constraint for $keyName");
       }
     } catch (\Throwable $th) {
       list($message, $error) = [$th->getMessage(), $th->getCode()];
@@ -797,7 +797,7 @@ class SanitizedKeyData extends KeyData
    */
   public function __set(string $name, mixed $value)
   {
-    $debug = false;
+    $debug = true;
     $value = $this->sanitize($value);
     if ($debug) _log("  :: setting '$name' with " . print_r($value, true) . "\n");
     $value = $this->checkConstraint($name, $value);

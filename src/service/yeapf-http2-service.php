@@ -507,6 +507,7 @@ abstract class HTTP2Service
                 _log('REQUEST: ' . json_encode($request));
                 $ret_code = 406;
 
+                $aBulletin = new \YeAPF\Bulletin();
                 try {
                     $method = $request->server['request_method'];
                     if ($request->header['content-type'] === 'application/json') {
@@ -524,8 +525,6 @@ abstract class HTTP2Service
                     _log("START $uri ($method)");
                     $this->openContext();
                     $this->configureAndStartup();
-
-                    $aBulletin = new \YeAPF\Bulletin();
 
                     _log('ATTENDANTS: ' . json_encode($this->handlers));
 
@@ -662,6 +661,9 @@ abstract class HTTP2Service
                     } else {
                         $ret_code = $this->answerQuery($aBulletin, $uri, $params) ?? 204;
                     }
+                } catch (\Exception $e) {
+                    _log("EXCEPTION: " . $e->getMessage());
+                    $ret_code = 500;                
                 } finally {
                     _log("RETURN: $ret_code BODY: " . json_encode($aBulletin->exportData()));
                     $aBulletin($ret_code, $request, $response);

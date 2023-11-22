@@ -87,12 +87,18 @@ define('YeAPF_UUID_REGEX', '/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/');
 define('YeAPF_SED_CA_IN_SIN', "/[^0-9]//");
 define('YeAPF_SED_CA_OUT_SIN', "/(\d{3})(\d{3})(\d{3})/$1 $2 $3/");
 
+define('YeAPF_SED_CA_IN_POSTAL_CODE', "/[^A-Za-z0-9]//");
+define('YeAPF_SED_CA_OUT_POSTAL_CODE', "/([A-Za-z]\d[A-Za-z])\s*(\d[A-Za-z]\d)/$1 $2/");
+
 // UNITED STATES OF AMERICA
 define('YeAPF_SED_US_IN_SSN', "/[^0-9]//");
 define('YeAPF_SED_US_OUT_SSN', "/(\d{3})(\d{2})(\d{4})/$1-$2-$3/");
 
 define('YeAPF_SED_US_IN_EIN', "/[^0-9]//");
 define('YeAPF_SED_US_OUT_EIN', "/(\d{3})(\d{2})(\d{4})/$1-$2-$3/");
+
+define('YeAPF_SED_US_IN_ZIP_CODE', "/[^0-9]//");
+define('YeAPF_SED_US_OUT_ZIP_CODE', "/(\d{5})(\d{4})?/$1-$2/");
 
 // MEXICO
 define('YeAPF_SED_MX_IN_CURP', "'/[^A-Z0-9]//");
@@ -101,6 +107,9 @@ define('YeAPF_SED_MX_OUT_CURP', "/([A-Z]{4})(\d{6})([HM])([A-Z]{5})(\d{2})/$1$2$
 define('YeAPF_SED_MX_IN_RFC', "'/[^A-Z0-9]//");
 define('YeAPF_SED_MX_OUT_RFC', "/([A-Z]{4})(\d{6})([A-Z0-9]{3})/$1$2$3/");
 
+define('YeAPF_SED_MX_IN_POSTAL_CODE', "/[^0-9]//");
+define('YeAPF_SED_MX_OUT_POSTAL_CODE', "/(\d{5})/$1/");
+
 // BRAZIL
 define('YeAPF_SED_BR_IN_CNPJ', "/[^0-9]//");
 define('YeAPF_SED_BR_OUT_CNPJ', "/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/$1.$2.$3\/$4-$5/");
@@ -108,25 +117,44 @@ define('YeAPF_SED_BR_OUT_CNPJ', "/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/$1.$2.$3\/
 define('YeAPF_SED_BR_IN_CPF', "/[^0-9]//");
 define('YeAPF_SED_BR_OUT_CPF', "/(\d{3})(\d{3})(\d{3})(\d{2})/$1.$2.$3-$4/");
 
+define('YeAPF_SED_BR_IN_POSTAL_CODE', "/[^0-9]//");
+define('YeAPF_SED_BR_OUT_POSTAL_CODE', "/(\d{5})(\d{3})/$1-$2/");
+
+
 // VENEZUELA
 define('YeAPF_SED_VE_IN_CI', "/[^0-9]//");
 define('YeAPF_SED_VE_OUT_CI', "/(\d{1})(\d{3})(\d{3})(\d{1})/$1.$2.$3-$4/");
+
+define('YeAPF_SED_VE_IN_POSTAL_CODE', "/[^0-9]//");
+define('YeAPF_SED_VE_OUT_POSTAL_CODE', "/(\d{4})/$1/");
 
 // URUGUAY
 define('YeAPF_SED_UY_IN_CI', "/[^0-9]//");
 define('YeAPF_SED_UY_OUT_CI', "/(\d{2})(\d{5})(\d{1})/$1.$2-$3/");
 
+define('YeAPF_SED_UY_IN_POSTAL_CODE', "/[^0-9]//");
+define('YeAPF_SED_UY_OUT_POSTAL_CODE', "/(\d{5})/$1/");
+
 // PARAGUAY
 define('YeAPF_SED_PY_IN_CI', "/[^0-9]//");
 define('YeAPF_SED_PY_OUT_CI', "/(\d{1})(\d{3})(\d{2})(\d{2})/$1.$2.$3-$4/");
+
+define('YeAPF_SED_PY_IN_POSTAL_CODE', "/[^0-9]//");
+define('YeAPF_SED_PY_OUT_POSTAL_CODE', "/(\d{4})/$1/");
 
 // ARGENTINA
 define('YeAPF_SED_AR_IN_DNI', "/[^0-9]//");
 define('YeAPF_SED_AR_OUT_DNI', "/(\d{2})(\d{3})(\d{3})/$1.$2.$3/");
 
+define('YeAPF_SED_AR_IN_POSTAL_CODE', "/[^0-9]//");
+define('YeAPF_SED_AR_OUT_POSTAL_CODE', "/(\d{4})/$1/");
+
 // CHILE
 define('YeAPF_SED_CL_IN_RUT', "'/[^0-9Kk]//");
 define('YeAPF_SED_CL_OUT_RUT', "/(\d{2})(\d{3})(\d{3})([0-9Kk])/$1.$2.$3-$4/");
+
+define('YeAPF_SED_CL_IN_POSTAL_CODE', "/[^0-9]//");
+define('YeAPF_SED_CL_OUT_POSTAL_CODE', "/(\d{7})/$1/");
 
 /**************************/
 /* CONNECTION */

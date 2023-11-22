@@ -23,6 +23,10 @@ class WebApp
 
             $uri = str_replace(self::$folder, '', $uri);
 
+            if (substr($uri, 0, 1) == '/') {
+                $uri = substr($uri, 1);
+            }
+
             self::$uri = substr($uri, 1);
         }
         return self::$uri;
@@ -40,20 +44,56 @@ class WebApp
 
     static function applyAntiCache($content, $antiCacheParticle)
     {
-        if ($antiCacheParticle === true){
-          $randNumber = mt_rand(1000, 9999);
-          $randId = self::generateRandomVariableName();
-          $antiCacheURI = $randId.'Z=' . $randNumber;
+        $randId = '';
+        $randNumber = 0;
+        $antiCacheURI = '';
+        if ($antiCacheParticle === true) {
+            $randNumber = mt_rand(1000, 9999);
+            $randId = self::generateRandomVariableName();
+            $antiCacheURI = $randId . 'Z=' . $randNumber;
         } elseif ($antiCacheParticle !== false) {
-          $antiCacheURI = $antiCacheParticle;
+            $antiCacheURI = $antiCacheParticle;
         } else {
-          $antiCacheURI = '';
+            $antiCacheURI = '';
         }
 
+        /*
+         * $filesHookExpr = '/(\<script[\n\t ]*src=["\']{1,})([^"\']*)(["\']{1,}(.*)\>)/i';
+         * if (self::$mode != 'devel') {
+         *     $content = preg_replace_callback($filesHookExpr, function ($matches) use ($randId, $randNumber) {
+         *         $file = $matches[2];
+         *         $minFile = preg_replace('/\.js$/', '.min.js', $file);
+         *
+         *         $minFile = explode('/', $minFile);
+         *         $folder = '';
+         *         do {
+         *             $particle = array_shift($minFile);
+         *             $folder .= $particle . '/';
+         *         } while ($particle == '');
+         *         $minFile = implode('/', $minFile);
+         *
+         *         // Check if the .min file exists
+         *         if (file_exists($minFile)) {
+         *             return $matches[1] . $folder . $minFile . '?' . $antiCacheURI . $matches[3];
+         *         } else {
+         *             return $matches[0];
+         *         }
+         *     }, $content);
+         * } else {
+         *     $content = preg_replace($filesHookExpr, '$1$2?' . $antiCacheURI . '$3', $content);
+         * }
+         */
+        // $filesHookExpr = '/(\<(script|link)[\n\t ]*(src|href)=["\']{1,})([^"\']*)(["\']{1,}(.*)\>)/i';
+        $filesHookExpr = '/(\<(script|link)[\n\t ]*[a-zA-Z0-9_\-"\'+\= ]+[\n\t ]*(src|href)=["\']{1,})([^"\']*)(["\']{1,}[^>]*>)/i';
         if (self::$mode != 'devel') {
-            $content = preg_replace_callback('/(\<script[\n\t ]*src=["\']{1,})([^"\']*)(["\']{1,}(.*)\>)/i', function ($matches) use ($randId, $randNumber) {
-                $file = $matches[2];
-                $minFile = preg_replace('/\.js$/', '.min.js', $file);
+            $content = preg_replace_callback($filesHookExpr, function ($matches) use ($randId, $randNumber, $antiCacheURI) {
+                $file = $matches[4];
+                if (strpos($file, '.js') > 0)
+                    $minFile = preg_replace('/\.js$/', '.min.js', $file);
+                else
+                    $minFile = preg_replace('/\.css$/', '.min.css', $file);
+
+                _log("minFile: $minFile");
 
                 $minFile = explode('/', $minFile);
                 $folder = '';
@@ -65,14 +105,16 @@ class WebApp
 
                 // Check if the .min file exists
                 if (file_exists($minFile)) {
-                    return $matches[1] . $folder . $minFile . '?' . $antiCacheURI . $matches[3];
+                    return $matches[1] . $folder . $minFile . '?' . $antiCacheURI . $matches[5];
                 } else {
-                    return $matches[0];
+                    // return $matches[0];
+                    return $matches[1] . $matches[4] . '?' . $antiCacheURI . $matches[5];
                 }
             }, $content);
         } else {
-            $content = preg_replace('/(\<script[\n\t ]*src=["\']{1,})([^"\']*)(["\']{1,}(.*)\>)/i', '$1$2?' . $antiCacheURI . '$3', $content);
+            $content = preg_replace($filesHookExpr, '$1$4?' . $antiCacheURI . '$5', $content);
         }
+
         return $content;
     }
 
@@ -112,7 +154,7 @@ class WebApp
                 $content = self::applyAntiCache($content, $antiCache);
             }
 
-            if ('devel'!=$context['mode']) {
+            if ('devel' != $context['mode']) {
                 $content = preg_replace('/^ +/m', '', $content);
                 $content = preg_replace('/\n/m', ' ', $content);
             }

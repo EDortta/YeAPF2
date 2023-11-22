@@ -56,7 +56,7 @@ class YeAPFConfig  {
       \_log("Reading configuration files from $configFolder");
       foreach (scandir($configFolder) as $file) {
         // echo "[ $file ]";
-        if (strpos($file, ".json") !== false) {
+        if (substr($file, -5) === ".json") {
           $config = file_get_contents($configFolder . "/" . $file);
           if ($config !== false) {
             $areaNdx=basename($file, ".json");
