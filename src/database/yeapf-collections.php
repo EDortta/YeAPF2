@@ -808,6 +808,7 @@ class PersistentCollection extends \YeAPF\ORM\SharedSanitizedCollection implemen
                     $diff = array_diff($internalColDef, $colDef);
 
                     if (!empty($diff)) {
+                        $debug=true;
                         if ($debug) _log('Database Column Definition:'. print_r($colDef, true));
                         if ($debug) _log('Internal Column Definition:'. print_r($internalColDef, true));
                         if ($debug) _log('Differences:'. print_r($diff, true));
@@ -842,7 +843,8 @@ class PersistentCollection extends \YeAPF\ORM\SharedSanitizedCollection implemen
                                     break;
 
                                 default:
-                                    die ("\n$colDefKey ... e agora?\n");
+                                    _log(' **** ' . __LINE__ . " $colDefKey: ".print_r($colDefValue,true));
+                                    throw new \YeAPF\YeAPFException("$colDefKey ... e agora?", YeAPF_ERROR_CODE);
                                     break;
                             }
                         }
@@ -890,7 +892,7 @@ class PersistentCollection extends \YeAPF\ORM\SharedSanitizedCollection implemen
                 break;
 
             case YeAPF_TYPE_DATETIME:
-                $ret = 'datetime ';
+                $ret = 'timestamp without time zone ';
                 break;
 
             case YeAPF_TYPE_STRING:

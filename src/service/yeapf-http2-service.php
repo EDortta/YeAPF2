@@ -57,55 +57,85 @@ abstract class HTTP2Service
                     $fnPath = preg_replace('/(\{\{\w+\}\})/', '*', $path);
                     preg_match_all('/\{\{(\w+)\}\}/', $path, $inlineParams);
 
-                    $this->handlers[$method][$fnPath] =
-                        [
-                            'attendant' => $attendant,
-                            'path' => $path,
-                            'inlineParams' => array_combine($inlineParams[0], $inlineParams[1]),
-                        ];
-
-                    if (is_callable($attendantConstraints)) {
-                        $constraints = $attendantConstraints(\YeAPF_GET_CONSTRAINTS);
-                        if ($constraints) {
-                            if($debug) _log('constraints****: ' . print_r($constraints, true));
-                            $this->handlers[$method][$fnPath]['constraints'] = $constraints->getConstraints();
-                        }
-
-                        $this->handlers[$method][$fnPath]['responses'] = $attendantConstraints(\YeAPF_GET_RESPONSES);
-                        $this->handlers[$method][$fnPath]['description'] = $attendantConstraints(\YeAPF_GET_DESCRIPTION);
-
-                        $this->handlers[$method][$fnPath]['operationId'] = $attendantConstraints(\YeAPF_GET_OPERATION_ID);
-                        if ($this->handlers[$method][$fnPath]['operationId'] == null) {
-                            $this->handlers[$method][$fnPath]['operationId'] = $attendant[1];
-                        }
-
-                        $this->handlers[$method][$fnPath]['privatePath'] = $attendantConstraints(\YeAPF_GET_PRIVATE_PATH_FLAG) ?? false;
-
-                        $security = $attendantConstraints(\YeAPF_GET_SECURITY);
-                        if (null != $security) {
-                            if (is_string($security)) {
-                                $security = [$security];
-                            }
-                            _log('SCHEMES in path: ' . implode(',', $security));
-                            $knownSchemes = $this->getAPIDetail('components', 'securitySchemes');
-                            $schemes = array_keys($knownSchemes);
-                            _log('SCHEMES in components: ' . implode(',', $schemes));
-
-                            foreach ($security as $requiredSec) {
-                                if (!in_array($requiredSec, $schemes)) {
-                                    _log("Invalid security scheme $requiredSec");
-                                    throw new \Exception("Invalid security scheme $requiredSec");
+                    $absentParameter = [];
+                    $className = $attendant[0];
+                    $methodName = $attendant[1];
+                    $reflection = new \ReflectionMethod($className, $methodName);
+                    if ($reflection) {
+                        $refFunParams = $reflection->getParameters();
+                        foreach ($inlineParams[1] as $paramName) {
+                            $isParamPresent = false;
+                            foreach ($refFunParams as $refParam) {
+                                if ($refParam->getName() === $paramName) {
+                                    $isParamPresent = true;
+                                    break;
                                 }
                             }
-
-                            $this->usedSecuritySchemes = array_merge($this->usedSecuritySchemes, $security);
-
-                            $this->handlers[$method][$fnPath]['security'] = $security;
-                        } else {
-                            _log('No security for '.$path);
+                            if (!$isParamPresent) {
+                                $absentParameter[] = $paramName;
+                            }
                         }
+                    }
+                    if (!empty($absentParameter)) {
+                        $errMsg = get_class($className) . '::' . strval($methodName) . '() Missing parameters: ' . implode(', ', $absentParameter);
+                        _log('***********************************');
+                        _log("** $errMsg");
+                        _log('** Actual params: ' . implode(', ', $refFunParams));
+                        _log("** $path DISABLED!");
+                        _log('***********************************');
+                        // throw new \Exception($errMsg);
                     } else {
-                        $this->handlers[$method][$fnPath]['privatePath'] = false;
+                        $this->handlers[$method][$fnPath] =
+                            [
+                                'attendant' => $attendant,
+                                'path' => $path,
+                                'inlineParams' => array_combine($inlineParams[0], $inlineParams[1]),
+                            ];
+
+                        if (is_callable($attendantConstraints)) {
+                            $constraints = $attendantConstraints(\YeAPF_GET_CONSTRAINTS);
+                            if ($constraints) {
+                                if ($debug)
+                                    _log('constraints****: ' . print_r($constraints, true));
+                                $this->handlers[$method][$fnPath]['constraints'] = $constraints->getConstraints();
+                            }
+
+                            $this->handlers[$method][$fnPath]['responses'] = $attendantConstraints(\YeAPF_GET_RESPONSES);
+                            $this->handlers[$method][$fnPath]['description'] = $attendantConstraints(\YeAPF_GET_DESCRIPTION);
+
+                            $this->handlers[$method][$fnPath]['operationId'] = $attendantConstraints(\YeAPF_GET_OPERATION_ID);
+                            if ($this->handlers[$method][$fnPath]['operationId'] == null) {
+                                $this->handlers[$method][$fnPath]['operationId'] = $attendant[1];
+                            }
+
+                            $this->handlers[$method][$fnPath]['privatePath'] = $attendantConstraints(\YeAPF_GET_PRIVATE_PATH_FLAG) ?? false;
+
+                            $security = $attendantConstraints(\YeAPF_GET_SECURITY);
+                            if (null != $security) {
+                                if (is_string($security)) {
+                                    $security = [$security];
+                                }
+                                _log('SCHEMES in path: ' . implode(',', $security));
+                                $knownSchemes = $this->getAPIDetail('components', 'securitySchemes');
+                                $schemes = array_keys($knownSchemes);
+                                _log('SCHEMES in components: ' . implode(',', $schemes));
+
+                                foreach ($security as $requiredSec) {
+                                    if (!in_array($requiredSec, $schemes)) {
+                                        _log("Invalid security scheme $requiredSec");
+                                        throw new \Exception("Invalid security scheme $requiredSec");
+                                    }
+                                }
+
+                                $this->usedSecuritySchemes = array_merge($this->usedSecuritySchemes, $security);
+
+                                $this->handlers[$method][$fnPath]['security'] = $security;
+                            } else {
+                                _log('No security for ' . $path);
+                            }
+                        } else {
+                            $this->handlers[$method][$fnPath]['privatePath'] = false;
+                        }
                     }
                 } else {
                     throw new \Exception("Not allowed method $method");
@@ -377,7 +407,7 @@ abstract class HTTP2Service
     {
         if (!$this->initialized) {
             $this->initialized = true;
-            
+
             $this->startup();
 
             $this->setHandler(
@@ -427,6 +457,7 @@ abstract class HTTP2Service
     {
         _log("Starting service on $host:$port");
         if (!$this->ready) {
+            // revisar el blog https://blog.restcase.com/4-most-used-rest-api-authentication-methods/
             $this->setAPIDetail(
                 'components',
                 'securitySchemes',
@@ -517,7 +548,6 @@ abstract class HTTP2Service
                         $jsonData = end($data);
                         $params[strtolower($method)] = json_decode($jsonData, true);
                         array_pop($data);
-
                     } else {
                     }
                     $headers = $request->header;
@@ -591,7 +621,7 @@ abstract class HTTP2Service
                             }
                         }
 
-                        $inlineVariables = new \YeAPF\SanitizedKeyData($handler['constraints']??null);
+                        $inlineVariables = new \YeAPF\SanitizedKeyData($handler['constraints'] ?? null);
                         $pathSegments = explode('/', $handler['path']);
                         $uriSegments = $this->getPathFromURI($uri);
 
@@ -610,7 +640,7 @@ abstract class HTTP2Service
                         }
                         _log('INLINES: ' . json_encode($inlineVariables));
 
-                        $aux = new \YeAPF\SanitizedKeyData($handler['constraints']??null);
+                        $aux = new \YeAPF\SanitizedKeyData($handler['constraints'] ?? null);
                         try {
                             if ($minSecOk) {
                                 $tokenExpirationAchieved = false;
@@ -621,24 +651,30 @@ abstract class HTTP2Service
 
                                         $tokenExpirationAchieved = ($expirationTime < time());
                                         _log("Expiration time: $expirationTime");
-                                        _log("   Current Time: " . time());
-                                        _log("      Time diff: ".($expirationTime - time()));
-                                        _log("Token expiration: ". ($tokenExpirationAchieved ? 'Achieved' : 'Not achieved'));
-                                        _log("Decoded token:".print_r($aJWT->exportData(), true));
+                                        _log('   Current Time: ' . time());
+                                        _log('      Time diff: ' . ($expirationTime - time()));
+                                        _log('Token expiration: ' . ($tokenExpirationAchieved ? 'Achieved' : 'Not achieved'));
+                                        _log('Decoded token:' . print_r($aJWT->exportData(), true));
                                     } else {
                                         $tokenExpirationAchieved = true;
-                                        $aBulletin->message = "Token cannot be used: " . $aJWT->explainImportResult();
-                                        _log("Token cannot be used. Import result: ".$aJWT->explainImportResult());
+                                        $aBulletin->message = 'Token cannot be used: ' . $aJWT->explainImportResult();
+                                        _log('Token cannot be used. Import result: ' . $aJWT->explainImportResult());
                                     }
                                 }
                                 if ($tokenExpirationAchieved) {
-                                    _log("TOKEN EXPIRED");
+                                    _log('TOKEN EXPIRED');
                                     $aBulletin->message = 'Token expired';
                                     $ret_code = 401;
                                 } else {
                                     _log("Calling handler >>>> $method $uri");
                                     $aux->importData($params);
-                                    $ret_code = $handler['attendant']($aBulletin, $uri, $params, ...$inlineVariables) ?? 500;
+
+                                    try {
+                                        $ret_code = $handler['attendant']($aBulletin, $uri, $params, ...$inlineVariables);
+                                    } catch (Exception $e) {
+                                        _log('Exception occurred: ' . $e->getMessage());
+                                        $ret_code = 500;
+                                    }
 
                                     if ($ret_code >= 200 && $ret_code <= 299) {
                                         if ('JWT' == $bearerFormat) {
@@ -662,8 +698,8 @@ abstract class HTTP2Service
                         $ret_code = $this->answerQuery($aBulletin, $uri, $params) ?? 204;
                     }
                 } catch (\Exception $e) {
-                    _log("EXCEPTION: " . $e->getMessage());
-                    $ret_code = 500;                
+                    _log('EXCEPTION: ' . $e->getMessage());
+                    $ret_code = 500;
                 } finally {
                     _log("RETURN: $ret_code BODY: " . json_encode($aBulletin->exportData()));
                     $aBulletin($ret_code, $request, $response);

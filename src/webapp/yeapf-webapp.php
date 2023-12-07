@@ -7,6 +7,7 @@ class WebApp
     static $uri = null;
     static $folder = null;
     static $mode = null;
+    static $uselessURI = 0;
 
     public static function initialize()
     {
@@ -15,21 +16,66 @@ class WebApp
         }
     }
 
-    static function getURI()
+    public static function setUselessURILevel($level)
+    {
+        self::$uselessURI = $level;
+    }
+
+    static function getURI($defaultURI = '')
     {
         if (null == self::$uri) {
             self::$folder = dirname($_SERVER['PHP_SELF']);
             $uri = $_SERVER['REQUEST_URI'];
 
-            $uri = str_replace(self::$folder, '', $uri);
+            $uri = substr($uri, strlen(self::$folder));
 
             if (substr($uri, 0, 1) == '/') {
                 $uri = substr($uri, 1);
             }
 
-            self::$uri = substr($uri, 1);
+            if (strlen($uri) == 0) {
+                $uri = $defaultURI;
+            }
+
+            self::$uri = $uri;
         }
         return self::$uri;
+    }
+
+    static function setURI($uri)
+    {
+        self::$uri = $uri;
+        return self::$uri;
+    }
+
+    static function splitURI()
+    {
+        $uri = self::getURI();
+        $uri = explode('/', $uri);
+        $ret = [];
+
+        foreach ($uri as $u) {
+            if (strlen($u) > 0) {
+                $ret[] = explode('?', $u)[0];
+            }
+        }
+        return $ret;
+    }
+
+    static function clientExpectJSON()
+    {
+        return (isset($_SERVER['HTTP_ACCEPT']) && strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false);
+    }
+
+    static function getRequest()
+    {
+        $input = json_decode(file_get_contents('php://input'), true);
+        if (is_array($input)) {
+            $ret = array_merge($_REQUEST, $input);
+        } else {
+            $ret = $_REQUEST;
+        }
+        return $ret;
     }
 
     static function generateRandomVariableName($length = 8): string
@@ -57,33 +103,6 @@ class WebApp
             $antiCacheURI = '';
         }
 
-        /*
-         * $filesHookExpr = '/(\<script[\n\t ]*src=["\']{1,})([^"\']*)(["\']{1,}(.*)\>)/i';
-         * if (self::$mode != 'devel') {
-         *     $content = preg_replace_callback($filesHookExpr, function ($matches) use ($randId, $randNumber) {
-         *         $file = $matches[2];
-         *         $minFile = preg_replace('/\.js$/', '.min.js', $file);
-         *
-         *         $minFile = explode('/', $minFile);
-         *         $folder = '';
-         *         do {
-         *             $particle = array_shift($minFile);
-         *             $folder .= $particle . '/';
-         *         } while ($particle == '');
-         *         $minFile = implode('/', $minFile);
-         *
-         *         // Check if the .min file exists
-         *         if (file_exists($minFile)) {
-         *             return $matches[1] . $folder . $minFile . '?' . $antiCacheURI . $matches[3];
-         *         } else {
-         *             return $matches[0];
-         *         }
-         *     }, $content);
-         * } else {
-         *     $content = preg_replace($filesHookExpr, '$1$2?' . $antiCacheURI . '$3', $content);
-         * }
-         */
-        // $filesHookExpr = '/(\<(script|link)[\n\t ]*(src|href)=["\']{1,})([^"\']*)(["\']{1,}(.*)\>)/i';
         $filesHookExpr = '/(\<(script|link)[\n\t ]*[a-zA-Z0-9_\-"\'+\= ]+[\n\t ]*(src|href)=["\']{1,})([^"\']*)(["\']{1,}[^>]*>)/i';
         if (self::$mode != 'devel') {
             $content = preg_replace_callback($filesHookExpr, function ($matches) use ($randId, $randNumber, $antiCacheURI) {
@@ -118,35 +137,55 @@ class WebApp
         return $content;
     }
 
-    static function go($context, $antiCache = true)
+    static function go(array $context = [], string|null|bool $antiCache = true)
     {
         global $yAnalyzer;
 
         self::initialize();
 
-        $uri = self::getURI();
+        if (self::clientExpectJSON()) {
+            header('Content-Type: application/json');
+            echo json_encode($context);
+        } else {
+            header('Content-Type: text/html; charset=utf-8');
+            $uri = self::getURI();
 
-        $uri = explode('/', $uri);
-        $entrance = array_shift($uri);
-        $uri = implode('/', $uri);
+            $entrance = '';
+            $uri = explode('/', $uri);
+            $c = self::$uselessURI;
+            while ($c > 0) {
+                $entrance = array_shift($uri) . '/';
+                $c--;
+            }
+            $entrance = rtrim($entrance, '/');
 
-        if (!file_exists("template/pages/$entrance/$entrance.html")) {
-            $entrance = '404';
-        }
-        if (file_exists("template/pages/$entrance/$entrance.html")) {
-            $content = file_get_contents("template/pages/$entrance/$entrance.html");
-            $content = str_replace('../../', self::$folder . '/template/', $content);
+            $uri = implode('/', $uri);
+            $content = '';
 
-            $page_content = "Content of 'pages/$uri.html'";
+            if (!file_exists("template/pages/$entrance/$entrance.html")) {
+                $entrance = '404';
+            }
 
-            if (file_exists("pages/$uri.html")) {
-                $page_content = file_get_contents("pages/$uri.html");
-                if ($antiCache) {
-                    // $page_content = self::applyAntiCache($page_content, $antiCache);
+            $context['mode'] = self::$mode;
+
+            if (file_exists("template/pages/$entrance/$entrance.html")) {
+                $content = file_get_contents("template/pages/$entrance/$entrance.html");
+                $content = str_replace('../../', self::$folder . '/template/', $content);
+
+                $page_content = "Content of 'pages/$uri.html'";
+
+                if (file_exists("pages/$uri.html")) {
+                    $page_content = file_get_contents("pages/$uri.html");
+                    if ($antiCache) {
+                        // $page_content = self::applyAntiCache($page_content, $antiCache);
+                    }
+                }
+                $context['page_content'] = $page_content;
+            } else {
+                if (file_exists("pages/$uri.html")) {
+                    $content = file_get_contents("pages/$uri.html");
                 }
             }
-            $context['page_content'] = $page_content;
-            $context['mode'] = self::$mode;
 
             $content = $yAnalyzer->do($content, $context);
 
@@ -158,9 +197,9 @@ class WebApp
                 $content = preg_replace('/^ +/m', '', $content);
                 $content = preg_replace('/\n/m', ' ', $content);
             }
-
             // $content = str_replace("#(page_content)", $page_content, $content);
             echo $content;
         }
+
     }
 }
