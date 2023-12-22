@@ -16,6 +16,11 @@ class WebApp
         }
     }
 
+    /**
+     * Sets the level of useless URI.
+     *
+     * @param int $level The level of useless URI.
+     */
     public static function setUselessURILevel($level)
     {
         self::$uselessURI = $level;
