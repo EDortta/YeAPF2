@@ -36,6 +36,7 @@ abstract class HTTP2Service
     ];
 
     private $externalURL = null;
+    private $mainAccess = null;
 
     abstract function startup();
     abstract function shutdown();
@@ -453,6 +454,12 @@ abstract class HTTP2Service
         return $this->externalURL;
     }
 
+    public function getMainAccess()
+    {
+        return $this->mainAccess;
+    }
+
+
     public function start($port = 9501, $host = '0.0.0.0')
     {
         _log("Starting service on $host:$port");
@@ -530,6 +537,12 @@ abstract class HTTP2Service
                     $host = $request->header['host'];
                     $entryURI = $request->header['x-entry-uri'];
                     $this->externalURL = $proto . '://' . $host . $entryURI;
+
+                    $parsed_url = parse_url($this->externalURL);
+                    $domain = $parsed_url['host'];
+                    $port = isset($parsed_url['port']) ? ':' . $parsed_url['port'] : '';
+                    
+                    $this->mainAccess = $domain . $port;
                 })();
 
                 _log('URL: ' . $this->externalURL);

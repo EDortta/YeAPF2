@@ -147,3 +147,45 @@ function generateUniqueId(): string {
   return $uuid;
 }
 
+function validatePassword(string $password): bool {
+  $hasMinimumLength = strlen($password) >= 8;
+  $hasMixedCharacters = preg_match('/[a-zA-Z]/', $password) && preg_match('/\d/', $password);
+  $hasUpperCase = preg_match('/[A-Z]/', $password);
+  $hasLowerCase = preg_match('/[a-z]/', $password);
+  $hasSymbol = preg_match('/[!@#$%^&*()]/', $password);
+
+  return $hasMinimumLength && $hasMixedCharacters && $hasUpperCase && $hasLowerCase && $hasSymbol;
+}
+
+function generateStrongPassword(int $length, int $strength): string {
+    $characters = "";
+
+    if ($strength >= 1) {
+        $characters .= "0123456789";
+    }
+
+    if ($strength >= 2) {
+        $characters .= "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_";
+        if ($length < 8) {
+            $length = 8;
+        }
+    }
+
+    if ($strength >= 3) {
+        $characters .= "!@#$%^&*()";
+        if ($length < 12) {
+            $length = 12;
+        }
+    }
+
+    $password = "";
+    do {
+        $password = "";
+        for ($i = 0; $i < $length; $i++) {
+            $randomIndex = random_int(0, strlen($characters) - 1);
+            $password .= $characters[$randomIndex];
+        }
+    } while (validatePassword($password) == false);
+
+    return $password;
+}

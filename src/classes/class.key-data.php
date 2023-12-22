@@ -570,6 +570,12 @@ class SanitizedKeyData extends KeyData
             }
           } elseif (YeAPF_TYPE_INT == $type) {
             if (!(null === $value && $acceptNULL)) {
+              if (is_string($value)) {
+                if (is_numeric($value)) {
+                  if ( (int) $value == $value )
+                    $value=(int) $value;
+                }
+              }
               if (!is_int($value)) {
                 list($message, $error) = ['Invalid integer value in ' . get_class() . '.' . $keyName, YeAPF_INVALID_KEY_VALUE];
                 if ($debug)
@@ -799,7 +805,7 @@ class SanitizedKeyData extends KeyData
   {
     $debug = true;
     $value = $this->sanitize($value);
-    if ($debug) _log("  :: setting '$name' with " . print_r($value, true) . "\n");
+    if ($debug) _log("setting '$name' with " . print_r($value, true) . "\n");
     $value = $this->checkConstraint($name, $value);
     if ($debug) _log('  :: value = ' . print_r($value, true) . "\n");
     if (null !== $value) {
