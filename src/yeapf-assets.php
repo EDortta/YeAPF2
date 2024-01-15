@@ -40,7 +40,8 @@ trait Assets {
     abstract static function canWorkWithoutAssets(): bool;
 
     static function assetsFolderExists(): bool {
-        $ret = is_dir(self::getAssetsFolder());
+        $folder=self::getAssetsFolder();
+        $ret = is_dir($folder);
         if (!$ret) {
           if (function_exists("\_log")) {
             \_log("Assets folder $folder does not exist");

@@ -228,6 +228,7 @@ abstract class HTTP2Service
             'openapi' => '3.0.0',
             'info' => [
                 'title' => $this->getAPIDetail('info', 'title') ?? 'API Documentation',
+                'contact' => $this->getAPIDetail('info', 'contact') ?? '',
                 'version' => $this->getAPIDetail('info', 'version') ?? '1.0.0'
             ],
         ];

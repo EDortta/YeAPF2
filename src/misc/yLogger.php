@@ -38,8 +38,8 @@ class yLogger
     if (null == self::$logFolder) {
       self::$logFolder = self::getAssetsFolder();
       // echo "LOG DEVICE: " . self::$logFolder . "\n";
-      if (!is_dir(self::$logFolder)) {
-        mkdir(self::$logFolder, 0777, true);
+      if (!is_dir(self::$logFolder)) {        
+        mkdir(self::$logFolder, 0777, true) || throw new \Exception("Log folder ".self::$logFolder." cannot be created", 1);
       }
     }
     $ret = is_dir(self::$logFolder) && is_writable(self::$logFolder);
