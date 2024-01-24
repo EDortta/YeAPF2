@@ -555,7 +555,7 @@ abstract class HTTP2Service
                 $aBulletin = new \YeAPF\Bulletin();
                 try {
                     $method = $request->server['request_method'];
-                    if ($request->header['content-type'] === 'application/json') {
+                    if (mb_strtolower(substr(trim($request->header['content-type']), 0, 16)) === 'application/json') {
                         $data = explode("\r\n", $request->getData());
 
                         _log('DATA: ' . json_encode($data));
@@ -593,7 +593,7 @@ abstract class HTTP2Service
                             $minSecOk = true;
                         } else {
                             $knownSchemes = $this->getAPIDetail('components', 'securitySchemes');
-                            _log('KNOWN SCHEMES: ' . print_r($knownSchemes, true));
+                            // _log('KNOWN SCHEMES: ' . print_r($knownSchemes, true));
                             _log('CHOSEN SCHEME: ' . print_r($security, true));
                             $secType = 'notFound';
                             $secScheme = 'notDefined';
@@ -681,7 +681,10 @@ abstract class HTTP2Service
                                     $ret_code = 401;
                                 } else {
                                     _log("Calling handler >>>> $method $uri");
+                                    // check this
+                                    // aux appears to 1) import as referential array and 2) not being used
                                     $aux->importData($params);
+                                    $params['secToken']=$secToken;
 
                                     try {
                                         $ret_code = $handler['attendant']($aBulletin, $uri, $params, ...$inlineVariables);

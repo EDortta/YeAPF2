@@ -20,7 +20,7 @@ class Bulletin extends \YeAPF\SanitizedKeyData
         echo "Bulletin\n";
         echo "Content Type: ".$this->contentType."\n";
         echo "Charactet Set: ".$this->charactetSet."\n";
-        $response->header("Content-Type", $this->contentType.';'.$this->charactetSet);
+        $response->header("Content-Type", $this->contentType.'; charset='.$this->charactetSet);
         $response->status($return_code);
         // $response->header("Response-Code", $return_code);
         if (!empty($this->__jsonFile)) {

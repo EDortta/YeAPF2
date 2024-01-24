@@ -187,7 +187,9 @@ class WebApp
                 }
                 $context['page_content'] = $page_content;
             } else {
-                if (file_exists("pages/$uri.html")) {
+                if (file_exists("pages/$uri/$uri.html")) {
+                    $content = file_get_contents("pages/$uri/$uri.html");
+                } else if (file_exists("pages/$uri.html")) {
                     $content = file_get_contents("pages/$uri.html");
                 }
             }
@@ -205,6 +207,5 @@ class WebApp
             // $content = str_replace("#(page_content)", $page_content, $content);
             echo $content;
         }
-
     }
 }
