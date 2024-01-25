@@ -7,9 +7,12 @@
  */
 define('YeAPF_LOG_DEBUG', 100);
 define('YeAPF_LOG_INFO', 200);
-define('YeAPF_LOG_WARNING', 300);
-define('YeAPF_LOG_ERROR', 400);
-define('YeAPF_LOG_FATAL', 500);
+define('YeAPF_LOG_NOTICE', 300);
+define('YeAPF_LOG_WARNING', 400);
+define('YeAPF_LOG_ERROR', 500);
+define('YeAPF_LOG_CRITICAL', 600);
+define('YeAPF_LOG_ALERT', 700);
+define('YeAPF_LOG_EMERG', 800);
 
 /*****************************************/
 /* KEY-DATA */

@@ -9,7 +9,7 @@ class yLogger
   static private $logFolder = null;
   static private $lastFile = null;
   static private $syslogOpened = false;
-  static private $areas =[];
+  static private $areas = [];
   static private $minLogLevel = YeAPF_LOG_WARNING;
 
   /**
@@ -38,8 +38,8 @@ class yLogger
     if (null == self::$logFolder) {
       self::$logFolder = self::getAssetsFolder();
       // echo "LOG DEVICE: " . self::$logFolder . "\n";
-      if (!is_dir(self::$logFolder)) {        
-        mkdir(self::$logFolder, 0777, true) || throw new \Exception("Log folder ".self::$logFolder." cannot be created", 1);
+      if (!is_dir(self::$logFolder)) {
+        mkdir(self::$logFolder, 0777, true) || throw new \Exception('Log folder ' . self::$logFolder . ' cannot be created', 1);
       }
     }
     $ret = is_dir(self::$logFolder) && is_writable(self::$logFolder);
@@ -55,7 +55,8 @@ class yLogger
     self::$syslogOpened = openlog($tag, $option, LOG_LOCAL0);
   }
 
-  static public function defineLogFilters(array $areas, int $logLevel) {
+  static public function defineLogFilters(array $areas, int $logLevel)
+  {
     self::$areas = $areas;
     self::$minLogLevel = $logLevel;
   }
@@ -65,29 +66,49 @@ class yLogger
     global $currentURI;
 
     if (self::startup()) {
-      $dbg = debug_backtrace();
-      $time = date('h:i:s ');
-      $preamble = "$time";
-      if (self::$lastFile != $dbg[1]['file']) {
-        self::$lastFile = $dbg[1]['file'];
-        $preamble .= self::$lastFile . "---\n$time";
-        // echo json_encode($dbg[1],JSON_PRETTY_PRINT);
-      }
-      if ($currentURI > '') {
-        $preamble .= '  ' . str_pad(' ' . $dbg[1]['line'], 4, ' ', STR_PAD_LEFT) . ': [' . $currentURI . '] ';
-      } else {
-        $preamble .= '  ' . str_pad(' ' . $dbg[1]['line'], 4, ' ', STR_PAD_LEFT) . ': ';
-      }
+      if ($warningLevel >= self::$minLogLevel - 99) {
+        $dbg = debug_backtrace();
+        $time = date('h:i:s ');
+        $preamble = "$time";
+        if (self::$lastFile != $dbg[1]['file']) {
+          self::$lastFile = $dbg[1]['file'];
+          $preamble .= self::$lastFile . "---\n$time";
+          // echo json_encode($dbg[1],JSON_PRETTY_PRINT);
+        }
+        if ($currentURI > '') {
+          $preamble .= '  ' . str_pad(' ' . $dbg[1]['line'], 4, ' ', STR_PAD_LEFT) . ': [' . $currentURI . '] ';
+        } else {
+          $preamble .= '  ' . str_pad(' ' . $dbg[1]['line'], 4, ' ', STR_PAD_LEFT) . ': ';
+        }
 
-      $message = str_replace("\n", ' ', $message);
-      if (trim($message) > '') {
-        syslog(LOG_INFO, $message);
+        $message = str_replace("\n", ' ', $message);
+        if (trim($message) > '') {
+          if ($warningLevel <= YEAPF_LOG_DEBUG)
+            $OS_level = LOG_DEBUG;
+          elseif ($warningLevel <= YEAPF_LOG_INFO)
+            $OS_level = LOG_INFO;
+          elseif ($warningLevel <= YEAPF_LOG_NOTICE)
+            $OS_level = LOG_NOTICE;
+          elseif ($warningLevel <= YEAPF_LOG_WARNING)
+            $OS_level = LOG_WARNING;
+          elseif ($warningLevel <= YEAPF_LOG_ERR)
+            $OS_level = LOG_ERR;
+          elseif ($warningLevel <= YEAPF_LOG_CRIT)
+            $OS_level = LOG_CRIT;
+          elseif ($warningLevel <= YEAPF_LOG_ALERT)
+            $OS_level = LOG_ALERT;
+          elseif ($warningLevel <= YEAPF_LOG_EMERG)
+            $OS_level = LOG_EMERG;
+          else
+            $OS_level = LOG_INFO;
+          syslog($OS_level, $message);
 
-        $fileName = self::$logFolder . '/' . date('Y-m-d') . '.log';
-        $fp = fopen($fileName, 'a+');
-        if ($fp) {
-          fwrite($fp, "$preamble $message\n");
-          fclose($fp);
+          $fileName = self::$logFolder . '/' . date('Y-m-d') . '.log';
+          $fp = fopen($fileName, 'a+');
+          if ($fp) {
+            fwrite($fp, "$preamble $message\n");
+            fclose($fp);
+          }
         }
       }
     }

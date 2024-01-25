@@ -177,12 +177,19 @@ class WebApp
                 $content = file_get_contents("template/pages/$entrance/$entrance.html");
                 $content = str_replace('../../', self::$folder . '/template/', $content);
 
-                $page_content = "Content of 'pages/$uri.html'";
+                $page_content = "Content of 'pages/$uri.html' or 'pages/$uri/$uri.html' not found!";
 
                 if (file_exists("pages/$uri.html")) {
                     $page_content = file_get_contents("pages/$uri.html");
                     if ($antiCache) {
                         // $page_content = self::applyAntiCache($page_content, $antiCache);
+                    }
+                } else {
+                    if (file_exists("pages/$uri/$uri.html")) {
+                        $page_content = file_get_contents("pages/$uri/$uri.html");
+                        if ($antiCache) {
+                            // $page_content = self::applyAntiCache($page_content, $antiCache);
+                        }
                     }
                 }
                 $context['page_content'] = $page_content;
