@@ -8,6 +8,7 @@ class WebApp
     static $folder = null;
     static $mode = null;
     static $uselessURI = 0;
+    static $routes = [];
 
     public static function initialize()
     {
@@ -142,6 +143,33 @@ class WebApp
         return $content;
     }
 
+    static function setRouteHandler($path, $method, $handler)
+    {
+        $path = ltrim($path, '/');
+        $path = ltrim($path, '\/');
+        if (!isset(self::$routes[$path])) {
+            self::$routes[$path] = [];
+        }
+        if (!isset(self::$routes[$path][$method])) {
+            self::$routes[$path][$method] = $handler;
+        } else {
+            throw new \YeAPF\YeAPFException('Route already exists');
+        }
+    }
+
+    static function getRouteHandler($path, $method)
+    {
+        $ret=null;
+        foreach (self::$routes as $pattern => $methods) {            
+            if (preg_match('/'.$pattern.'/', $path) && isset($methods[$method])) {
+                $ret=$methods[$method];
+                break;
+            }
+        }
+        
+        return $ret;
+    }
+
     static function go(array $context = [], string|null|bool $antiCache = true)
     {
         global $yAnalyzer;
@@ -152,67 +180,78 @@ class WebApp
             header('Content-Type: application/json');
             echo json_encode($context);
         } else {
-            header('Content-Type: text/html; charset=utf-8');
             $uri = self::getURI();
 
-            $entrance = '';
-            $uri = explode('/', $uri);
-            $c = self::$uselessURI;
-            while ($c > 0) {
-                $entrance = array_shift($uri) . '/';
-                $c--;
-            }
-            $entrance = rtrim($entrance, '/');
-
-            $uri = implode('/', $uri);
-            $content = '';
-
-            if (!file_exists("template/pages/$entrance/$entrance.html")) {
-                $entrance = '404';
+            if (strpos($uri, '?') > 0) {
+                $uri = substr($uri, 0, strpos($uri, '?'));
             }
 
-            $context['mode'] = self::$mode;
+            $routeHandler = self::getRouteHandler($uri, $_SERVER['REQUEST_METHOD']);
+            if ($routeHandler) {
+                echo $routeHandler($uri, $context);
+                return;
+            } else {
+                header('Content-Type: text/html; charset=utf-8');
 
-            if (file_exists("template/pages/$entrance/$entrance.html")) {
-                $content = file_get_contents("template/pages/$entrance/$entrance.html");
-                $content = str_replace('../../', self::$folder . '/template/', $content);
+                $entrance = '';
+                $uri = explode('/', $uri);
+                $c = self::$uselessURI;
+                while ($c > 0) {
+                    $entrance = array_shift($uri) . '/';
+                    $c--;
+                }
+                $entrance = rtrim($entrance, '/');
 
-                $page_content = "Content of 'pages/$uri.html' or 'pages/$uri/$uri.html' not found!";
+                $uri = implode('/', $uri);
+                $content = '';
 
-                if (file_exists("pages/$uri.html")) {
-                    $page_content = file_get_contents("pages/$uri.html");
-                    if ($antiCache) {
-                        // $page_content = self::applyAntiCache($page_content, $antiCache);
-                    }
-                } else {
-                    if (file_exists("pages/$uri/$uri.html")) {
-                        $page_content = file_get_contents("pages/$uri/$uri.html");
+                if (!file_exists("template/pages/$entrance/$entrance.html")) {
+                    $entrance = '404';
+                }
+
+                $context['mode'] = self::$mode;
+
+                if (file_exists("template/pages/$entrance/$entrance.html")) {
+                    $content = file_get_contents("template/pages/$entrance/$entrance.html");
+                    $content = str_replace('../../', self::$folder . '/template/', $content);
+
+                    $page_content = "Content of 'pages/$uri.html' or 'pages/$uri/$uri.html' not found!";
+
+                    if (file_exists("pages/$uri.html")) {
+                        $page_content = file_get_contents("pages/$uri.html");
                         if ($antiCache) {
                             // $page_content = self::applyAntiCache($page_content, $antiCache);
                         }
+                    } else {
+                        if (file_exists("pages/$uri/$uri.html")) {
+                            $page_content = file_get_contents("pages/$uri/$uri.html");
+                            if ($antiCache) {
+                                // $page_content = self::applyAntiCache($page_content, $antiCache);
+                            }
+                        }
+                    }
+                    $context['page_content'] = $page_content;
+                } else {
+                    if (file_exists("pages/$uri/$uri.html")) {
+                        $content = file_get_contents("pages/$uri/$uri.html");
+                    } else if (file_exists("pages/$uri.html")) {
+                        $content = file_get_contents("pages/$uri.html");
                     }
                 }
-                $context['page_content'] = $page_content;
-            } else {
-                if (file_exists("pages/$uri/$uri.html")) {
-                    $content = file_get_contents("pages/$uri/$uri.html");
-                } else if (file_exists("pages/$uri.html")) {
-                    $content = file_get_contents("pages/$uri.html");
+
+                $content = $yAnalyzer->do($content, $context);
+
+                if ($antiCache) {
+                    $content = self::applyAntiCache($content, $antiCache);
                 }
-            }
 
-            $content = $yAnalyzer->do($content, $context);
-
-            if ($antiCache) {
-                $content = self::applyAntiCache($content, $antiCache);
+                if ('devel' != $context['mode']) {
+                    $content = preg_replace('/^ +/m', '', $content);
+                    $content = preg_replace('/\n/m', ' ', $content);
+                }
+                // $content = str_replace("#(page_content)", $page_content, $content);
+                echo $content;
             }
-
-            if ('devel' != $context['mode']) {
-                $content = preg_replace('/^ +/m', '', $content);
-                $content = preg_replace('/\n/m', ' ', $content);
-            }
-            // $content = str_replace("#(page_content)", $page_content, $content);
-            echo $content;
         }
     }
 }
