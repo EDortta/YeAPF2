@@ -27,6 +27,36 @@ class WebApp
         self::$uselessURI = $level;
     }
 
+    static function getCurrentURL()
+    {
+        $url = 'http';
+        if (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on') {
+            $url .= 's';
+        } else {
+            if (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] == 'https') {
+                $url .= 's';
+            }
+        }
+        $url .= '://' . $_SERVER['HTTP_HOST'];
+        $url .= $_SERVER['REQUEST_URI'];
+        return $url;
+    }
+
+    static function getBaseURL()
+    {
+        $url = 'http';
+        if (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on') {
+            $url .= 's';
+        } else {
+            if (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] == 'https') {
+                $url .= 's';
+            }
+        }
+        $url .= '://' . $_SERVER['HTTP_HOST'];
+        $url .= dirname($_SERVER['DOCUMENT_URI']);
+        return $url;
+    }
+
     static function getURI($defaultURI = '')
     {
         if (null == self::$uri) {
@@ -159,20 +189,22 @@ class WebApp
 
     static function getRouteHandler($path, $method)
     {
-        $ret=null;
-        foreach (self::$routes as $pattern => $methods) {            
-            if (preg_match('/'.$pattern.'/', $path) && isset($methods[$method])) {
-                $ret=$methods[$method];
+        $ret = null;
+        foreach (self::$routes as $pattern => $methods) {
+            if (preg_match('/' . $pattern . '/', $path) && isset($methods[$method])) {
+                $ret = $methods[$method];
                 break;
             }
         }
-        
+
         return $ret;
     }
 
     static function go(array $context = [], string|null|bool $antiCache = true)
     {
         global $yAnalyzer;
+
+        $context['baseURL'] = self::getBaseURL();
 
         self::initialize();
 
@@ -188,8 +220,7 @@ class WebApp
 
             $routeHandler = self::getRouteHandler($uri, $_SERVER['REQUEST_METHOD']);
             if ($routeHandler) {
-                echo $routeHandler($uri, $context);
-                return;
+                $content = $routeHandler($uri, $context);
             } else {
                 header('Content-Type: text/html; charset=utf-8');
 
@@ -238,20 +269,37 @@ class WebApp
                         $content = file_get_contents("pages/$uri.html");
                     }
                 }
-
-                $content = $yAnalyzer->do($content, $context);
-
-                if ($antiCache) {
-                    $content = self::applyAntiCache($content, $antiCache);
-                }
-
-                if ('devel' != $context['mode']) {
-                    $content = preg_replace('/^ +/m', '', $content);
-                    $content = preg_replace('/\n/m', ' ', $content);
-                }
-                // $content = str_replace("#(page_content)", $page_content, $content);
-                echo $content;
             }
+
+            // echo "<pre>";
+            $headers = headers_list();
+            $actualContentType=null;
+            foreach ($headers as $header) {
+                // echo "$header\n";
+                if (strpos(strtolower($header), 'content-type:') === 0) {
+                    $header = substr($header,14);
+                    $actualContentType = explode(';', $header)[0];
+                }
+            }
+
+            // die("actualContentType: $actualContentType</pre>");
+
+            $acceptedContentTypes = ['application/json', 'text/plain', 'text/html', 'text/markdown'];            
+            if ($actualContentType !== null && in_array($actualContentType, $acceptedContentTypes)) {
+                $content = $yAnalyzer->do($content, $context);
+            }
+            // $content = $yAnalyzer->do($content, $context);
+
+            if ($antiCache) {
+                $content = self::applyAntiCache($content, $antiCache);
+            }
+
+            if ('devel' != ($context['mode'] ?? 'devel')) {
+                $content = preg_replace('/^ +/m', '', $content);
+                $content = preg_replace('/\n/m', ' ', $content);
+            }
+            // $content = str_replace("#(page_content)", $page_content, $content);
+            echo $content;
         }
     }
 }
