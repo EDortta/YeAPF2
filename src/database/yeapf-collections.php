@@ -111,6 +111,10 @@ class DocumentModel extends \YeAPF\SanitizedKeyData
                         case 'bytea':
                             $constraint['keyType'] = YeAPF_TYPE_BYTES;
                             break;
+                        
+                        case 'json':
+                            $constraint['keyType'] = YeAPF_TYPE_JSON;
+                            break;
 
                         default:
                             throw new \YeAPF\YeAPFException('Unknown data type', YeAPF_UNKNOWN_DATA_TYPE);
@@ -219,6 +223,12 @@ class DocumentModel extends \YeAPF\SanitizedKeyData
                             break;
                         case YeAPF_TYPE_STRING:
                             $type = 'string';
+                            break;
+                        case YeAPF_TYPE_BYTES:
+                            $type = 'bytes';
+                            break;                        
+                        case YeAPF_TYPE_JSON:
+                            $type = 'json';
                             break;
                         default:
                             throw new \YeAPF\YeAPFException('Unsupported type', YeAPF_UNSUPPORTED_TYPE);
@@ -905,6 +915,10 @@ class PersistentCollection extends \YeAPF\ORM\SharedSanitizedCollection implemen
 
             case YeAPF_TYPE_BYTES:
                 $ret = 'bytea ';
+                break;
+
+            case YeAPF_TYPE_JSON:
+                $ret = 'json ';
                 break;
 
             default:

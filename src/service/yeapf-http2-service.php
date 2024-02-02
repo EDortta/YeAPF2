@@ -534,9 +534,9 @@ abstract class HTTP2Service
                 $params = [];
 
                 (function () use ($request) {
-                    $proto = $request->header['x-forwarded-proto'];
-                    $host = $request->header['host'];
-                    $entryURI = $request->header['x-entry-uri'];
+                    $proto = $request->header['x-forwarded-proto']??'';
+                    $host = $request->header['host']??'';
+                    $entryURI = $request->header['x-entry-uri']??'';
                     $this->externalURL = $proto . '://' . $host . $entryURI;
 
                     $parsed_url = parse_url($this->externalURL);
@@ -555,7 +555,7 @@ abstract class HTTP2Service
                 $aBulletin = new \YeAPF\Bulletin();
                 try {
                     $method = $request->server['request_method'];
-                    if (mb_strtolower(substr(trim($request->header['content-type']), 0, 16)) === 'application/json') {
+                    if (mb_strtolower(substr(trim($request->header['content-type']??''), 0, 16)) === 'application/json') {
                         $data = explode("\r\n", $request->getData());
 
                         _log('DATA: ' . json_encode($data));

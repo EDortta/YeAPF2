@@ -28,6 +28,7 @@ define('YeAPF_TYPE_DATE', 'date');
 define('YeAPF_TYPE_TIME', 'time');
 define('YeAPF_TYPE_DATETIME', 'datetime');
 define('YeAPF_TYPE_BYTES', 'bytes');
+define('YeAPF_TYPE_JSON', 'json');
 
 // define("YeAPF_TYPE_ARRAY", "array");
 // define("YeAPF_TYPE_OBJECT", "object");

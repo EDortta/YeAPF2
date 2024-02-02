@@ -321,7 +321,7 @@ class SanitizedKeyData extends KeyData
     int $protobufOrder = null,
     string $tag = null
   ) {
-    $validTypes = [YeAPF_TYPE_STRING, YeAPF_TYPE_INT, YeAPF_TYPE_FLOAT, YeAPF_TYPE_BOOL, YeAPF_TYPE_DATE, YeAPF_TYPE_TIME, YeAPF_TYPE_DATETIME, YeAPF_TYPE_BYTES];
+    $validTypes = [YeAPF_TYPE_STRING, YeAPF_TYPE_INT, YeAPF_TYPE_FLOAT, YeAPF_TYPE_BOOL, YeAPF_TYPE_DATE, YeAPF_TYPE_TIME, YeAPF_TYPE_DATETIME, YeAPF_TYPE_BYTES, YeAPF_TYPE_JSON];
     if (!in_array($keyType, $validTypes)) {
       throw new \YeAPF\YeAPFException('Invalid key type', YeAPF_INVALID_KEY_TYPE);
     } else {
@@ -366,6 +366,10 @@ class SanitizedKeyData extends KeyData
 
           case YeAPF_TYPE_BYTES:
             $regExpression = '(.*)';
+            break;
+
+          case YeAPF_TYPE_JSON:
+            $regExpression = '/^[\{\[].*[\}\]]$/';
             break;
 
           default:
@@ -477,8 +481,9 @@ class SanitizedKeyData extends KeyData
    */
   public function getConstraints(bool $asInterface = null, string $tag = null)
   {
-    $debug=false;
-    if ($debug) _log('getConstraints() from '.print_r($this->__constraints,true));
+    $debug = false;
+    if ($debug)
+      _log('getConstraints() from ' . print_r($this->__constraints, true));
     if (is_null($asInterface) && is_null($tag)) {
       return $this->__constraints;
     } else {
@@ -572,8 +577,8 @@ class SanitizedKeyData extends KeyData
             if (!(null === $value && $acceptNULL)) {
               if (is_string($value)) {
                 if (is_numeric($value)) {
-                  if ( (int) $value == $value )
-                    $value=(int) $value;
+                  if ((int) $value == $value)
+                    $value = (int) $value;
                 }
               }
               if (!is_int($value)) {
@@ -628,16 +633,16 @@ class SanitizedKeyData extends KeyData
           } elseif (YeAPF_TYPE_BOOL == $type) {
             if (!(null === $value && $acceptNULL)) {
               if (!is_bool($value)) {
-                if (1==$value || 'Y'==strtoupper("$value")) {
-                  $value=true;
+                if (1 == $value || 'Y' == strtoupper("$value")) {
+                  $value = true;
                 }
 
-                if (0==$value || 'N'==strtoupper("$value")) {
-                  $value=false;
+                if (0 == $value || 'N' == strtoupper("$value")) {
+                  $value = false;
                 }
               }
               if (!is_bool($value)) {
-                list($message, $error) = ['Invalid boolean value in ' . get_class() . '.' . $keyName.': '.print_r($value,true), YeAPF_INVALID_KEY_VALUE];
+                list($message, $error) = ['Invalid boolean value in ' . get_class() . '.' . $keyName . ': ' . print_r($value, true), YeAPF_INVALID_KEY_VALUE];
                 if ($debug)
                   _log($message);
                 throw new \YeAPF\YeAPFException($message, YeAPF_VALUE_OUT_OF_RANGE);
@@ -699,8 +704,28 @@ class SanitizedKeyData extends KeyData
                 }
               }
             }
+          } elseif (YeAPF_TYPE_JSON == $type) {
+            if (!(null === $value && $acceptNULL)) {
+              if (is_array($value)) {
+                $value = json_encode($value);
+              }
+              if (!is_string($value)) {
+                list($message, $error) = ['Invalid JSON type (string expected) in ' . get_class() . '.' . $keyName, YeAPF_INVALID_JSON_TYPE];
+                if ($debug)
+                  _log($message);
+                throw new \YeAPF\YeAPFException($message);
+              } else {
+                $json = json_decode($value, true);
+                if (null === $json) {
+                  list($message, $error) = ['Invalid JSON value in ' . get_class() . '.' . $keyName, YeAPF_INVALID_JSON_VALUE];
+                  if ($debug)
+                    _log($message);
+                  throw new \YeAPF\YeAPFException($message);
+                }
+              }
+            }
           } else {
-            list($message, $error) = ['Invalid key type in ' . get_class() . '.' . $keyName, YeAPF_INVALID_KEY_TYPE];
+            list($message, $error) = ['Invalid key type in ' . get_class() . '.' . $keyName . ' or not implemented', YeAPF_INVALID_KEY_TYPE];
             if ($debug)
               _log($message);
             throw new \YeAPF\YeAPFException($message);
@@ -732,11 +757,12 @@ class SanitizedKeyData extends KeyData
     } catch (\Throwable $th) {
       list($message, $error) = [$th->getMessage(), $th->getCode()];
       if ($debug) {
-        _log($message);        
+        _log($message);
       }
       throw new \YeAPF\YeAPFException($message, $error);
     }
-    if ($debug) _log("Accepting value ". print_r($value, true));
+    if ($debug)
+      _log('Accepting value ' . print_r($value, true));
     return $value;
   }
 
@@ -805,13 +831,16 @@ class SanitizedKeyData extends KeyData
   {
     $debug = true;
     $value = $this->sanitize($value);
-    if ($debug) _log("setting '$name' with " . print_r($value, true) . "\n");
+    if ($debug)
+      _log("setting '$name' with " . print_r($value, true) . "\n");
     $value = $this->checkConstraint($name, $value);
-    if ($debug) _log('  :: value = ' . print_r($value, true) . "\n");
+    if ($debug)
+      _log('  :: value = ' . print_r($value, true) . "\n");
     if (null !== $value) {
       $sedInputExpression = $this->__constraints[$name]['sedInputExpression'] ?? null;
       if (null !== $sedInputExpression) {
-        if ($debug) _log("Applying sedInputExpression $sedInputExpression\n");
+        if ($debug)
+          _log("Applying sedInputExpression $sedInputExpression\n");
         $expression = trim($sedInputExpression, "'");
         $expression = str_replace('\/', '#', $expression);
         list($pattern, $replacement) = preg_split('/\//', $expression, -1, PREG_SPLIT_NO_EMPTY);
@@ -835,29 +864,34 @@ class SanitizedKeyData extends KeyData
 
   public function __get(string $name)
   {
-      $debug = false;
-      if ($debug) _log("  :: getting '$name' -> ");
-      $value = parent::__get($name);
-      if ($debug) _log(print_r($value, true) . " -> ");
-      $value = $this->unsanitize($value);
-      if ($debug) _log(print_r($value, true) . "\n");
-  
-      $sedOutputExpression = $this->__constraints[$name]['sedOutputExpression'] ?? null;
-      if (null !== $sedOutputExpression) {
-          if ($debug) _log("Applying sedOutputExpression $sedOutputExpression\n");
-          $expression = trim($sedOutputExpression, "'");
-          $expression = str_replace('\/', '#', $expression);
-          list($pattern, $replacement) = preg_split('/\//', $expression, -1, PREG_SPLIT_NO_EMPTY);
-          $pattern = str_replace('#', '\/', $pattern);
-          $replacement = str_replace('#', '/', $replacement);
-          $value2 = $value;
+    $debug = false;
+    if ($debug)
+      _log("  :: getting '$name' -> ");
+    $value = parent::__get($name);
+    if ($debug)
+      _log(print_r($value, true) . ' -> ');
+    $value = $this->unsanitize($value);
+    if ($debug)
+      _log(print_r($value, true) . "\n");
 
-          if ($debug) _log("$pattern -> $replacement on '$value'\n");
-          $value = preg_replace("/$pattern/", $replacement, $value2);
-      }
-  
-      return $value;
-  }  
+    $sedOutputExpression = $this->__constraints[$name]['sedOutputExpression'] ?? null;
+    if (null !== $sedOutputExpression) {
+      if ($debug)
+        _log("Applying sedOutputExpression $sedOutputExpression\n");
+      $expression = trim($sedOutputExpression, "'");
+      $expression = str_replace('\/', '#', $expression);
+      list($pattern, $replacement) = preg_split('/\//', $expression, -1, PREG_SPLIT_NO_EMPTY);
+      $pattern = str_replace('#', '\/', $pattern);
+      $replacement = str_replace('#', '/', $replacement);
+      $value2 = $value;
+
+      if ($debug)
+        _log("$pattern -> $replacement on '$value'\n");
+      $value = preg_replace("/$pattern/", $replacement, $value2);
+    }
+
+    return $value;
+  }
 
   public function __get_raw_value(string $name)
   {
