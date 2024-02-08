@@ -1397,6 +1397,7 @@ class PersistentCollection extends \YeAPF\ORM\SharedSanitizedCollection implemen
         if ($count <= 0) {
             $sql .= "offset $start";
         } else {
+            $count-=count($cachedIdList);
             $sql .= "limit $count offset $start";
         }
 
