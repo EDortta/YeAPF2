@@ -37,7 +37,7 @@ class yLogger
   {
     if (null == self::$logFolder) {
       self::$logFolder = self::getAssetsFolder();
-      // echo "LOG DEVICE: " . self::$logFolder . "\n";
+      // print_r("LOG DEVICE: " . self::$logFolder."\n");
       if (!is_dir(self::$logFolder)) {
         mkdir(self::$logFolder, 0777, true) || throw new \Exception('Log folder ' . self::$logFolder . ' cannot be created', 1);
       }
@@ -83,21 +83,21 @@ class yLogger
 
         $message = str_replace("\n", ' ', $message);
         if (trim($message) > '') {
-          if ($warningLevel <= YEAPF_LOG_DEBUG)
+          if ($warningLevel <= YeAPF_LOG_DEBUG)
             $OS_level = LOG_DEBUG;
-          elseif ($warningLevel <= YEAPF_LOG_INFO)
+          elseif ($warningLevel <= YeAPF_LOG_INFO)
             $OS_level = LOG_INFO;
-          elseif ($warningLevel <= YEAPF_LOG_NOTICE)
+          elseif ($warningLevel <= YeAPF_LOG_NOTICE)
             $OS_level = LOG_NOTICE;
-          elseif ($warningLevel <= YEAPF_LOG_WARNING)
+          elseif ($warningLevel <= YeAPF_LOG_WARNING)
             $OS_level = LOG_WARNING;
-          elseif ($warningLevel <= YEAPF_LOG_ERR)
+          elseif ($warningLevel <= YeAPF_LOG_ERR)
             $OS_level = LOG_ERR;
-          elseif ($warningLevel <= YEAPF_LOG_CRIT)
+          elseif ($warningLevel <= YeAPF_LOG_CRIT)
             $OS_level = LOG_CRIT;
-          elseif ($warningLevel <= YEAPF_LOG_ALERT)
+          elseif ($warningLevel <= YeAPF_LOG_ALERT)
             $OS_level = LOG_ALERT;
-          elseif ($warningLevel <= YEAPF_LOG_EMERG)
+          elseif ($warningLevel <= YeAPF_LOG_EMERG)
             $OS_level = LOG_EMERG;
           else
             $OS_level = LOG_INFO;

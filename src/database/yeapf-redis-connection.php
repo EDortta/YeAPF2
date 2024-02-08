@@ -5,7 +5,8 @@ namespace YeAPF\Connection\DB;
 class RedisConnection extends \YeAPF\Connection\DBConnection
 {
     private static $config;
-    private static $redis;    
+    private static $redis; 
+    private static ?int $defaultExpirationTime = null;   
 
     private function connect()
     {
@@ -53,6 +54,14 @@ class RedisConnection extends \YeAPF\Connection\DBConnection
         return self::$config;
     }
 
+    public function defaultExpirationTime($expiration=null) {
+        if ($expiration===null) {
+            return self::$defaultExpirationTime??null;
+        } else {
+            self::$defaultExpirationTime = $expiration;
+        }
+    }
+
     public function type($name)
     {
         $ret = '';
@@ -79,7 +88,7 @@ class RedisConnection extends \YeAPF\Connection\DBConnection
     public function delete(string $name)
     {
         if (self::getConnected()) {
-            self::$redis->delete($name);
+            self::$redis->del($name);
         }
     }
 
@@ -123,7 +132,11 @@ class RedisConnection extends \YeAPF\Connection\DBConnection
             // $ret = (true != $ctl);
             \_log("HSET data: ".json_encode($data));
             \_log("HSET  ret: $ret");
-            if ($expiration !== null) {
+            if (empty($expiration)) {
+                $expiration=self::defaultExpirationTime();
+            }
+            if ($expiration !== null && $expiration>0) {
+                \_log("HSET setting expiration: $expiration");
                 self::$redis->expire($name, $expiration);
             }
         } else {
@@ -186,6 +199,7 @@ class RedisConnection extends \YeAPF\Connection\DBConnection
                     self::$redis->expire($key, $expiration);
                 }
             }
+            self::defaultExpirationTime($expiration);
         }
     }
 }

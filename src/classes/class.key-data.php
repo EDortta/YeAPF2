@@ -144,11 +144,13 @@ class KeyData implements \ArrayAccess, \Iterator
    *
    * @return mixed
    */
-  public function exportData()
+  public function exportData(array $exceptionList = [])
   {
     $ret = [];
     foreach ($this->__data as $key => $value) {
-      $ret[$key] = $this->__get($key);
+      if (!in_array($key, $exceptionList)) {
+        $ret[$key] = $this->__get($key);
+      }
     }
     return $ret;
   }
@@ -168,7 +170,7 @@ class KeyData implements \ArrayAccess, \Iterator
   public function importData(mixed $data)
   {
     if (!is_array($data) && !is_bool($data)) {
-      throw new \YeAPF\YeAPFException('Invalid data type. Only array or bool.');
+      throw new \YeAPF\YeAPFException('Invalid data type. Only array or bool.', YeAPF_INVALID_DATE_TYPE);
     }
     foreach ($data as $key => $value) {
       $this->__set($key, $value);
@@ -301,6 +303,8 @@ class SanitizedKeyData extends KeyData
    * @param bool $required Whether the key is required.
    * @param bool $primary Whether the key is a primary key.
    * @param int|null $protobufOrder The order of the key in the protobuf.
+   * @param string|null $tag The tag of the key. Can be splitted using ';'
+   * @param any|null $defaultValue The default value of the key.
    * @throws \YeAPF\YeAPFException If an invalid key type is provided or if the key already exists.
    * @return void
    */
@@ -319,7 +323,8 @@ class SanitizedKeyData extends KeyData
     bool $required = false,
     bool $primary = false,
     int $protobufOrder = null,
-    string $tag = null
+    string $tag = null,
+    $defaultValue = null
   ) {
     $validTypes = [YeAPF_TYPE_STRING, YeAPF_TYPE_INT, YeAPF_TYPE_FLOAT, YeAPF_TYPE_BOOL, YeAPF_TYPE_DATE, YeAPF_TYPE_TIME, YeAPF_TYPE_DATETIME, YeAPF_TYPE_BYTES, YeAPF_TYPE_JSON];
     if (!in_array($keyType, $validTypes)) {
@@ -457,10 +462,26 @@ class SanitizedKeyData extends KeyData
           'required' => $required,
           'primary' => $primary,
           'protobufOrder' => $protobufOrder,
-          'tag' => ';' . join(';', explode(';', $tag)) . ';'
+          'tag' => ';' . join(';', explode(';', $tag)) . ';',
+          'defaultValue' => $defaultValue
         ];
       }
     }
+  }
+
+  public function setConstraintFromJSON(string $keyName, $json)
+  {
+    if (is_string($json)) {
+      $json = json_decode($json, true);
+    }
+
+    if (!is_array($json)) {
+      throw new \InvalidArgumentException("Invalid JSON data for key '$keyName'");
+    }
+
+    $constraint[$keyName] = $json;
+
+    $this->importConstraints($constraint);
   }
 
   /**
@@ -472,6 +493,11 @@ class SanitizedKeyData extends KeyData
   public function getConstraint(string $keyName)
   {
     return $this->__constraints[$keyName];
+  }
+
+  public function getConstraintAsJSON($keyName)
+  {
+    return json_encode($this->getConstraint($keyName));
   }
 
   /**
@@ -506,26 +532,29 @@ class SanitizedKeyData extends KeyData
     }
   }
 
-  public function importConstraints(array $constraints)
+  public function importConstraints(array $constraints, bool $cleanup = false)
   {
-    $this->__constraints = [];
+    if ($cleanup)
+      $this->__constraints = [];
     foreach ($constraints as $keyName => $constraint) {
       $this->__constraints[$keyName] = [
         'type' => $constraint['type'],
-        'length' => $constraint['length'],
-        'decimals' => $constraint['decimals'],
-        'acceptNULL' => $constraint['acceptNULL'],
-        'minValue' => $constraint['minValue'],
-        'maxValue' => $constraint['maxValue'],
-        'regExpression' => $constraint['regExpression'],
-        'sedInputExpression' => $constraint['sedInputExpression'],
-        'sedOutputExpression' => $constraint['sedOutputExpression'],
-        'unique' => $constraint['unique'],
-        'required' => $constraint['required'],
-        'primary' => $constraint['primary'],
-        'protobufOrder' => $constraint['protobufOrder'],
-        'tag' => $constraint['tag']
+        'length' => $constraint['length'] ?? null,
+        'decimals' => $constraint['decimals'] ?? null,
+        'acceptNULL' => $constraint['acceptNULL'] ?? null,
+        'minValue' => $constraint['minValue'] ?? null,
+        'maxValue' => $constraint['maxValue'] ?? null,
+        'regExpression' => $constraint['regExpression'] ?? null,
+        'sedInputExpression' => $constraint['sedInputExpression'] ?? null,
+        'sedOutputExpression' => $constraint['sedOutputExpression'] ?? null,
+        'unique' => $constraint['unique'] ?? false,
+        'required' => $constraint['required'] ?? false,
+        'primary' => $constraint['primary'] ?? false,
+        'tag' => $constraint['tag'] ?? null
       ];
+      if (!empty($constraint['protobufOrder'])) {
+        $this->__constraints[$keyName]['protobufOrder'] = $constraint['protobufOrder'];
+      }
     }
   }
 
@@ -558,22 +587,38 @@ class SanitizedKeyData extends KeyData
         $minValue = $this->__constraints[$keyName]['minValue'] ?? null;
         $maxValue = $this->__constraints[$keyName]['maxValue'] ?? null;
         $regExpression = $this->__constraints[$keyName]['regExpression'] ?? null;
+        $defaultValue = $this->__constraints[$keyName]['defaultValue'] ?? null;
+
+        if (!$acceptNULL && (empty($value) || $value === null)) {
+          $value = $defaultValue ?? null;
+        }
+
         if ($debug)
           _log('Checkpoint#1');
         if (null === $value && !$acceptNULL) {
-          list($message, $error) = ['Null not allowed in ' . get_class() . ' -> ' . $keyName, YeAPF_NULL_NOT_ALLOWED];
+          if ($debug)
+            _log('Checkpoint#2 at ' . __LINE__);
+          list($message, $error) = ['null not allowed in ' . get_class() . ' -> ' . $keyName, YeAPF_NULL_NOT_ALLOWED];
           if ($debug)
             _log($message);
-          throw new \YeAPF\YeAPFException($message);
+          throw new \YeAPF\YeAPFException($message, YeAPF_NULL_NOT_ALLOWED);
         } else {
           if (YeAPF_TYPE_STRING == $type) {
-            if ($length > 0 && strlen($value) > $length) {
-              list($message, $error) = ['String value too long in ' . get_class() . '.' . $keyName, YeAPF_INVALID_KEY_VALUE];
+            if ($debug)
+              _log('Checkpoint#2 at ' . __LINE__);
+            $pureValue=$this->unsanitize($value??'');
+            if ($length > 0 && strlen($pureValue ?? '') > $length) {
+              list($message, $error) = ['String value has ' . strlen($pureValue ?? '') . ' chars. Value too long in ' . get_class() . '.' . $keyName . ' It is ' . $length . ' chars long', YeAPF_INVALID_KEY_VALUE];
               if ($debug)
                 _log($message);
-              throw new \YeAPF\YeAPFException($message);
+              throw new \YeAPF\YeAPFException($message, YeAPF_VALUE_TOO_LONG);
             }
           } elseif (YeAPF_TYPE_INT == $type) {
+            if ($debug)
+              _log('Checkpoint#2 at ' . __LINE__);
+            if ($value == '' && $acceptNULL) {
+              $value = null;
+            }
             if (!(null === $value && $acceptNULL)) {
               if (is_string($value)) {
                 if (is_numeric($value)) {
@@ -582,55 +627,59 @@ class SanitizedKeyData extends KeyData
                 }
               }
               if (!is_int($value)) {
-                list($message, $error) = ['Invalid integer value in ' . get_class() . '.' . $keyName, YeAPF_INVALID_KEY_VALUE];
+                list($message, $error) = ['INVALID INTEGER value in ' . get_class() . '.' . $keyName, YeAPF_INVALID_KEY_VALUE];
                 if ($debug)
                   _log($message);
-                throw new \YeAPF\YeAPFException($message);
+                throw new \YeAPF\YeAPFException($message, YeAPF_INVALID_INT_VALUE);
               }
               if (null !== $minValue) {
                 if ($value < $minValue) {
-                  list($message, $error) = ['Invalid integer value: out of bounds in ' . get_class() . '.' . $keyName, YeAPF_VALUE_OUT_OF_RANGE];
+                  list($message, $error) = ['INVALID INTEGER value: out of bounds in ' . get_class() . '.' . $keyName, YeAPF_VALUE_OUT_OF_RANGE];
                   if ($debug)
                     _log($message);
-                  throw new \YeAPF\YeAPFException($message);
+                  throw new \YeAPF\YeAPFException($message, YeAPF_INVALID_INT_VALUE);
                 }
               }
 
               if (null !== $maxValue) {
                 if ($value > $maxValue) {
-                  list($message, $error) = ['Invalid integer value: out of bounds in ' . get_class() . '.' . $keyName, YeAPF_VALUE_OUT_OF_RANGE];
+                  list($message, $error) = ['INVALID INTEGER value: out of bounds in ' . get_class() . '.' . $keyName, YeAPF_VALUE_OUT_OF_RANGE];
                   if ($debug)
                     _log($message);
-                  throw new \YeAPF\YeAPFException($message);
+                  throw new \YeAPF\YeAPFException($message, YeAPF_INVALID_INT_VALUE);
                 }
               }
             }
           } elseif (YeAPF_TYPE_FLOAT == $type) {
+            if ($debug)
+              _log('Checkpoint#2 at ' . __LINE__);
             if (!(null === $value && $acceptNULL)) {
               if (!is_numeric($value)) {
-                list($message, $error) = ['Invalid float value in ' . get_class() . '.' . $keyName, YeAPF_INVALID_KEY_VALUE];
+                list($message, $error) = ['INVALID FLOAT value in ' . get_class() . '.' . $keyName, YeAPF_INVALID_KEY_VALUE];
                 if ($debug)
                   _log($message);
-                throw new \YeAPF\YeAPFException($message);
+                throw new \YeAPF\YeAPFException($message, YeAPF_INVALID_FLOAT_VALUE);
               }
               if (null !== $minValue) {
                 if ($value < $minValue) {
-                  list($message, $error) = ['Invalid float value: out of bounds in ' . get_class() . '.' . $keyName, YeAPF_VALUE_OUT_OF_RANGE];
+                  list($message, $error) = ['INVALID FLOAT value: out of bounds in ' . get_class() . '.' . $keyName, YeAPF_VALUE_OUT_OF_RANGE];
                   if ($debug)
                     _log($message);
-                  throw new \YeAPF\YeAPFException($message);
+                  throw new \YeAPF\YeAPFException($message, YeAPF_INVALID_FLOAT_VALUE);
                 }
               }
               if (null !== $maxValue) {
                 if ($value > $maxValue) {
-                  list($message, $error) = ['Invalid float value: out of bounds in ' . get_class() . '.' . $keyName, YeAPF_VALUE_OUT_OF_RANGE];
+                  list($message, $error) = ['INVALID FLOAT value: out of bounds in ' . get_class() . '.' . $keyName, YeAPF_VALUE_OUT_OF_RANGE];
                   if ($debug)
                     _log($message);
-                  throw new \YeAPF\YeAPFException($message);
+                  throw new \YeAPF\YeAPFException($message, YeAPF_INVALID_FLOAT_VALUE);
                 }
               }
             }
           } elseif (YeAPF_TYPE_BOOL == $type) {
+            if ($debug)
+              _log('Checkpoint#2 at ' . __LINE__);
             if (!(null === $value && $acceptNULL)) {
               if (!is_bool($value)) {
                 if (1 == $value || 'Y' == strtoupper("$value")) {
@@ -641,99 +690,124 @@ class SanitizedKeyData extends KeyData
                   $value = false;
                 }
               }
+              $validTrueStrings = ['true', 'yes', '1', 'y', 't', 'enabled', 'on'];
+              $validFalseStrings = ['false', 'no', '0', 'n', 'f', 'disabled', 'off'];
+              if (is_string($value)) {
+                if (in_array(mb_strtolower(trim($value)), $validTrueStrings)) {
+                  $value = true;
+                } elseif (in_array(mb_strtolower(trim($value)), $validFalseStrings)) {
+                  $value = false;
+                }
+              }
               if (!is_bool($value)) {
-                list($message, $error) = ['Invalid boolean value in ' . get_class() . '.' . $keyName . ': ' . print_r($value, true), YeAPF_INVALID_KEY_VALUE];
+                list($message, $error) = ['INVALID BOOLEAN value in ' . get_class() . '.' . $keyName . ': ' . print_r($value, true), YeAPF_INVALID_KEY_VALUE];
                 if ($debug)
                   _log($message);
                 throw new \YeAPF\YeAPFException($message, YeAPF_VALUE_OUT_OF_RANGE);
               }
             }
           } elseif (YeAPF_TYPE_DATE == $type) {
+            if ($debug)
+              _log('Checkpoint#2 at ' . __LINE__);
             if (!(null === $value && $acceptNULL)) {
               if (!is_string($value)) {
-                list($message, $error) = ['Invalid date type (string expected) in ' . get_class() . '.' . $keyName, YeAPF_INVALID_DATE_TYPE];
+                list($message, $error) = ['INVALID DATE type (string expected) in ' . get_class() . '.' . $keyName, YeAPF_INVALID_DATE_TYPE];
                 if ($debug)
                   _log($message);
-                throw new \YeAPF\YeAPFException($message);
+                throw new \YeAPF\YeAPFException($message, YeAPF_INVALID_DATE_TYPE);
               } else {
-                if (!preg_match(YeAPF_DATE_REGEX, $value))
-                  list($message, $error) = ['Invalid date value in ' . get_class() . '.' . $keyName, YeAPF_INVALID_DATE_VALUE];
-                if ($debug)
-                  _log($message);
-                {
-                  throw new \YeAPF\YeAPFException($message);
-                }
-                if (strlen($value) > $length) {
-                  list($message, $error) = ['Date value too long in ' . get_class() . '.' . $keyName, YeAPF_VALUE_TOO_LONG];
+                if (!preg_match(YeAPF_DATE_REGEX, $value)) {
+                  list($message, $error) = ['INVALID DATE value in ' . get_class() . '.' . $keyName, YeAPF_INVALID_DATE_VALUE];
                   if ($debug)
                     _log($message);
-                  throw new \YeAPF\YeAPFException($message);
+                  {
+                    throw new \YeAPF\YeAPFException($message, YeAPF_INVALID_DATE_VALUE);
+                  }
+                }
+                if (strlen($value) > $length) {
+                  list($message, $error) = ['INVALID DATE. Value too long in ' . get_class() . '.' . $keyName . ' (' . strlen($value) . ' presents but no more than ' . $length . ' chars allowed)', YeAPF_VALUE_TOO_LONG];
+                  if ($debug)
+                    _log($message);
+                  throw new \YeAPF\YeAPFException($message, YeAPF_VALUE_TOO_LONG);
                 }
               }
             }
           } elseif (YeAPF_TYPE_DATETIME == $type) {
+            if ($debug)
+              _log('Checkpoint#2 at ' . __LINE__);
             if (!(null === $value && $acceptNULL)) {
               if (!is_string($value)) {
-                list($message, $error) = ['Invalid datetime type (string expected) in ' . get_class() . '.' . $keyName, YeAPF_INVALID_DATE_TYPE];
+                list($message, $error) = ['INVALID DATETIME type (string expected) in ' . get_class() . '.' . $keyName, YeAPF_INVALID_DATE_TYPE];
                 if ($debug)
                   _log($message);
-                throw new \YeAPF\YeAPFException($message);
+                throw new \YeAPF\YeAPFException($message, YeAPF_INVALID_DATETIME_VALUE);
               } else {
+                if ($value > '' && strlen($value) < $length) {
+                  if (preg_match(YeAPF_DATE_REGEX, $value)) {
+                    $value .= ' 00:00:00';
+                  }
+                }
                 if (!preg_match(YeAPF_DATETIME_REGEX, $value)) {
-                  list($message, $error) = ['Invalid datetime value in ' . get_class() . '.' . $keyName, YeAPF_INVALID_DATE_VALUE];
+                  list($message, $error) = ['INVALID DATETIME value in ' . get_class() . '.' . $keyName, YeAPF_INVALID_DATE_VALUE];
                   if ($debug)
                     _log($message);
-                  throw new \YeAPF\YeAPFException($message);
+                  throw new \YeAPF\YeAPFException($message, YeAPF_INVALID_DATETIME_VALUE);
                 }
               }
             }
           } elseif (YeAPF_TYPE_TIME == $type) {
+            if ($debug)
+              _log('Checkpoint#2 at ' . __LINE__);
             if (!(null === $value && $acceptNULL)) {
               if (!is_string($value)) {
-                list($message, $error) = ['Invalid time type (string expected) in ' . get_class() . '.' . $keyName, YeAPF_INVALID_DATE_TYPE];
+                list($message, $error) = ['INVALID TIME type (string expected) in ' . get_class() . '.' . $keyName, YeAPF_INVALID_DATE_TYPE];
                 if ($debug)
                   _log($message);
-                throw new \YeAPF\YeAPFException($message);
+                throw new \YeAPF\YeAPFException($message, YeAPF_INVALID_TIME_TYPE);
               } else {
                 if (!preg_match(YeAPF_TIME_REGEX, $value))
-                  list($message, $error) = ['Invalid time value in ' . get_class() . '.' . $keyName, YeAPF_INVALID_DATE_VALUE];
+                  list($message, $error) = ['INVALID TIME value in ' . get_class() . '.' . $keyName, YeAPF_INVALID_DATE_VALUE];
                 if ($debug)
                   _log($message);
                 {
-                  throw new \YeAPF\YeAPFException($message);
+                  throw new \YeAPF\YeAPFException($message, YeAPF_INVALID_TIME_VALUE);
                 }
               }
             }
           } elseif (YeAPF_TYPE_JSON == $type) {
+            if ($debug)
+              _log('Checkpoint#2 at ' . __LINE__);
             if (!(null === $value && $acceptNULL)) {
               if (is_array($value)) {
                 $value = json_encode($value);
               }
               if (!is_string($value)) {
-                list($message, $error) = ['Invalid JSON type (string expected) in ' . get_class() . '.' . $keyName, YeAPF_INVALID_JSON_TYPE];
+                list($message, $error) = ['INVALID JSON type (string expected) in ' . get_class() . '.' . $keyName, YeAPF_INVALID_JSON_TYPE];
                 if ($debug)
                   _log($message);
-                throw new \YeAPF\YeAPFException($message);
+                throw new \YeAPF\YeAPFException($message, YeAPF_INVALID_JSON_TYPE);
               } else {
                 $json = json_decode($value, true);
                 if (null === $json) {
-                  list($message, $error) = ['Invalid JSON value in ' . get_class() . '.' . $keyName, YeAPF_INVALID_JSON_VALUE];
+                  list($message, $error) = ['INVALID JSON value in ' . get_class() . '.' . $keyName, YeAPF_INVALID_JSON_VALUE];
                   if ($debug)
                     _log($message);
-                  throw new \YeAPF\YeAPFException($message);
+                  throw new \YeAPF\YeAPFException($message, YeAPF_INVALID_JSON_VALUE);
                 }
               }
             }
           } else {
-            list($message, $error) = ['Invalid key type in ' . get_class() . '.' . $keyName . ' or not implemented', YeAPF_INVALID_KEY_TYPE];
+            if ($debug)
+              _log('Checkpoint#2 at ' . __LINE__);
+            list($message, $error) = ['INVALID KEY type in ' . get_class() . '.' . $keyName . ' or not implemented', YeAPF_INVALID_KEY_TYPE];
             if ($debug)
               _log($message);
-            throw new \YeAPF\YeAPFException($message);
+            throw new \YeAPF\YeAPFException($message, YeAPF_INVALID_KEY_TYPE);
           }
         }
 
         if ($debug)
-          _log('Checkpoint#2');
+          _log('Checkpoint#3');
 
         if (null !== $regExpression) {
           if ($value !== null) {
@@ -752,7 +826,7 @@ class SanitizedKeyData extends KeyData
           _log('Checkpoint#3');
       } else {
         if ($debug)
-          _log("Checkpoint#4: no constraint for $keyName");
+          _log("WARNING: no constraint for $keyName");
       }
     } catch (\Throwable $th) {
       list($message, $error) = [$th->getMessage(), $th->getCode()];
@@ -830,34 +904,70 @@ class SanitizedKeyData extends KeyData
   public function __set(string $name, mixed $value)
   {
     $debug = true;
+    
     $value = $this->sanitize($value);
     if ($debug)
-      _log("setting '$name' with " . print_r($value, true) . "\n");
-    $value = $this->checkConstraint($name, $value);
-    if ($debug)
-      _log('  :: value = ' . print_r($value, true) . "\n");
-    if (null !== $value) {
-      $sedInputExpression = $this->__constraints[$name]['sedInputExpression'] ?? null;
-      if (null !== $sedInputExpression) {
-        if ($debug)
-          _log("Applying sedInputExpression $sedInputExpression\n");
-        $expression = trim($sedInputExpression, "'");
-        $expression = str_replace('\/', '#', $expression);
-        list($pattern, $replacement) = preg_split('/\//', $expression, -1, PREG_SPLIT_NO_EMPTY);
-        $pattern = str_replace('#', '\/', $pattern);
-        $replacement = str_replace('#', '/', $replacement);
-        $max_length = strlen($value);
-        preg_match_all('/{(\d+)}/', $pattern, $matches);
-        if (isset($matches[1])) {
-          $max_length = 0;
-          foreach ($matches[1] as $field_len) {
-            $max_length += $field_len;
+      _log("Setting '$name' with ---[" . print_r($value, true) . "]---\n");
+
+    $regExpCount = 0;
+    if (\YeAPF\YeAPFConfig::allowExpressionsInSanitizedInput()) {
+      if (is_string($value)) {
+        $auxValue = $value;
+        $simplifiedExpression = [];
+        $regExpOpened = false;
+        while (preg_match('/(%(GTE|GT|EQ|NEQ|LT|LTE|BT|GREATERTHANOREQUALSTO|GREATERTHAN|EQUALSTO|NOTEQUALSTO|LESSTHAN|LESSTHANOREQUALTOO|BETWEEN))\(([\'|"]{0,}[0-9\. \t]{0,}[\'|"]{0,})\)/i', $auxValue, $reg_parts)) {
+          $regExpOpened = false;
+          $regExpCount++;
+          $pos = strpos($auxValue, $reg_parts[0]);
+          $simplifiedExpression[] = substr($auxValue, $pos, strlen($reg_parts[0]));
+          $auxValue = trim(substr($auxValue, $pos + strlen($reg_parts[0])));
+          if (strlen($auxValue) > 0) {
+            if (preg_match('/(and|or)/i', $auxValue, $reg_parts_2)) {
+              $simplifiedExpression[] = $reg_parts_2[0];
+              $auxValue = substr($auxValue, strlen($reg_parts_2[0]));
+              $regExpOpened = true;
+            } else {
+              throw new YeAPF\YeAPFException('Invalid expression: logical operator expected', YeAPF_EXPRESSION_NOT_VALID);
+            }
           }
         }
-        $value2 = substr($value, 0, $max_length);
 
-        $value = preg_replace("/$pattern/", $replacement, $value2);
+        if ($regExpOpened) {
+          throw new YeAPF\YeAPFException('Incomplete expression', YeAPF_EXPRESSION_NOT_VALID);
+        }
       }
+    }
+    if (0 == $regExpCount) {
+      // print_r('['.$name.'] ');
+      // print_r($value);
+      $value = $this->checkConstraint($name, $value);
+      if ($debug)
+        _log('  :: value = ' . print_r($value, true) . "\n");
+      if (null !== $value) {
+        $sedInputExpression = $this->__constraints[$name]['sedInputExpression'] ?? null;
+        if (null !== $sedInputExpression) {
+          if ($debug)
+            _log("Applying sedInputExpression $sedInputExpression\n");
+          $expression = trim($sedInputExpression, "'");
+          $expression = str_replace('\/', '#', $expression);
+          list($pattern, $replacement) = preg_split('/\//', $expression, -1, PREG_SPLIT_NO_EMPTY);
+          $pattern = str_replace('#', '\/', $pattern);
+          $replacement = str_replace('#', '/', $replacement);
+          $max_length = strlen($value);
+          preg_match_all('/{(\d+)}/', $pattern, $matches);
+          if (isset($matches[1])) {
+            $max_length = 0;
+            foreach ($matches[1] as $field_len) {
+              $max_length += $field_len;
+            }
+          }
+          $value2 = substr($value, 0, $max_length);
+
+          $value = preg_replace("/$pattern/", $replacement, $value2);
+        }
+      }
+    } else {
+      $value = $simplifiedExpression;
     }
     parent::__set($name, $value);
   }

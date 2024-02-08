@@ -2,8 +2,8 @@
 
 namespace YeAPF\ORM;
 
-use Swoole;
 use Swoole\Coroutine;
+use Swoole;
 
 /**
  * This class is used to simulate a Redis database
@@ -111,7 +111,7 @@ class DocumentModel extends \YeAPF\SanitizedKeyData
                         case 'bytea':
                             $constraint['keyType'] = YeAPF_TYPE_BYTES;
                             break;
-                        
+
                         case 'json':
                             $constraint['keyType'] = YeAPF_TYPE_JSON;
                             break;
@@ -144,10 +144,10 @@ class DocumentModel extends \YeAPF\SanitizedKeyData
                 $this->setConstraint(
                     keyName: $constraint['keyName'],
                     keyType: $constraint['keyType'],
-                    length: $constraint['length']??null,
-                    unique: $constraint['unique']??null,
-                    primary: $constraint['primary']??null,
-                    required: $constraint['required']??null,
+                    length: $constraint['length'] ?? null,
+                    unique: $constraint['unique'] ?? null,
+                    primary: $constraint['primary'] ?? null,
+                    required: $constraint['required'] ?? null,
                     protobufOrder: ++$pbo
                 );
             }
@@ -170,7 +170,7 @@ class DocumentModel extends \YeAPF\SanitizedKeyData
                 }
             }
         }
-        \_log("DocumentModel constraints: ".json_encode($ret));
+        \_log('DocumentModel constraints: ' . json_encode($ret));
         return $ret;
     }
 
@@ -226,7 +226,7 @@ class DocumentModel extends \YeAPF\SanitizedKeyData
                             break;
                         case YeAPF_TYPE_BYTES:
                             $type = 'bytes';
-                            break;                        
+                            break;
                         case YeAPF_TYPE_JSON:
                             $type = 'json';
                             break;
@@ -598,9 +598,9 @@ class SharedSanitizedCollection extends \YeAPF\ORM\SharedSanitizedKeyData implem
 
     public function getDocumentModel()
     {
-        _log("Getting Document Model on '".$this->collectionName."' @".get_class());
-        $ret =  $this->documentModel;
-        _log("Returning Document Model".(is_null($ret) ? " (null)" : json_encode($ret)));
+        _log("Getting Document Model on '" . $this->collectionName . "' @" . get_class());
+        $ret = $this->documentModel;
+        _log('Returning Document Model' . (is_null($ret) ? ' (null)' : json_encode($ret->getDocumentModelConstraints())));
         return $ret;
     }
 
@@ -633,7 +633,11 @@ class SharedSanitizedCollection extends \YeAPF\ORM\SharedSanitizedKeyData implem
     {
         $ret = false;
         if ($this->getRedisConnection()->getConnected()) {
+            _log("Getting document $id from REDIS $this->collectionName");
             $ret = $this->getRedisConnection()->hgetall("$this->collectionName:$id");
+            _log('Returning document ' . json_encode($ret));
+            if (empty($ret))
+                $ret = false;
         }
         return $ret;
     }
@@ -703,15 +707,108 @@ class SharedSanitizedCollection extends \YeAPF\ORM\SharedSanitizedKeyData implem
     public function subsetByExample($example, $count, $start = 0)
     {
         $ret = [];
+        // print_r('Searching for: ' . print_r($example->exportData(), true));
         if ($this->getRedisConnection()->getConnected()) {
             $pos = 0;
             foreach ($this->listDocuments() as $id) {
                 $documentFound = true;
                 foreach ($example as $fieldName => $sampleValue) {
                     $auxValue = $this->getRedisConnection()->hget("$this->collectionName:$id", $fieldName);
-                    if ($auxValue != $sampleValue) {
-                        $documentFound = false;
-                        break;
+                    if (\YeAPF\YeAPFConfig::allowExpressionsInSanitizedInput() && is_array($sampleValue)) {
+                        $ndx = 0;
+                        $expressionResult = false;
+                        $lastOp = 'or';
+                        while ($ndx < count($sampleValue)) {
+                            preg_match('/%([A-Za-z]*)\((.*)\)/i', $sampleValue[$ndx], $token);
+                            switch (trim(mb_strtoupper($token[1]))) {
+                                case 'GTE':
+                                case 'GREATERTHANOREQUALSTO':
+                                    if ('or' == $lastOp) {
+                                        $expressionResult = $expressionResult || ($auxValue >= $token[2]);
+                                    } else {
+                                        $expressionResult = $expressionResult && ($auxValue >= $token[2]);
+                                    }
+                                    break;
+
+                                case 'GT':
+                                case 'GREATERTHAN':
+                                    if ('or' == $lastOp) {
+                                        $expressionResult = $expressionResult || ($auxValue > $token[2]);
+                                    } else {
+                                        $expressionResult = $expressionResult && ($auxValue > $token[2]);
+                                    }
+                                    break;
+
+                                case 'LT':
+                                case 'LESSTHAN':
+                                    if ('or' == $lastOp) {
+                                        $expressionResult = $expressionResult || ($auxValue < $token[2]);
+                                    } else {
+                                        $expressionResult = $expressionResult && ($auxValue < $token[2]);
+                                    }
+                                    break;
+
+                                case 'LTE':
+                                case 'LESSTHANOREQUALSTO':
+                                    if ('or' == $lastOp) {
+                                        $expressionResult = $expressionResult || ($auxValue <= $token[2]);
+                                    } else {
+                                        $expressionResult = $expressionResult && ($auxValue <= $token[2]);
+                                    }
+                                    break;
+
+                                case 'EQ':
+                                case 'EQUALSTO':
+                                    if ('or' == $lastOp) {
+                                        $expressionResult = $expressionResult || ($auxValue == $token[2]);
+                                    } else {
+                                        $expressionResult = $expressionResult && ($auxValue == $token[2]);
+                                    }
+                                    break;
+
+                                case 'NEQ':
+                                case 'NOTEQUALSTO':
+                                    if ('or' == $lastOp) {
+                                        $expressionResult = $expressionResult || ($auxValue != $token[2]);
+                                    } else {
+                                        $expressionResult = $expressionResult && ($auxValue != $token[2]);
+                                    }
+                                    break;
+
+                                case 'BT':
+                                case 'BETWEEN':
+                                    if ('or' == $lastOp) {
+                                        $expressionResult = $expressionResult || ($auxValue >= $token[2] && $auxValue <= $token[3]);
+                                    } else {
+                                        $expressionResult = $expressionResult && ($auxValue >= $token[2] && $auxValue <= $token[3]);
+                                    }
+
+                                default:
+                                    throw new \YeAPF\YeAPFException('Unrecognized verb ' . $token[1], YeAPF_UNRECOGNIZED_VERB);
+                            }
+
+                            $ndx++;
+                            if ($ndx < count($sampleValue)) {
+                                if (preg_match('/(and|or)/i', $sampleValue[$ndx], $token)) {
+                                    $lastOp = trim(mb_strtolower($token[1]));
+                                    if (!($lastOp == 'and' || $lastOp == 'or')) {
+                                        throw new \YeAPF\YeAPFException('Unrecognized operator ' . $token[1], YeAPF_UNRECOGNIZED_OPERATOR);
+                                    }
+                                    $ndx++;
+                                } else {
+                                    throw new \YeAPF\YeAPFException('INVALID EXPRESSION AT THIS POINT ' . $token[1], YeAPF_EXPRESSION_NOT_VALID);
+                                }
+                            }
+                        }
+                        if (!$expressionResult) {
+                            $documentFound = false;
+                            break;
+                        }
+                    } else {
+                        if ($auxValue != $sampleValue) {
+                            $documentFound = false;
+                            break;
+                        }
                     }
                 }
                 if ($documentFound) {
@@ -777,21 +874,26 @@ class PersistentCollection extends \YeAPF\ORM\SharedSanitizedCollection implemen
     public function grantCollection()
     {
         $debug = false;
-        if ($debug) _log('>>> Asking for connection');
+        if ($debug)
+            _log('>>> Asking for connection');
         $pdo = null;
         $this->pskData->gainPDOConnection($pdo);
-        if ($debug) _log('>>> Ready to work');
+        if ($debug)
+            _log('>>> Ready to work');
         // print_r($pdo);
         try {
-            if ($debug) _log(' * ' . __LINE__ . '');
+            if ($debug)
+                _log(' * ' . __LINE__ . '');
             if (!$pdo->tableExists(self::getCollectionName())) {
                 $sql = self::exportDocumentModel(YeAPF_SQL_FORMAT);
                 $ret = $pdo->query($sql);
             }
-            if ($debug) _log(' * ' . __LINE__ . '');
+            if ($debug)
+                _log(' * ' . __LINE__ . '');
 
             foreach ($this->getDocumentModel()->getConstraints() as $key => $constraint) {
-                if ($debug) _log('  * ' . __LINE__ . " $key " . json_encode($constraint));
+                if ($debug)
+                    _log('  * ' . __LINE__ . " $key " . json_encode($constraint));
                 $columnDefinition = $key . ' ' . self::internalType2SQLType($constraint);
 
                 if (false == $constraint['acceptNULL']) {
@@ -818,10 +920,13 @@ class PersistentCollection extends \YeAPF\ORM\SharedSanitizedCollection implemen
                     $diff = array_diff($internalColDef, $colDef);
 
                     if (!empty($diff)) {
-                        $debug=true;
-                        if ($debug) _log('Database Column Definition:'. print_r($colDef, true));
-                        if ($debug) _log('Internal Column Definition:'. print_r($internalColDef, true));
-                        if ($debug) _log('Differences:'. print_r($diff, true));
+                        $debug = true;
+                        if ($debug)
+                            _log('Database Column Definition:' . print_r($colDef, true));
+                        if ($debug)
+                            _log('Internal Column Definition:' . print_r($internalColDef, true));
+                        if ($debug)
+                            _log('Differences:' . print_r($diff, true));
                         foreach ($diff as $colDefKey => $colDefValue) {
                             $sql = 'alter table ' . self::getCollectionName();
                             switch ($colDefKey) {
@@ -830,6 +935,7 @@ class PersistentCollection extends \YeAPF\ORM\SharedSanitizedCollection implemen
                                     break;
 
                                 case 'column_type':
+                                case 'data_type':
                                     $sql .= " alter $key TYPE " . $colDefValue;
                                     break;
 
@@ -853,8 +959,8 @@ class PersistentCollection extends \YeAPF\ORM\SharedSanitizedCollection implemen
                                     break;
 
                                 default:
-                                    _log(' **** ' . __LINE__ . " $colDefKey: ".print_r($colDefValue,true));
-                                    throw new \YeAPF\YeAPFException("$colDefKey ... e agora?", YeAPF_ERROR_CODE);
+                                    _log(' **** ' . __LINE__ . " $colDefKey: " . print_r($colDefValue, true));
+                                    throw new \YeAPF\YeAPFException("I don't know what to do with '$colDefKey' = '$colDefValue' on '$key' ... !", YeAPF_UNIMPLEMENTED_KEY_TYPE);
                                     break;
                             }
                         }
@@ -863,7 +969,8 @@ class PersistentCollection extends \YeAPF\ORM\SharedSanitizedCollection implemen
                     }
                 }
             }
-            if ($debug) _log(' * ' . __LINE__ . '');
+            if ($debug)
+                _log(' * ' . __LINE__ . '');
         } finally {
             $this->pskData->giveBackPDOConnection($pdo);
         }
@@ -1066,10 +1173,10 @@ class PersistentCollection extends \YeAPF\ORM\SharedSanitizedCollection implemen
 
     public function hasDocument(string $id)
     {
-        $id=trim($id);
-        if ($id>'') {
+        $id = trim($id);
+        if ($id > '') {
             $ret = parent::hasDocument($id);
-            if ($ret==false) {
+            if ($ret == false) {
                 $ret = $this->hasDocumentInDatabase($id);
             }
         } else {
@@ -1082,34 +1189,42 @@ class PersistentCollection extends \YeAPF\ORM\SharedSanitizedCollection implemen
     public function getDocument(string $id)
     {
         $ret = null;
-        if (parent::hasDocument($id)) {
-            \_log("Using cached data for ".$this->getCollectionName().".$id");
-            // 
-            $ret=clone $this->getDocumentModel();
-            $ret->importData(parent::getDocument($id));
-        } else {
+        $useCache = parent::hasDocument($id);
+        if ($useCache) {
+            \_log('Using cached data for ' . $this->getCollectionName() . ".$id");
+            //
+            $ret = clone $this->getDocumentModel();
+            $data = parent::getDocument($id);
+            if ($data)
+                $ret->importData($data);
+            else
+                $useCache = false;
+        }
+
+        if (!$useCache) {
             $sql = 'select * from ' . $this->getCollectionName() . ' where ' . $this->getCollectionIdName() . '=:id';
             $params = [$this->getCollectionIdName() => $id];
             // $ret = $this->pskData->getPDOConnection()->queryAndFetch($sql, $params);
 
-            // 
-            $ret=clone $this->getDocumentModel();
+            //
+            $ret = clone $this->getDocumentModel();
             $this->pskData->do(
                 function ($conn) use ($id, $sql, &$ret, $params) {
                     $data = $conn->queryAndFetch($sql, $params);
-                    \_log("DATA: ".print_r($data, true));
+                    \_log('DATA: ' . print_r($data, true));
                     parent::setDocument($id, $data);
                     $ret->importData(parent::getDocument($id));
                 }
             );
         }
-        \_log("RET: ".print_r($ret->exportData(), true));
+        \_log('RET: ' . print_r($ret->exportData(), true));
         return $ret;
     }
 
     public function setDocument(string|null $id, mixed &$data)
     {
         $ret = null;
+
         /**
          * Here is the dilema: If I update a document in the cache first,
          * and the update in the database fails, the cache will contain wrong data
@@ -1139,7 +1254,6 @@ class PersistentCollection extends \YeAPF\ORM\SharedSanitizedCollection implemen
 
     public function deleteDocument(string $id)
     {
-        parent::deleteDocument($id);
         $sql = 'delete from ' . $this->getCollectionName() . ' where id=:id';
         $params = [$this->getCollectionIdName() => $id];
         $this->pskData->do(
@@ -1147,6 +1261,7 @@ class PersistentCollection extends \YeAPF\ORM\SharedSanitizedCollection implemen
                 $conn->query($sql, $params);
             }
         );
+        parent::deleteDocument($id);
         // $this->pskData->getPDOConnection()->query($sql, $params);
     }
 
@@ -1162,12 +1277,12 @@ class PersistentCollection extends \YeAPF\ORM\SharedSanitizedCollection implemen
         $params = [];
         $this->pskData->do(
             function ($conn) use ($sql, $params, &$ret) {
-                \_log("SQL: " . $sql);
+                \_log('SQL: ' . $sql);
                 $stmt = $conn->query($sql, $params);
                 while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
                     $ret[] = $row[$this->getCollectionIdName()];
                 }
-                \_log("RET: ".print_r($ret, true));
+                \_log('RET: ' . print_r($ret, true));
             }
         );
         return $ret;
@@ -1177,51 +1292,147 @@ class PersistentCollection extends \YeAPF\ORM\SharedSanitizedCollection implemen
     {
         $data = $this->subsetByExample($example, 1)[0] ?? false;
         $ret = new \YeAPF\SanitizedKeyData();
-        $ret->importData($data);
+        if (is_array($data)) {
+            $ret->importData($data);
+        } else {
+            $ret->importData($data->exportData());
+        }
         return $ret;
     }
 
     public function subsetByExample($example, $count, $start = 0)
     {
+        $cachedRet = parent::subsetByExample($example, $count, $start);
+        $cachedQuotedIdList = array_map(function ($data) {
+            return "'" . $data[$this->getCollectionIdName()] . "'";
+        }, $cachedRet);
+        $cachedIdList = array_map(function ($data) {
+            return $data[$this->getCollectionIdName()];
+        }, $cachedRet);
+
         $sql = 'select ' . $this->getCollectionIdName() . ' from ' . $this->getCollectionName() . ' where ';
         $c = 0;
+        $exceptionList = [];
+        $usingExpression = false;
         foreach ($example as $fieldName => $value) {
             if ($c++ > 0) {
                 $sql .= ' and ';
             }
-            $sql .= sprintf('%s=:%s ', $fieldName, $fieldName);
+            $sql .= '(';
+            if (\YeAPF\YeAPFConfig::allowExpressionsInSanitizedInput() && is_array($value)) {
+                $ndx = 0;
+                while ($ndx < count($value)) {
+                    preg_match('/%([A-Za-z]*)\((.*)\)/i', $value[$ndx], $token);
+                    switch (trim(mb_strtoupper($token[1]))) {
+                        case 'GTE':
+                        case 'GREATERTHANOREQUALSTO':
+                            $sql .= sprintf('%s>=%s ', $fieldName, $token[2]);
+                            break;
+
+                        case 'GT':
+                        case 'GREATERTHAN':
+                            $sql .= sprintf('%s>%s ', $fieldName, $token[2]);
+                            break;
+
+                        case 'LT':
+                        case 'LESSTHAN':
+                            $sql .= sprintf('%s<%s ', $fieldName, $token[2]);
+                            break;
+
+                        case 'LTE':
+                        case 'LESSTHANOREQUALSTO':
+                            $sql .= sprintf('%s<=%s ', $fieldName, $token[2]);
+                            break;
+
+                        case 'EQ':
+                        case 'EQUALSTO':
+                            $sql .= sprintf('%s=%s ', $fieldName, $token[2]);
+                            break;
+
+                        case 'NEQ':
+                        case 'NOTEQUALSTO':
+                            $sql .= sprintf('%s<>%s ', $fieldName, $token[2]);
+                            break;
+
+                        case 'BT':
+                        case 'BETWEEN':
+                            $aux = explode(',', $token[2]);
+                            $sql .= sprintf('(%s>=%s and %s<=%s) ', $fieldName, $aux[0], $fieldName, $aux[1]);
+                            break;
+
+                        default:
+                            throw new \YeAPF\YeAPFException('Unrecognized verb ' . $token[1], YeAPF_UNRECOGNIZED_VERB);
+                    }
+                    $ndx++;
+                    if ($ndx < count($value)) {
+                        if (preg_match('/(and|or)/i', $value[$ndx], $token)) {
+                            switch (trim(mb_strtolower($token[1]))) {
+                                case 'and':
+                                    $sql .= ' and ';
+                                    break;
+                                case 'or':
+                                    $sql .= ' or ';
+                                    break;
+                                default:
+                                    throw new \YeAPF\YeAPFException('Unrecognized operator ' . $token[1], YeAPF_UNRECOGNIZED_OPERATOR);
+                            }
+                            $ndx++;
+                        } else {
+                            throw new \YeAPF\YeAPFException('INVALID EXPRESSION AT THIS POINT ' . $token[1], YeAPF_EXPRESSION_NOT_VALID);
+                        }
+                    }
+                }
+                $exceptionList[] = $fieldName;
+                $usingExpression = true;
+            } else {
+                $sql .= sprintf('%s=:%s ', $fieldName, $fieldName);
+            }
+            $sql .= ')';
         }
+
+        if (count($cachedRet) > 0) {
+            $sql .= ' and ' . $this->getCollectionIdName() . ' not in (' . implode(',', $cachedQuotedIdList) . ') ';
+        }
+
         if ($count <= 0) {
             $sql .= "offset $start";
         } else {
             $sql .= "limit $count offset $start";
         }
 
-        $sql = 'select * from ' . $this->getCollectionName() . ' where ' . $this->getCollectionIdName() . ' in (' . $sql . ')';
+        $sql = 'select * from ' . $this->getCollectionName() . ' where ' . $this->getCollectionIdName() . ' in (' . $sql . ') ';
+        // if ($usingExpression)
+        //   die("$sql\n");
 
         if ($example instanceof \YeAPF\KeyData) {
-            $params = $example->exportData();
+            $params = $example->exportData($exceptionList);
         } else {
             $params = $example;
         }
 
-        _log("SQL: $sql");
-        _log('PARAMS: ' . json_encode($params));
-
-        $ret = [];
+        _log("SQL:         $sql");
+        _log('PARAMS:      ' . json_encode($params));
+        _log('CACHED ID:   ' . json_encode($cachedIdList));
+        // _log('CACHED DATA: '.print_r($cachedRet, true));
+        $ret = array_map(function ($row) {
+            _log(json_encode($row->exportData()));
+            return $row->exportData();
+        }, $cachedRet);
         $this->pskData->do(
-            function ($conn) use ($sql, &$ret, $params) {
-                if (empty($params)) {
+            function ($conn) use ($sql, &$ret, $params, $usingExpression) {
+                if (!$usingExpression && empty($params)) {
                     _log('WARNING: NO PARAMS');
                 } else {
                     _log('CONN: ' . json_encode($conn));
                     $stmt = $conn->query($sql, $params);
                     while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
                         $ret[] = $row;
+                        parent::setDocument($row['id'], $row);
                     }
                 }
             }
         );
+        _log('RET: ' . json_encode($ret));
 
         return $ret;
     }

@@ -55,6 +55,16 @@ require_once __DIR__ . "/yeapf-config.php";
   \_log("Core Ready");
 })();
 
+
+\_log("YeAPF Basic Types");
+
+if ((!file_exists(__DIR__ . "/misc/yTypes.php")) || (filemtime(__DIR__ . "/yeapf-definitions.php") > filemtime(__DIR__ . "/misc/yTypes.php"))) {
+    require_once __DIR__ . "/misc/yGenerateBasicTypes.php";
+}
+
+require_once __DIR__ . "/misc/yTypes.php";
+
+
 \YeAPF\Plugins\PluginList::loadPlugins(__DIR__ . "/plugins");
 \YeAPF\Plugins\PluginList::loadPlugins("plugins");
 

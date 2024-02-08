@@ -167,7 +167,7 @@ class WebApp
                 }
             }, $content);
         } else {
-            $content = preg_replace($filesHookExpr, '$1$4?' . $antiCacheURI . '$5', $content);
+            $content = preg_replace($filesHookExpr, '$1$4?' . $antiCacheURI . '$5', $content??'');
         }
 
         return $content;

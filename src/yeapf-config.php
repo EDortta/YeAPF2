@@ -6,6 +6,7 @@ class YeAPFConfig  {
   use \YeAPF\Assets;
   static private $configAreas = [];
   static private $config      = null;
+  static private $allowExpressionsInSanitizedInput = true;
 
   public static function getConfigFile() {
     return self::$configFile;
@@ -86,5 +87,12 @@ class YeAPFConfig  {
 
     }
     return $ret;
+  }
+
+  public static function allowExpressionsInSanitizedInput(?bool $newState=null): bool {
+    if (null !== $newState) {
+      self::$allowExpressionsInSanitizedInput = $newState;
+    }
+    return self::$allowExpressionsInSanitizedInput;    
   }
 }

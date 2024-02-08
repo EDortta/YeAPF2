@@ -5,14 +5,14 @@
  * @version 2
  * @package YeAPF
  */
-define('YeAPF_LOG_DEBUG', 100);
-define('YeAPF_LOG_INFO', 200);
-define('YeAPF_LOG_NOTICE', 300);
-define('YeAPF_LOG_WARNING', 400);
-define('YeAPF_LOG_ERROR', 500);
-define('YeAPF_LOG_CRITICAL', 600);
-define('YeAPF_LOG_ALERT', 700);
-define('YeAPF_LOG_EMERG', 800);
+define('YeAPF_LOG_DEBUG', 99);
+define('YeAPF_LOG_INFO', 199);
+define('YeAPF_LOG_NOTICE', 299);
+define('YeAPF_LOG_WARNING', 399);
+define('YeAPF_LOG_ERROR', 499);
+define('YeAPF_LOG_CRITICAL', 599);
+define('YeAPF_LOG_ALERT', 699);
+define('YeAPF_LOG_EMERG', 799);
 
 /*****************************************/
 /* KEY-DATA */
@@ -45,19 +45,28 @@ define('YeAPF_COLLECTION_BASE', 0x00000300);
 define('YeAPF_EYESHOT_BASE', 0x00000400);
 define('YeAPF_SERVICE_BASE', 0x00000500);
 define('YeAPF_SECURITY_BASE', 0x00000600);
+define('YeAPF_EXPRESSION_BASE', 0x00000700);
+define('YeAPF_PLUGIN_BASE', 0x00000800);
 
 define('YeAPF_INVALID_KEY_TYPE', YeAPF_DATA_EXCEPTION_BASE + 1);
 define('YeAPF_INVALID_KEY_VALUE', YeAPF_DATA_EXCEPTION_BASE + 2);
 define('YeAPF_NULL_NOT_ALLOWED', YeAPF_DATA_EXCEPTION_BASE + 3);
 define('YeAPF_INVALID_DATE_TYPE', YeAPF_DATA_EXCEPTION_BASE + 4);
 define('YeAPF_INVALID_DATE_VALUE', YeAPF_DATA_EXCEPTION_BASE + 5);
-define('YeAPF_VALUE_OUT_OF_RANGE', YeAPF_DATA_EXCEPTION_BASE + 6);
-define('YeAPF_VALUE_TOO_LONG', YeAPF_DATA_EXCEPTION_BASE + 7);
-define('YeAPF_LENGTH_IS_REQUIRED', YeAPF_DATA_EXCEPTION_BASE + 8);
-define('YeAPF_PROTOBUF_ORDER_IS_NOT_UNIQUE', YeAPF_DATA_EXCEPTION_BASE + 9);
-define('YeAPF_UNIMPLEMENTED_KEY_TYPE', YeAPF_DATA_EXCEPTION_BASE + 10);
-define('YeAPF_VALUE_DOES_NOT_SATISFY_REGEXP', YeAPF_DATA_EXCEPTION_BASE + 11);
-
+define('YeAPF_INVALID_INT_VALUE', YeAPF_DATA_EXCEPTION_BASE + 6);
+define('YeAPF_VALUE_OUT_OF_RANGE', YeAPF_DATA_EXCEPTION_BASE + 7);
+define('YeAPF_VALUE_TOO_LONG', YeAPF_DATA_EXCEPTION_BASE + 8);
+define('YeAPF_LENGTH_IS_REQUIRED', YeAPF_DATA_EXCEPTION_BASE + 9);
+define('YeAPF_PROTOBUF_ORDER_IS_NOT_UNIQUE', YeAPF_DATA_EXCEPTION_BASE + 10);
+define('YeAPF_UNIMPLEMENTED_KEY_TYPE', YeAPF_DATA_EXCEPTION_BASE + 11); 
+define('YeAPF_VALUE_DOES_NOT_SATISFY_REGEXP', YeAPF_DATA_EXCEPTION_BASE + 12);
+define('YeAPF_INVALID_FLOAT_VALUE', YeAPF_DATA_EXCEPTION_BASE + 13);
+define('YeAPF_INVALID_DATETIME_VALUE', YeAPF_DATA_EXCEPTION_BASE + 14);
+define('YeAPF_INVALID_TIME_TYPE', YeAPF_DATA_EXCEPTION_BASE + 15); 
+define('YeAPF_INVALID_TIME_VALUE', YeAPF_DATA_EXCEPTION_BASE + 16);
+define('YeAPF_INVALID_JSON_TYPE', YeAPF_DATA_EXCEPTION_BASE + 17); 
+define('YeAPF_INVALID_JSON_VALUE', YeAPF_DATA_EXCEPTION_BASE + 18);
+ 
 /**
  * Common regular expressions
  * These expressions are used to validate data when they are passed
@@ -70,9 +79,9 @@ define('YeAPF_TIME_REGEX', '/^([0-2]{1}[0-9]{1}):([0-5]{1}[0-9]{1}):([0-5]{1}[0-
 define('YeAPF_INT_REGEX', '/^([0-9]+$)/');
 define('YeAPF_FLOAT_REGEX', '/^([0-9]+)\.([0-9]+)$/');
 define('YeAPF_BOOL_REGEX', '/^(true|false)$/i');
-define('YeAPF_STRING_REGEX', '/^[^\p{C}]*$/u');
+define('YeAPF_STRING_REGEX', '/^[^\p{C}]*$/u'); 
 
-define('YeAPF_EMAIL_REGEX', '/^[a-zA-Z0-9.!#$%&’*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$/');
+define('YeAPF_EMAIL_REGEX', '/^([a-zA-Z0-9_\-\.]+)@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.)|(([a-zA-Z0-9\-]+\.)+))([a-zA-Z]{2,4}|[0-9]{1,3})(\]?)$/');
 define('YeAPF_UUID_REGEX', '/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/');
 
 /**
@@ -228,3 +237,14 @@ define('YeAPF_JWT_SIGNATURE_VERIFICATION_FAILED', YeAPF_SECURITY_BASE + 4);
 define('YeAPF_JWT_SIGNATURE_VERIFICATION_OK', YeAPF_SECURITY_BASE + 5);
 define('YeAPF_JWT_TOKEN_ALREADY_IN_BIN', YeAPF_SECURITY_BASE + 6);
 define('YeAPF_JWT_EXPIRED', YeAPF_SECURITY_BASE + 7);
+
+/***************************/
+/* EXPRESSIONS */
+define('YeAPF_EXPRESSION_UNDEFINED', YeAPF_EXPRESSION_BASE + 1);
+define('YeAPF_EXPRESSION_NOT_VALID', YeAPF_EXPRESSION_BASE + 2);
+define('YeAPF_UNRECOGNIZED_VERB', YeAPF_EXPRESSION_BASE + 3);
+define('YeAPF_UNRECOGNIZED_OPERATOR', YeAPF_EXPRESSION_BASE + 4);
+
+/***************************/
+/* PLUGINS */
+define('YeAPF_PLUGIN_ERROR', YeAPF_PLUGIN_BASE + 1);

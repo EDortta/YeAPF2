@@ -153,8 +153,7 @@ function generateUniqueId(): string
 
 function generateShortUniqueId(): string
 {
-  function __encodeTimeElement($element)
-  {
+  $__encodeTimeElement = function ($element) {
     // Refactored code to use hours over the set [A-Z, a-z, 0-7]
     if ($element < 26) {
       $code = chr($element + ord('A'));
@@ -164,12 +163,12 @@ function generateShortUniqueId(): string
       $code = chr($element - 52 + ord('0'));
     }
     return $code;
-  }
+  };
 
   $yearCode = chr((int) date('Y') - 2024 + ord('A'));
 
   $weekOfYear = (int) date('W');
-  $weekCode = __encodeTimeElement($weekOfYear);
+  $weekCode = $__encodeTimeElement($weekOfYear);
 
   $dayOfWeekCode = (string) date('w');
 
@@ -177,12 +176,12 @@ function generateShortUniqueId(): string
   $minutes = (int) date('i');
   $seconds = (int) date('s');
 
-  $timeCode = __encodeTimeElement($hours) . __encodeTimeElement($minutes) . __encodeTimeElement($seconds);
+  $timeCode = $__encodeTimeElement($hours) . $__encodeTimeElement($minutes) . $__encodeTimeElement($seconds);
 
   $serverHash = sha1(gethostname(), true);
   $serverId = substr(bin2hex($serverHash), 0, 3);
 
-  $randomString = substr(bin2hex(random_bytes(4)), 0, 3); 
+  $randomString = substr(bin2hex(random_bytes(4)), 0, 3);
 
   $ret = $yearCode . $weekCode . $dayOfWeekCode . $timeCode . $serverId . $randomString;
   return $ret;
