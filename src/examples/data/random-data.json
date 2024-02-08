@@ -1,5 +1,5 @@
 [
-    {
+	{
 		"name": "Zachary Morris",
 		"phone": "1-557-274-3634",
 		"email": "interdum.libero@outlook.org",
@@ -298,5 +298,65 @@
 		"ageAtHire": 28,
 		"pan": "6331105786293245681",
 		"cvv": 129
+	},
+	{
+		"name": "John Little Donout",
+		"phone": "123-456-7890",
+		"email": "john.doe@example.com",
+		"address": "123 Main St",
+		"country": "USA",
+		"region": "California",
+		"postalZip": "90210",
+		"birthDate": "1990-01-01",
+		"hired": "Yes",
+		"salary": 50000,
+		"ageAtHire": 25,
+		"pan": "1234 5678 9012 3456",
+		"cvv": 123
+	},
+	{
+		"name": "Jane Doe",
+		"phone": "987-654-3210",
+		"email": "jane.doe@example.com",
+		"address": "456 Park Ave",
+		"country": "USA",
+		"region": "New York",
+		"postalZip": "10022",
+		"birthDate": "1985-05-15",
+		"hired": "Yes",
+		"salary": 60000,
+		"ageAtHire": 27,
+		"pan": "1234 5678 9012 3457",
+		"cvv": 456
+	},
+	{
+		"name": "Bob Smith",
+		"phone": "123-456-7890",
+		"email": "bob.smith@example.com",
+		"address": "789 Elm St",
+		"country": "Canada",
+		"region": "Ontario",
+		"postalZip": "L5R 3Z4",
+		"birthDate": "1980-07-04",
+		"hired": "No",
+		"salary": 40000,
+		"ageAtHire": 35,
+		"pan": "1234 5678 9012 3458",
+		"cvv": 789
+	},
+	{
+		"name": "Alice Johnson",
+		"phone": "987-654-3210",
+		"email": "alice.johnson@example.com",
+		"address": "159 Pine St",
+		"country": "UK",
+		"region": "London",
+		"postalZip": "EC2A 3LP",
+		"birthDate": "1975-11-15",
+		"hired": "Yes",
+		"salary": 55000,
+		"ageAtHire": 40,
+		"pan": "1234 5678 9012 3459",
+		"cvv": 987
 	}
 ]
