@@ -3,11 +3,13 @@
 namespace YeAPF;
 
 global $__handlingException;
+
 $__handlingException = false;
 
 function handleException($message, $code, $file, $line, $trace, $isException = true)
 {
   global $__handlingException;
+
   if (!$__handlingException) {
     $__handlingException = true;
     $ret = [
@@ -52,9 +54,10 @@ function handleException($message, $code, $file, $line, $trace, $isException = t
 
     echo $dbgInfo;
     _log($dbgInfo);
-    if ($isException)
-      exit ($ret['code']);
-
+    if ($isException) {
+      \YeAPF\yLogger::closeLog();
+      exit($ret['code']);
+    }
     $__handlingException = false;
   }
 }

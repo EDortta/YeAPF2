@@ -11,6 +11,7 @@ class yLogger
   static private $syslogOpened = false;
   static private $areas = [];
   static private $minLogLevel = YeAPF_LOG_WARNING;
+  static private $logFileHandler = null;
 
   /**
    * Retrieves the path to the assets folder.
@@ -46,19 +47,41 @@ class yLogger
     return $ret;
   }
 
-  static public function defineLogTagAndLevel(string $tag, int $option)
+  static public function defineLogTag(string $tag)
   {
     if (self::$syslogOpened) {
       closelog();
       self::$syslogOpened = false;
     }
-    self::$syslogOpened = openlog($tag, $option, LOG_LOCAL0);
+    self::$syslogOpened = openlog($tag, LOG_PID | LOG_CONS, LOG_LOCAL0);
   }
 
   static public function defineLogFilters(array $areas, int $logLevel)
   {
     self::$areas = $areas;
     self::$minLogLevel = $logLevel;
+  }
+
+  static private function getLogFileHandler() 
+  {
+    if (null==self::$logFileHandler) {
+      $fileName = self::$logFolder . '/' . date('Y-m-d') . '.log';
+      self::$logFileHandler = fopen($fileName, 'a+');
+    }
+    return self::$logFileHandler;
+  }
+
+  static private function closeLog() 
+  {
+    if (self::$syslogOpened) {
+      closelog();
+      self::$syslogOpened = false;
+    }
+    if (null!=self::$logFileHandler) {
+      fflush(self::$logFileHandler);
+      fclose(self::$logFileHandler);
+      self::$logFileHandler = null;
+    }
   }
 
   static public function log(int $area, int $warningLevel, string $message)
@@ -83,31 +106,33 @@ class yLogger
 
         $message = str_replace("\n", ' ', $message);
         if (trim($message) > '') {
-          if ($warningLevel <= YeAPF_LOG_DEBUG)
-            $OS_level = LOG_DEBUG;
-          elseif ($warningLevel <= YeAPF_LOG_INFO)
-            $OS_level = LOG_INFO;
-          elseif ($warningLevel <= YeAPF_LOG_NOTICE)
-            $OS_level = LOG_NOTICE;
-          elseif ($warningLevel <= YeAPF_LOG_WARNING)
-            $OS_level = LOG_WARNING;
-          elseif ($warningLevel <= YeAPF_LOG_ERR)
-            $OS_level = LOG_ERR;
-          elseif ($warningLevel <= YeAPF_LOG_CRIT)
-            $OS_level = LOG_CRIT;
-          elseif ($warningLevel <= YeAPF_LOG_ALERT)
-            $OS_level = LOG_ALERT;
-          elseif ($warningLevel <= YeAPF_LOG_EMERG)
-            $OS_level = LOG_EMERG;
-          else
-            $OS_level = LOG_INFO;
-          syslog($OS_level, $message);
+          if (self::$syslogOpened) {
+            if ($warningLevel <= YeAPF_LOG_DEBUG)
+              $OS_level = LOG_DEBUG;
+            elseif ($warningLevel <= YeAPF_LOG_INFO)
+              $OS_level = LOG_INFO;
+            elseif ($warningLevel <= YeAPF_LOG_NOTICE)
+              $OS_level = LOG_NOTICE;
+            elseif ($warningLevel <= YeAPF_LOG_WARNING)
+              $OS_level = LOG_WARNING;
+            elseif ($warningLevel <= YeAPF_LOG_ERR)
+              $OS_level = LOG_ERR;
+            elseif ($warningLevel <= YeAPF_LOG_CRIT)
+              $OS_level = LOG_CRIT;
+            elseif ($warningLevel <= YeAPF_LOG_ALERT)
+              $OS_level = LOG_ALERT;
+            elseif ($warningLevel <= YeAPF_LOG_EMERG)
+              $OS_level = LOG_EMERG;
+            else
+              $OS_level = LOG_INFO;
+            syslog($OS_level, $message);
+          }
 
           $fileName = self::$logFolder . '/' . date('Y-m-d') . '.log';
-          $fp = fopen($fileName, 'a+');
+
+          $fp = self::getLogFileHandler();          
           if ($fp) {
-            fwrite($fp, "$preamble $message\n");
-            fclose($fp);
+            fwrite($fp, "$preamble $message\n");            
           }
         }
       }

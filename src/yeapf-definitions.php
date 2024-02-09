@@ -67,108 +67,6 @@ define('YeAPF_INVALID_TIME_VALUE', YeAPF_DATA_EXCEPTION_BASE + 16);
 define('YeAPF_INVALID_JSON_TYPE', YeAPF_DATA_EXCEPTION_BASE + 17); 
 define('YeAPF_INVALID_JSON_VALUE', YeAPF_DATA_EXCEPTION_BASE + 18);
  
-/**
- * Common regular expressions
- * These expressions are used to validate data when they are passed
- * to a SanitizedKeyData class instance or any descendant.
- */
-define('YeAPF_DATE_REGEX', '/^(([12]\d{3})-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01]))/');
-define('YeAPF_DATETIME_REGEX', '/^(([12]\d{3})-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01]))[ T]{1}([0-2]{1}[0-9]{1}):([0-5]{1}[0-9]{1}):([0-5]{1}[0-9]{1})[Z]{0,}$/');
-define('YeAPF_TIME_REGEX', '/^([0-2]{1}[0-9]{1}):([0-5]{1}[0-9]{1}):([0-5]{1}[0-9]{1})[Z]{0,}$/');
-
-define('YeAPF_INT_REGEX', '/^([0-9]+$)/');
-define('YeAPF_FLOAT_REGEX', '/^([0-9]+)\.([0-9]+)$/');
-define('YeAPF_BOOL_REGEX', '/^(true|false)$/i');
-define('YeAPF_STRING_REGEX', '/^[^\p{C}]*$/u'); 
-
-define('YeAPF_EMAIL_REGEX', '/^([a-zA-Z0-9_\-\.]+)@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.)|(([a-zA-Z0-9\-]+\.)+))([a-zA-Z]{2,4}|[0-9]{1,3})(\]?)$/');
-define('YeAPF_UUID_REGEX', '/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/');
-
-/**
- * Common sed expressions
- * These exxpressions are used to format the data in a
- * SanitizedKeyData instance or descendant
- * There are two ways to format the data:
- *   1. input: when the data is passed to a SanitizedKeyData instance
- *   2. output: when the data is returned from a SanitizedKeyData instance
- * As YeAPF was written while living in Brazil, the Brazilian
- * regular expressions are used and tested. All the other ones need to be checked.
- * Of course, you can write your own sed expressions.
- */
-
-// CANADA
-define('YeAPF_SED_CA_IN_SIN', "/[^0-9]//");
-define('YeAPF_SED_CA_OUT_SIN', "/(\d{3})(\d{3})(\d{3})/$1 $2 $3/");
-
-define('YeAPF_SED_CA_IN_POSTAL_CODE', "/[^A-Za-z0-9]//");
-define('YeAPF_SED_CA_OUT_POSTAL_CODE', "/([A-Za-z]\d[A-Za-z])\s*(\d[A-Za-z]\d)/$1 $2/");
-
-// UNITED STATES OF AMERICA
-define('YeAPF_SED_US_IN_SSN', "/[^0-9]//");
-define('YeAPF_SED_US_OUT_SSN', "/(\d{3})(\d{2})(\d{4})/$1-$2-$3/");
-
-define('YeAPF_SED_US_IN_EIN', "/[^0-9]//");
-define('YeAPF_SED_US_OUT_EIN', "/(\d{3})(\d{2})(\d{4})/$1-$2-$3/");
-
-define('YeAPF_SED_US_IN_ZIP_CODE', "/[^0-9]//");
-define('YeAPF_SED_US_OUT_ZIP_CODE', "/(\d{5})(\d{4})?/$1-$2/");
-
-// MEXICO
-define('YeAPF_SED_MX_IN_CURP', "'/[^A-Z0-9]//");
-define('YeAPF_SED_MX_OUT_CURP', "/([A-Z]{4})(\d{6})([HM])([A-Z]{5})(\d{2})/$1$2$3$4$5/");
-
-define('YeAPF_SED_MX_IN_RFC', "'/[^A-Z0-9]//");
-define('YeAPF_SED_MX_OUT_RFC', "/([A-Z]{4})(\d{6})([A-Z0-9]{3})/$1$2$3/");
-
-define('YeAPF_SED_MX_IN_POSTAL_CODE', "/[^0-9]//");
-define('YeAPF_SED_MX_OUT_POSTAL_CODE', "/(\d{5})/$1/");
-
-// BRAZIL
-define('YeAPF_SED_BR_IN_CNPJ', "/[^0-9]//");
-define('YeAPF_SED_BR_OUT_CNPJ', "/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/$1.$2.$3\/$4-$5/");
-
-define('YeAPF_SED_BR_IN_CPF', "/[^0-9]//");
-define('YeAPF_SED_BR_OUT_CPF', "/(\d{3})(\d{3})(\d{3})(\d{2})/$1.$2.$3-$4/");
-
-define('YeAPF_SED_BR_IN_POSTAL_CODE', "/[^0-9]//");
-define('YeAPF_SED_BR_OUT_POSTAL_CODE', "/(\d{5})(\d{3})/$1-$2/");
-
-
-// VENEZUELA
-define('YeAPF_SED_VE_IN_CI', "/[^0-9]//");
-define('YeAPF_SED_VE_OUT_CI', "/(\d{1})(\d{3})(\d{3})(\d{1})/$1.$2.$3-$4/");
-
-define('YeAPF_SED_VE_IN_POSTAL_CODE', "/[^0-9]//");
-define('YeAPF_SED_VE_OUT_POSTAL_CODE', "/(\d{4})/$1/");
-
-// URUGUAY
-define('YeAPF_SED_UY_IN_CI', "/[^0-9]//");
-define('YeAPF_SED_UY_OUT_CI', "/(\d{2})(\d{5})(\d{1})/$1.$2-$3/");
-
-define('YeAPF_SED_UY_IN_POSTAL_CODE', "/[^0-9]//");
-define('YeAPF_SED_UY_OUT_POSTAL_CODE', "/(\d{5})/$1/");
-
-// PARAGUAY
-define('YeAPF_SED_PY_IN_CI', "/[^0-9]//");
-define('YeAPF_SED_PY_OUT_CI', "/(\d{1})(\d{3})(\d{2})(\d{2})/$1.$2.$3-$4/");
-
-define('YeAPF_SED_PY_IN_POSTAL_CODE', "/[^0-9]//");
-define('YeAPF_SED_PY_OUT_POSTAL_CODE', "/(\d{4})/$1/");
-
-// ARGENTINA
-define('YeAPF_SED_AR_IN_DNI', "/[^0-9]//");
-define('YeAPF_SED_AR_OUT_DNI', "/(\d{2})(\d{3})(\d{3})/$1.$2.$3/");
-
-define('YeAPF_SED_AR_IN_POSTAL_CODE', "/[^0-9]//");
-define('YeAPF_SED_AR_OUT_POSTAL_CODE', "/(\d{4})/$1/");
-
-// CHILE
-define('YeAPF_SED_CL_IN_RUT', "'/[^0-9Kk]//");
-define('YeAPF_SED_CL_OUT_RUT', "/(\d{2})(\d{3})(\d{3})([0-9Kk])/$1.$2.$3-$4/");
-
-define('YeAPF_SED_CL_IN_POSTAL_CODE', "/[^0-9]//");
-define('YeAPF_SED_CL_OUT_POSTAL_CODE', "/(\d{7})/$1/");
-
 /**************************/
 /* CONNECTION */
 define('YeAPF_PDO_CONNECTION', YeAPF_CONNECTION_BASE + 1);
@@ -248,3 +146,50 @@ define('YeAPF_UNRECOGNIZED_OPERATOR', YeAPF_EXPRESSION_BASE + 4);
 /***************************/
 /* PLUGINS */
 define('YeAPF_PLUGIN_ERROR', YeAPF_PLUGIN_BASE + 1);
+
+
+/**
+ * Common regular expressions
+ * These expressions are used to validate data when they are passed
+ * to a SanitizedKeyData class instance or any descendant.
+ */
+define('YeAPF_DATE_REGEX', '/^(([12]\d{3})-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01]))/');
+define('YeAPF_DATETIME_REGEX', '/^(([12]\d{3})-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01]))[ T]{1}([0-2]{1}[0-9]{1}):([0-5]{1}[0-9]{1}):([0-5]{1}[0-9]{1})[Z]{0,}$/');
+define('YeAPF_TIME_REGEX', '/^([0-2]{1}[0-9]{1}):([0-5]{1}[0-9]{1}):([0-5]{1}[0-9]{1})[Z]{0,}$/');
+
+define('YeAPF_INT_REGEX', '/^([0-9]+$)/');
+define('YeAPF_FLOAT_REGEX', '/^([0-9]+)\.([0-9]+)$/');
+define('YeAPF_BOOL_REGEX', '/^(true|false)$/i');
+define('YeAPF_STRING_REGEX', '/^[^\p{C}]*$/u'); 
+
+define('YeAPF_EMAIL_REGEX', '/^([a-zA-Z0-9_\-\.]+)@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.)|(([a-zA-Z0-9\-]+\.)+))([a-zA-Z]{2,4}|[0-9]{1,3})(\]?)$/');
+define('YeAPF_UUID_REGEX', '/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/');
+
+/**
+ * Common sed expressions
+ * See README.md at regexp folder for more information
+ */
+
+
+(
+    function() {
+        // Requiring all files inside the regexp folder
+        $regexpFolder = __DIR__ . '/regexp';
+        foreach (new DirectoryIterator($regexpFolder) as $fileInfo) {
+            if ($fileInfo->isFile()) {
+                // print_r('Loading ' . $regexpFolder . '/' . $fileInfo->getFilename() . "\n");
+                require_once $regexpFolder . '/' . $fileInfo->getFilename();
+            }
+        }
+    }
+)();
+
+
+
+
+
+
+
+
+
+
