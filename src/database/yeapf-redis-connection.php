@@ -12,8 +12,8 @@ class RedisConnection extends \YeAPF\Connection\DBConnection
     {
         $auxConfig = self::$config->redis ?? new \stdClass();
 
-        _log('Trying to connect to Redis Server');
-        _log(print_r($auxConfig,true));
+        _trace('Trying to connect to Redis Server');
+        _trace(print_r($auxConfig,true));
         do {
             try {
                 self::$redis = new \Redis();
@@ -25,18 +25,18 @@ class RedisConnection extends \YeAPF\Connection\DBConnection
                     self::$redis->auth($auxConfig->password);
                 }
                 self::setConnected(true);
-                _log('Connected to Redis');
+                _trace('Connected to Redis');
             } catch (\Exception $th) {
                 self::setConnected(false);
                 if ($auxConfig->halt_on_error ?? false) {
                     throw new \YeAPF\YeAPFException($th->getMessage(), YeAPF_REDIS_CONNECTION, $th);
                 } else {
-                    _log('+----------------------');
-                    _log('| REDIS NOT AVAILABLE! ');
-                    _log('|   at '.($auxConfig->server ?? 'undefined'));
-                    _log('|    @ '.($auxConfig->port ?? 'undefined'));
-                    _log('| ' . $th->getMessage() . '');
-                    _log('+----------------------');
+                    _trace('+----------------------');
+                    _trace('| REDIS NOT AVAILABLE! ');
+                    _trace('|   at '.($auxConfig->server ?? 'undefined'));
+                    _trace('|    @ '.($auxConfig->port ?? 'undefined'));
+                    _trace('| ' . $th->getMessage() . '');
+                    _trace('+----------------------');
                     sleep(5);
                 }
             }
@@ -130,17 +130,17 @@ class RedisConnection extends \YeAPF\Connection\DBConnection
                 throw new \YeAPF\YeAPFException("It's not an iterable data", YeAPF_INVALID_DATA);
             }
             // $ret = (true != $ctl);
-            \_log("HSET data: ".json_encode($data));
-            \_log("HSET  ret: $ret");
+            \_trace("HSET data: ".json_encode($data));
+            \_trace("HSET  ret: $ret");
             if (empty($expiration)) {
                 $expiration=self::defaultExpirationTime();
             }
             if ($expiration !== null && $expiration>0) {
-                \_log("HSET setting expiration: $expiration");
+                \_trace("HSET setting expiration: $expiration");
                 self::$redis->expire($name, $expiration);
             }
         } else {
-            \_log("HSET    : Not connected");
+            \_trace("HSET    : Not connected");
         }
         return $ret;
     }
@@ -209,7 +209,7 @@ function CreateMainRedisConnection()
     global $yeapfRedisConnection;
 
     if (!isset($yeapfRedisConnection)) {
-        _log('Creating Main Redis Connection');
+        _trace('Creating Main Redis Connection');
         $yeapfRedisConnection = new RedisConnection();
     }
     return $yeapfRedisConnection;

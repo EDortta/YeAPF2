@@ -8,15 +8,29 @@ class yLogger
 
   static private $tag = 'YeAPF';
   static private $syslogOpened = false;
+
+  // log
   static private $logFolder = null;
+
   static private $lastLogSourceUsage = null;
-  static private $logAreas = [];
+
+  static private $activeLogAreas = [];
+
   static private $minLogLevel = YeAPF_LOG_WARNING;
+
   static private $logFileHandler = null;
+
+  // trace
+  static private $traceStartMicrotime = null;
+
   static private $lastTraceSourceUsage = null;
-  static private $traceAreas = [];
+
+  static private $activeTraceAreas = [];
+
   static private $minTraceLevel = YeAPF_LOG_WARNING;
+
   static private $traceFileHandler = null;
+
   static private $traceDetails = [];
 
   /**
@@ -72,13 +86,26 @@ class yLogger
     self::$syslogOpened = openlog($tag, LOG_PID | LOG_CONS, LOG_LOCAL0);
   }
 
-  static public function defineLogFilters(array $logAreas, int $logLevel)
+  static public function defineLogFilters(int $logLevel, array $activeLogAreas = [])
   {
-    self::$logAreas = $logAreas;
+    self::$activeLogAreas = $activeLogAreas;
     self::$minLogLevel = $logLevel;
 
-    self::$traceAreas = $logAreas; 
+    self::$activeTraceAreas = $activeLogAreas;
     self::$minTraceLevel = $logLevel;
+  }
+
+  static public function addLogArea(int $area)
+  {
+    $equalAreas = (count(self::$activeLogAreas) === count(array_intersect(self::$activeLogAreas, self::$activeTraceAreas))) && (count(self::$activeLogAreas) === count(self::$activeTraceAreas));
+
+    if (!in_array($area, self::$activeLogAreas)) {
+      self::$activeLogAreas[] = $area;
+    }
+
+    if ($equalAreas) {
+      self::$activeTraceAreas = self::$activeLogAreas;
+    }
   }
 
   // Log file functions
@@ -149,7 +176,7 @@ class yLogger
               $OS_level = LOG_INFO;
             syslog($OS_level, $message);
           }
-          
+
           $fp = self::getLogFileHandler();
           if ($fp) {
             fwrite($fp, "$preamble $message\n");
@@ -161,43 +188,82 @@ class yLogger
 
   // Trace
 
-  static public function defileTraceFilters(array $traceAreas, int $traceLevel)
+  static public function markStartupTimestamp()
   {
-    self::$traceAreas = $traceAreas;
+    self::$traceStartMicrotime = microtime(true);
+  }
+
+  static public function defineTraceFilters(int $traceLevel, array $activeTraceAreas = [])
+  {
+    if (!empty($activeTraceAreas)) {
+      self::$activeTraceAreas = $activeTraceAreas;
+    }
     self::$minTraceLevel = $traceLevel;
   }
 
-  static public function setTraceHeader(string $header)
+  static public function addTraceArea(int $area)
   {
-    self::$traceDetails['header'] = $header;
+    if (!in_array($area, self::$activeTraceAreas)) {
+      self::$activeTraceAreas[] = $area;
+    }
   }
 
-  static public function setTraceDetails($uri = null, $method = null, $payload = null, $headers = null, $httpCode = null, $jsonData = null)
+  static public function setTraceDescriptor(string $descriptor)
   {
+    if (null == self::$traceStartMicrotime)
+      self::markStartupTimestamp();
+    self::$traceDetails['descriptor'] = $descriptor;
+  }
+
+  static public function setTraceDetails($uri = null, $method = null, $payload = null, $headers = null, $httpCode = null, $return = null, $server = null, $cookie = null)
+  {
+    if (null == self::$traceStartMicrotime)
+      self::markStartupTimestamp();
     self::$traceDetails['url'] = $uri ?? (self::$traceDetails['url'] ?? null);
     self::$traceDetails['method'] = $method ?? (self::$traceDetails['method'] ?? null);
     self::$traceDetails['payload'] = $payload ?? (self::$traceDetails['payload'] ?? null);
     self::$traceDetails['headers'] = $headers ?? (self::$traceDetails['headers'] ?? null);
     self::$traceDetails['httpCode'] = $httpCode ?? (self::$traceDetails['httpCode'] ?? null);
-    self::$traceDetails['jsonData'] = $jsonData ?? (self::$traceDetails['jsonData'] ?? null);
+    self::$traceDetails['return'] = $return ?? (self::$traceDetails['return'] ?? null);
+    self::$traceDetails['server'] = $server ?? (self::$traceDetails['server'] ?? null);
+    self::$traceDetails['cookie'] = $cookie ?? (self::$traceDetails['cookie'] ?? null);
+  }
+
+  static private function _traceDetail($d)
+  {
+    if (!empty(self::$traceDetails[$d])) {
+      $lineStart = mb_strtoupper("$d") . str_repeat('.', 12 - strlen($d));
+      if (is_array(self::$traceDetails[$d])) {
+        foreach (self::$traceDetails[$d] as $k => $v) {
+          fwrite(self::$traceFileHandler, $lineStart . "$k: $v\n");
+          $lineStart = str_repeat(' ', 12);
+        }
+      } else
+        fwrite(self::$traceFileHandler, $lineStart . self::$traceDetails[$d] . "\n");
+    }
   }
 
   static private function getTraceFileHandler()
   {
+    if (null == self::$traceStartMicrotime)
+      self::markStartupTimestamp();
     if (null == self::$traceFileHandler) {
-      $fileName = self::$logFolder . '/' . date('Y-m-d@') . generateShortUniqueId() . '.trace';
-      self::$traceFileHandler = fopen($fileName, 'a+');
-      if (!empty(self::$traceDetails['header'])) {
-        fwrite(self::$traceFileHandler, self::$traceDetails['header'] . "\n\n");
+      if (!is_dir(self::$logFolder . '/trace')) {
+        mkdir(self::$logFolder . '/trace', 0777, true) || throw new \Exception('Trace folder ' . self::$logFolder . '/trace cannot be created', 1);
       }
-      fwrite(self::$traceFileHandler, 'Started at ' . date('Y-m-d H:i:s') . "\n\n");
-      $details = ['method', 'url', 'payload', 'headers'];
-      foreach ($details as $d) {
-        if (!empty(self::$traceDetails[$d])) {
-          fwrite(self::$traceFileHandler, "$d: " . self::$traceDetails[$d] . "\n");
+      if (is_writable(self::$logFolder . '/trace')) {
+        $fileName = self::$logFolder . '/trace/' . date('Y-m-d-H-') . generateShortUniqueId() . '.trace';
+        self::$traceFileHandler = fopen($fileName, 'a+');
+        if (!empty(self::$traceDetails['descriptor'])) {
+          fwrite(self::$traceFileHandler, self::$traceDetails['descriptor'] . "\n");
         }
+        fwrite(self::$traceFileHandler, 'Started at ' . date('Y-m-d H:i:s') . "\n");
+        $details = ['method', 'url', 'payload', 'headers'];
+        foreach ($details as $d) {
+          self::_traceDetail($d);
+        }
+        fwrite(self::$traceFileHandler, str_repeat('-', 80) . "\n");
       }
-      fwrite(self::$traceFileHandler, str_repeat('-', 80) . "\n\n");
     }
     return self::$traceFileHandler;
   }
@@ -205,13 +271,16 @@ class yLogger
   static public function closeTrace()
   {
     if (null != self::$traceFileHandler) {
-      fwrite(self::$traceFileHandler, str_repeat('-', 80) . "\n\n");
-      $details = ['httpCode', 'jsonData'];
+      fwrite(self::$traceFileHandler, str_repeat('-', 80) . "\n");
+      fwrite(self::$traceFileHandler, 'Ended at ' . date('Y-m-d H:i:s') . "\n");
+      $details = ['httpCode', 'return'];
       foreach ($details as $d) {
-        if (!empty(self::$traceDetails[$d])) {
-          fwrite(self::$traceFileHandler, "$d: " . self::$traceDetails[$d] . "\n");
-        }
+        self::_traceDetail($d);
       }
+      $consumedMicrotime = microtime(true) - self::$traceStartMicrotime;
+      fwrite(self::$traceFileHandler, 'Consumed ' . $consumedMicrotime . ' seconds' . "\n");
+      self::$traceStartMicrotime = null;
+
       fflush(self::$traceFileHandler);
       fclose(self::$traceFileHandler);
       self::$traceFileHandler = null;
@@ -226,13 +295,13 @@ class yLogger
       $preamble = "$time";
       if (self::$lastTraceSourceUsage != $dbg[1]['file']) {
         self::$lastTraceSourceUsage = $dbg[1]['file'];
-        $preamble .= self::$lastTraceSourceUsage . "---\n$time";        
-      }      
+        $preamble .= self::$lastTraceSourceUsage . "---\n$time";
+      }
       $preamble .= '  ' . str_pad(' ' . $dbg[1]['line'], 4, ' ', STR_PAD_LEFT) . ': ';
       $message = str_replace("\n", "\n    ", $message);
       $fp = self::getTraceFileHandler();
       if ($fp) {
-        fwrite($fp, "$preamble $message\n");        
+        fwrite($fp, "$preamble $message\n");
       }
     }
   }

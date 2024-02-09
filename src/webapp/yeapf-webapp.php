@@ -148,7 +148,7 @@ class WebApp
                 else
                     $minFile = preg_replace('/\.css$/', '.min.css', $file);
 
-                _log("minFile: $minFile");
+                _trace("minFile: $minFile");
 
                 $minFile = explode('/', $minFile);
                 $folder = '';

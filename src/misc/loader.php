@@ -21,3 +21,12 @@ function _log($message)
       \YeAPF\yLogger::log(0, 0, $line);
   }
 }
+
+function _trace($message)
+{
+  $aux = explode("\n", rtrim($message, "\n"));
+  foreach ($aux as $line) {
+    if (strlen(trim($line)) > 0)
+      \YeAPF\yLogger::trace(0, 0, $line);
+  }
+}

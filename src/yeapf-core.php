@@ -6,6 +6,9 @@ require_once __DIR__ . '/yeapf-definitions.php';
 require_once __DIR__ . '/yeapf-assets.php';
 
 require_once __DIR__ . '/misc/yLogger.php';
+require_once __DIR__ . '/yeapf-debug-definitions.php';
+require_once __DIR__ . '/yeapf-debug-labels.php';
+
 require_once __DIR__ . '/yeapf-single-logger.php';
 \YeAPF\yLogger::defineLogTag('YeAPF StubLoader');
 
@@ -25,7 +28,7 @@ require_once __DIR__ . '/yeapf-config.php';
       'EMERG' => YeAPF_LOG_EMERG,
     ];
 
-    $debugConfig = \YeAPF\YeAPFConfig::getSection('mode')->debug || json_decode("{'enabled': false,'level': 'WARNING'}", false);
+    $debugConfig = \YeAPF\YeAPFConfig::getSection('mode')->debug ?? json_decode("{'enabled': false,'level': 'WARNING'}", false);
     $logEnabled = $debugConfig->enabled ?? false;
     $logLevelStr = $debugConfig->level ?? 'WARNING';
     if (!$logEnabled) {
@@ -37,7 +40,31 @@ require_once __DIR__ . '/yeapf-config.php';
         $logLevel = $logLevelMap[$logLevelStr] ?? YeAPF_LOG_WARNING;
       }
     }
-    \YeAPF\yLogger::defineLogFilters([], $logLevel);
+    $debugAreas = \YeAPF\YeAPFConfig::getSection('mode')->debug->areas ?? [];
+    $intDebugAreas = [];
+    foreach ($debugAreas as $k) {
+      $intDebugAreas[] = DebugLabels::get($k);
+    }
+    \YeAPF\yLogger::defineLogFilters($logLevel, $intDebugAreas);
+
+    $traceConfig = \YeAPF\YeAPFConfig::getSection('mode')->trace ?? json_decode("{'enabled': false,'level': 'EMERG'}", false);
+    $traceEnabled = $traceConfig->enabled ?? false;
+    $traceLevelStr = $traceConfig->level ?? 'EMERG';
+    if (!$traceEnabled) {
+      $traceLevel = YeAPF_LOG_EMERG + 100;
+    } else {
+      if (is_numeric($traceLevelStr)) {
+        $traceLevel = intval($traceLevelStr);
+      } else {
+        $traceLevel = $logLevelMap[$traceLevelStr] ?? YeAPF_LOG_EMERG;
+      }
+    }
+    $traceAreas = \YeAPF\YeAPFConfig::getSection('mode')->trace->areas ?? [];
+    $intTraceAreas = [];
+    foreach ($traceAreas as $k) {
+      $intTraceAreas[] = DebugLabels::get($k);
+    }
+    \YeAPF\yLogger::defineTraceFilters($traceLevel, $intTraceAreas);
   }
 )();
 

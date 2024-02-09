@@ -38,7 +38,7 @@ class PDOConnectionLock
             $ret = self::$lock->lock(self::$lockName, false, 100);
             if (!$ret) {
                 $sleep = mt_rand(1, 10) / 10;
-                _log("Sleeping $sleep seconds");
+                _trace("Sleeping $sleep seconds");
                 self::sleep($sleep);
             }
         } while (false == $ret);
@@ -71,11 +71,11 @@ class PDOConnection extends \YeAPF\Connection\DBConnection
 
         if (self::$trulyConnected) {
             self::$poolId = PDOConnectionLock::getNewPoolId();
-            \_log('Trying to connect to Database Server (PDO)');
+            \_trace('Trying to connect to Database Server (PDO)');
             do {
                 try {
                     self::$connectionString = $yAnalyzer->do('#(driver):host=#(server);port=#(port);dbname=#(dbname)', json_decode(json_encode($auxConfig), true));
-                    \_log("connectionString: '" . self::$connectionString . "'");
+                    \_trace("connectionString: '" . self::$connectionString . "'");
                     self::$db = new \PDO(self::$connectionString, $auxConfig->user ?? 'VoidUserName', $auxConfig->password ?? 'VoidPassword');
                     self::$db->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_WARNING);
                     self::setConnected(true);
@@ -84,17 +84,17 @@ class PDOConnection extends \YeAPF\Connection\DBConnection
                     if ($auxConfig->halt_on_error ?? false) {
                         throw new \YeAPF\YeAPFException($th->getMessage(), YeAPF_PDO_CONNECTION, $th);
                     } else {
-                        \_log('+----------------------');
-                        \_log('| PDO NOT AVAILABLE! ');
-                        \_log('|   at ' . self::$connectionString);
-                        \_log('| ' . $th->getMessage() . '');
-                        \_log('+----------------------');
+                        \_trace('+----------------------');
+                        \_trace('| PDO NOT AVAILABLE! ');
+                        \_trace('|   at ' . self::$connectionString);
+                        \_trace('| ' . $th->getMessage() . '');
+                        \_trace('+----------------------');
                     }
                 }
             } while (!self::getConnected());
         } else {
             $minPool = max(1, min(20, $auxConfig->pool ?? 5));
-            \_log("Building PDO connection pool with $minPool item(s)");
+            \_trace("Building PDO connection pool with $minPool item(s)");
             for ($i = 0; $i < $minPool; $i++) {
                 self::$pool[] = new self(true);
             }
@@ -129,8 +129,8 @@ class PDOConnection extends \YeAPF\Connection\DBConnection
         }
 
         if ($ret instanceof self) {
-            \_log('Connection to use: #' . $ret->getPoolId() . '');
-            \_log('Remaining pool: ' . count(self::$pool) . '');
+            \_trace('Connection to use: #' . $ret->getPoolId() . '');
+            \_trace('Remaining pool: ' . count(self::$pool) . '');
         } else {
             throw new \YeAPF\YeAPFException('Unable to get a valid connection from pool', YeAPF_EMPTY_POOL);
         }
@@ -144,7 +144,7 @@ class PDOConnection extends \YeAPF\Connection\DBConnection
         //         PDOConnectionLock::unlock();
         //     }
         // }
-        \_log('Connection parked: ' . $connection->getPoolId() . '');
+        \_trace('Connection parked: ' . $connection->getPoolId() . '');
         self::$pool[] = $connection;
     }
 
@@ -172,22 +172,22 @@ class PDOConnection extends \YeAPF\Connection\DBConnection
 
             $fParams = self::filterParams($params);
 
-            \_log("SQL: $sql");
-            \_log('PARAMS: ' . json_encode($fParams));
+            \_trace("SQL: $sql");
+            \_trace('PARAMS: ' . json_encode($fParams));
 
             $ret = self::$db->prepare($sql);
             $ret->execute($fParams);
             $errorInfo = $ret->errorInfo();
             if ('00000' !== $errorInfo[0]) {
-                \_log('RET Error Info:');
-                \_log(print_r($ret->errorInfo(), true));
+                \_trace('RET Error Info:');
+                \_trace(print_r($ret->errorInfo(), true));
 
                 $msg = str_replace("\n", ' ', $sql);
                 $msg = preg_replace('/\s+/', ' ', $msg);
 
                 throw new \YeAPF\YeAPFException('PGSQL-' . $errorInfo[0] . ': ' . $errorInfo[2] . " when doing:\n           " . $msg, $errorInfo[1]);
             } else {
-                _log('RowCount: ' . $ret->rowCount());
+                _trace('RowCount: ' . $ret->rowCount());
             }
         }
         return $ret;
@@ -203,13 +203,13 @@ class PDOConnection extends \YeAPF\Connection\DBConnection
             $stmt = self::query($sql, $data);
 
             if ($stmt) {
-                // \_log("stmt:");
+                // \_trace("stmt:");
                 // print_r($stmt);
 
                 if (strcasecmp($cmd, 'SELECT') == 0) {
                     $ret = $stmt->fetch();
 
-                    // \_log("after fetch");
+                    // \_trace("after fetch");
                     // print_r($ret);
                 }
             }
@@ -269,12 +269,12 @@ class PDOConnection extends \YeAPF\Connection\DBConnection
         ];
         $ret = self::queryAndFetch($sql, $params);
 
-        // \_log("SQL: $sql");
-        // \_log("ret = ".json_encode($ret)."");
+        // \_trace("SQL: $sql");
+        // \_trace("ret = ".json_encode($ret)."");
 
         if ($ret !== false) {
             $ret = strcasecmp($ret['column_name'] ?? '', $columnname) == 0;
-            // \_log("$tablename.$columnname Exists? ".($ret?"Yes":"No")."");
+            // \_trace("$tablename.$columnname Exists? ".($ret?"Yes":"No")."");
         }
         return $ret;
     }
@@ -324,7 +324,7 @@ function CreateMainPDOConnection()
     global $yeapfMainPDOConnection;
 
     if (null == $yeapfMainPDOConnection) {
-        _log('Creating new PDO main connection');
+        _trace('Creating new PDO main connection');
         $yeapfMainPDOConnection = new PDOConnection();
     }
     return $yeapfMainPDOConnection;

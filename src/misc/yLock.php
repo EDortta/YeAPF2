@@ -66,7 +66,7 @@ abstract class yLockAbstract
             }
         }
 
-        _log("yLock: Converting '$key' to intkey: '$ret'");
+        _trace("yLock: Converting '$key' to intkey: '$ret'");
 
         return $ret;
     }
@@ -79,8 +79,8 @@ class yLockSem extends yLockAbstract
         $this->lockMap = [];
         $this->destroyLocksAtEnd = $destroyLocksAtEnd;
         $this->sharedMemoryId = self::__keyToInt__($sharedMemoryName);
-        _log('----[yLock]----');
-        _log("yLock: Adquirindo memoria compartilhada: '$sharedMemoryName' $this->sharedMemoryId");
+        _trace('----[yLock]----');
+        _trace("yLock: Adquirindo memoria compartilhada: '$sharedMemoryName' $this->sharedMemoryId");
 
         $this->flagSemaphore = sem_get(
             $this->sharedMemoryId,
@@ -88,7 +88,7 @@ class yLockSem extends yLockAbstract
             0666,
             true
         );
-        _log("yLock: sharedMemoryId=$this->sharedMemoryId");
+        _trace("yLock: sharedMemoryId=$this->sharedMemoryId");
     }
 
     private function _getLockData($lockId)
@@ -107,7 +107,7 @@ class yLockSem extends yLockAbstract
                 $lockValue = $defaultValue;
             }
 
-            _log('yLock retrieveng lockData: ' . json_encode($lockValue));
+            _trace('yLock retrieveng lockData: ' . json_encode($lockValue));
             shm_detach($lockValuePtr);
         }
 
@@ -121,8 +121,8 @@ class yLockSem extends yLockAbstract
         if ($lockValuePtr) {
             $ret = shm_put_var($lockValuePtr, 0, $lockData);
             $lockValueAux = shm_get_var($lockValuePtr, 0);
-            _log('yLock checking data: ' . json_encode($lockValueAux));
-            _log('yLock saving lockData: ' . json_encode($lockData) . ' ret=' . var_export($ret, true));
+            _trace('yLock checking data: ' . json_encode($lockValueAux));
+            _trace('yLock saving lockData: ' . json_encode($lockData) . ' ret=' . var_export($ret, true));
             shm_detach($lockValuePtr);
         }
         return $ret;
@@ -131,13 +131,13 @@ class yLockSem extends yLockAbstract
     function lock($lockName, $wait = true, $ttl = DEFAULT_LOCK_TTL)
     {
         $this->lockMap[$lockName] = true;
-        _log("yLock: begin  lock ('$lockName'); wait=" . intval($wait));
+        _trace("yLock: begin  lock ('$lockName'); wait=" . intval($wait));
         $lockId = self::__keyToInt__($lockName);
         $ret = false;
         $errCounter = 0;
         do {
             if (sem_acquire($this->flagSemaphore, !$wait)) {
-                _log('yLock: semaphore adquired');
+                _trace('yLock: semaphore adquired');
                 try {
                     $lockInfo = $this->_getLockData($lockId);
                     if (!$lockInfo['flag'] || date('U') >= $lockInfo['ts'] + $lockInfo['ttl']) {
@@ -148,32 +148,32 @@ class yLockSem extends yLockAbstract
                     } else {
                         $ret = false;
                     }
-                    _log('yLock: LOCK return ' . var_export($ret, true));
+                    _trace('yLock: LOCK return ' . var_export($ret, true));
                 } catch (Exception $ex) {
-                    _log('yLock: LOCK - Exception ' > $ex->getMessage());
+                    _trace('yLock: LOCK - Exception ' > $ex->getMessage());
                     $errCounter++;
                 } finally {
                     sem_release($this->flagSemaphore);
-                    _log('yLock: semaphore released');
+                    _trace('yLock: semaphore released');
                 }
             } else {
-                _log('yLock: semaphore was not available');
+                _trace('yLock: semaphore was not available');
             }
             if ($wait && !$ret) {
                 sleep(3);
             }
         } while ($wait && !$ret && $errCounter < 2);
-        _log("yLock: end lock('$lockName') = " . json_encode($ret));
+        _trace("yLock: end lock('$lockName') = " . json_encode($ret));
         return $ret;
     }
 
     function unlock($lockName)
     {
-        _log("yLock: begin unlock ('$lockName')");
+        _trace("yLock: begin unlock ('$lockName')");
         $lockId = self::__keyToInt__($lockName);
         $ret = false;
         if (sem_acquire($this->flagSemaphore, false)) {
-            _log('yLock: semaphore adquired');
+            _trace('yLock: semaphore adquired');
             try {
                 $lockInfo = $this->_getLockData($lockId);
                 $lockInfo['flag'] = false;
@@ -184,13 +184,13 @@ class yLockSem extends yLockAbstract
                     unset($this->lockMap[$lockName]);
                 }
             } catch (Exception $ex) {
-                _log('yLock: UNLOCK - Exception ' > $ex->getMessage());
+                _trace('yLock: UNLOCK - Exception ' > $ex->getMessage());
             } finally {
                 sem_release($this->flagSemaphore);
-                _log('yLock: semaphore released');
+                _trace('yLock: semaphore released');
             }
         }
-        _log("yLock: end unlock ('$lockName') = " . json_encode($ret));
+        _trace("yLock: end unlock ('$lockName') = " . json_encode($ret));
         return $ret;
     }
 
@@ -203,10 +203,10 @@ class yLockSem extends yLockAbstract
 
     public function cleanup()
     {
-        _log('yLock: Destroying semaphore ' . __CLASS__);
-        _log('yLock: still locked resources: ' . json_encode($this->lockMap));
+        _trace('yLock: Destroying semaphore ' . __CLASS__);
+        _trace('yLock: still locked resources: ' . json_encode($this->lockMap));
         foreach ($this->lockMap as $lockName => $lockExists) {
-            _log("yLock: WARNING unlocking $lockName WARNING!");
+            _trace("yLock: WARNING unlocking $lockName WARNING!");
 
             $lockId = self::__keyToInt__($lockName);
 
@@ -227,7 +227,7 @@ class yLockSem extends yLockAbstract
             self::cleanup();
         }
         sem_release($this->flagSemaphore);
-        _log('----[/yLock]----');
+        _trace('----[/yLock]----');
     }
 }
 
@@ -242,20 +242,20 @@ class yLock
         if (file_exists($fileName)) {
             $mt = date('U') - filemtime($fileName);
             $ttl = 60;
-            _log("$fileName em uso $mt segundos+");
+            _trace("$fileName em uso $mt segundos+");
             if ($mt && $mt > $ttl) {
-                _log("$fileName liberado forçadamente por estar preso há mais de $ttl segundos");
+                _trace("$fileName liberado forçadamente por estar preso há mais de $ttl segundos");
                 unlink($fileName);
             }
         }
         if ($fp = fopen($fileName, 'w+')) {
             $canWrite = flock($fp, LOCK_EX | LOCK_NB);
             if (!$canWrite) {
-                _log('Lock being used');
+                _trace('Lock being used');
                 fclose($fp);
                 $ret = false;
             } else {
-                _log('Locked');
+                _trace('Locked');
                 $informacao = [
                 'viaCLI' => (php_sapi_name() === 'cli'),
                 'start' => date('U'),
@@ -268,10 +268,10 @@ class yLock
                 'fp' => $fp,
                 'fileName' => $fileName,
                 ];
-                _log("Usando trava #$ret = $fileName");
+                _trace("Usando trava #$ret = $fileName");
             }
         }
-        _log('ret = ' . json_encode($ret));
+        _trace('ret = ' . json_encode($ret));
         return $ret;
     }
 
@@ -282,7 +282,7 @@ class yLock
             $fp = $this->lockMap[$lockName]['fp'];
             $fileName = $this->lockMap[$lockName]['fileName'];
 
-            _log("Liberando trava $fileName");
+            _trace("Liberando trava $fileName");
 
             if (file_exists($fileName)) {
                 flock($fp, LOCK_UN);

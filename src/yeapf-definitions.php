@@ -14,6 +14,7 @@ define('YeAPF_LOG_CRITICAL', 599);
 define('YeAPF_LOG_ALERT', 699);
 define('YeAPF_LOG_EMERG', 799);
 
+
 /*****************************************/
 /* KEY-DATA */
 

@@ -135,15 +135,15 @@ function generateUUIDv5(): string
 function generateUniqueId(): string
 {
   $uuid = generateUUIDv4();
-  // _log("$uuid");
+  // _trace("$uuid");
 
   $timestamp = dechex(time());
-  // _log("[$timestamp]");
-  // _log(date("Y-m-d H:i:s", hexdec($timestamp)));
+  // _trace("[$timestamp]");
+  // _trace(date("Y-m-d H:i:s", hexdec($timestamp)));
 
   $serverHash = sha1(gethostname(), true);
   $serverId = substr(bin2hex($serverHash), 0, 3);
-  // _log("[$serverId]");
+  // _trace("[$serverId]");
 
   $uuid = substr_replace($uuid, $timestamp, 0, 8);
   $uuid = substr_replace($uuid, $serverId, 9, 3);
