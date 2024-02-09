@@ -173,13 +173,11 @@ define('YeAPF_UUID_REGEX', '/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/');
 
 (
     function() {
-        // Requiring all files inside the regexp folder
         $regexpFolder = __DIR__ . '/regexp';
-        foreach (new DirectoryIterator($regexpFolder) as $fileInfo) {
-            if ($fileInfo->isFile()) {
-                // print_r('Loading ' . $regexpFolder . '/' . $fileInfo->getFilename() . "\n");
-                require_once $regexpFolder . '/' . $fileInfo->getFilename();
-            }
+        $regexpFiles = glob($regexpFolder . '/*.php');
+
+        foreach ($regexpFiles as $file) {
+            require_once $file;
         }
     }
 )();

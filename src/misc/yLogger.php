@@ -6,12 +6,18 @@ class yLogger
 {
   use \YeAPF\Assets;
 
-  static private $logFolder = null;
-  static private $lastFile = null;
+  static private $tag = 'YeAPF';
   static private $syslogOpened = false;
-  static private $areas = [];
+  static private $logFolder = null;
+  static private $lastLogSourceUsage = null;
+  static private $logAreas = [];
   static private $minLogLevel = YeAPF_LOG_WARNING;
   static private $logFileHandler = null;
+  static private $lastTraceSourceUsage = null;
+  static private $traceAreas = [];
+  static private $minTraceLevel = YeAPF_LOG_WARNING;
+  static private $traceFileHandler = null;
+  static private $traceDetails = [];
 
   /**
    * Retrieves the path to the assets folder.
@@ -34,6 +40,13 @@ class yLogger
     return true;
   }
 
+  /**
+   * This function initializes the log folder if it is not already set,
+   * and checks if the log folder is writable.
+   *
+   * @throws \Exception Log folder cannot be created
+   * @return bool Returns true if the log folder is writable, false otherwise
+   */
   static private function startup()
   {
     if (null == self::$logFolder) {
@@ -47,8 +60,11 @@ class yLogger
     return $ret;
   }
 
+  // Log Tag and Filters
+
   static public function defineLogTag(string $tag)
   {
+    self::$tag = $tag;
     if (self::$syslogOpened) {
       closelog();
       self::$syslogOpened = false;
@@ -56,34 +72,40 @@ class yLogger
     self::$syslogOpened = openlog($tag, LOG_PID | LOG_CONS, LOG_LOCAL0);
   }
 
-  static public function defineLogFilters(array $areas, int $logLevel)
+  static public function defineLogFilters(array $logAreas, int $logLevel)
   {
-    self::$areas = $areas;
+    self::$logAreas = $logAreas;
     self::$minLogLevel = $logLevel;
+
+    self::$traceAreas = $logAreas; 
+    self::$minTraceLevel = $logLevel;
   }
 
-  static private function getLogFileHandler() 
+  // Log file functions
+
+  static private function getLogFileHandler()
   {
-    if (null==self::$logFileHandler) {
+    if (null == self::$logFileHandler) {
       $fileName = self::$logFolder . '/' . date('Y-m-d') . '.log';
       self::$logFileHandler = fopen($fileName, 'a+');
     }
     return self::$logFileHandler;
   }
 
-  static private function closeLog() 
+  static private function closeLog()
   {
     if (self::$syslogOpened) {
       closelog();
       self::$syslogOpened = false;
     }
-    if (null!=self::$logFileHandler) {
+    if (null != self::$logFileHandler) {
       fflush(self::$logFileHandler);
       fclose(self::$logFileHandler);
       self::$logFileHandler = null;
     }
   }
 
+  // Log
   static public function log(int $area, int $warningLevel, string $message)
   {
     global $currentURI;
@@ -93,9 +115,9 @@ class yLogger
         $dbg = debug_backtrace();
         $time = date('h:i:s ');
         $preamble = "$time";
-        if (self::$lastFile != $dbg[1]['file']) {
-          self::$lastFile = $dbg[1]['file'];
-          $preamble .= self::$lastFile . "---\n$time";
+        if (self::$lastLogSourceUsage != $dbg[1]['file']) {
+          self::$lastLogSourceUsage = $dbg[1]['file'];
+          $preamble .= self::$lastLogSourceUsage . "---\n$time";
           // echo json_encode($dbg[1],JSON_PRETTY_PRINT);
         }
         if ($currentURI > '') {
@@ -127,14 +149,90 @@ class yLogger
               $OS_level = LOG_INFO;
             syslog($OS_level, $message);
           }
-
-          $fileName = self::$logFolder . '/' . date('Y-m-d') . '.log';
-
-          $fp = self::getLogFileHandler();          
+          
+          $fp = self::getLogFileHandler();
           if ($fp) {
-            fwrite($fp, "$preamble $message\n");            
+            fwrite($fp, "$preamble $message\n");
           }
         }
+      }
+    }
+  }
+
+  // Trace
+
+  static public function defileTraceFilters(array $traceAreas, int $traceLevel)
+  {
+    self::$traceAreas = $traceAreas;
+    self::$minTraceLevel = $traceLevel;
+  }
+
+  static public function setTraceHeader(string $header)
+  {
+    self::$traceDetails['header'] = $header;
+  }
+
+  static public function setTraceDetails($uri = null, $method = null, $payload = null, $headers = null, $httpCode = null, $jsonData = null)
+  {
+    self::$traceDetails['url'] = $uri ?? (self::$traceDetails['url'] ?? null);
+    self::$traceDetails['method'] = $method ?? (self::$traceDetails['method'] ?? null);
+    self::$traceDetails['payload'] = $payload ?? (self::$traceDetails['payload'] ?? null);
+    self::$traceDetails['headers'] = $headers ?? (self::$traceDetails['headers'] ?? null);
+    self::$traceDetails['httpCode'] = $httpCode ?? (self::$traceDetails['httpCode'] ?? null);
+    self::$traceDetails['jsonData'] = $jsonData ?? (self::$traceDetails['jsonData'] ?? null);
+  }
+
+  static private function getTraceFileHandler()
+  {
+    if (null == self::$traceFileHandler) {
+      $fileName = self::$logFolder . '/' . date('Y-m-d@') . generateShortUniqueId() . '.trace';
+      self::$traceFileHandler = fopen($fileName, 'a+');
+      if (!empty(self::$traceDetails['header'])) {
+        fwrite(self::$traceFileHandler, self::$traceDetails['header'] . "\n\n");
+      }
+      fwrite(self::$traceFileHandler, 'Started at ' . date('Y-m-d H:i:s') . "\n\n");
+      $details = ['method', 'url', 'payload', 'headers'];
+      foreach ($details as $d) {
+        if (!empty(self::$traceDetails[$d])) {
+          fwrite(self::$traceFileHandler, "$d: " . self::$traceDetails[$d] . "\n");
+        }
+      }
+      fwrite(self::$traceFileHandler, str_repeat('-', 80) . "\n\n");
+    }
+    return self::$traceFileHandler;
+  }
+
+  static public function closeTrace()
+  {
+    if (null != self::$traceFileHandler) {
+      fwrite(self::$traceFileHandler, str_repeat('-', 80) . "\n\n");
+      $details = ['httpCode', 'jsonData'];
+      foreach ($details as $d) {
+        if (!empty(self::$traceDetails[$d])) {
+          fwrite(self::$traceFileHandler, "$d: " . self::$traceDetails[$d] . "\n");
+        }
+      }
+      fflush(self::$traceFileHandler);
+      fclose(self::$traceFileHandler);
+      self::$traceFileHandler = null;
+    }
+  }
+
+  static public function trace(int $area, int $warningLevel, string $message)
+  {
+    if ($warningLevel >= self::$minTraceLevel - 99) {
+      $dbg = debug_backtrace();
+      $time = date('h:i:s ');
+      $preamble = "$time";
+      if (self::$lastTraceSourceUsage != $dbg[1]['file']) {
+        self::$lastTraceSourceUsage = $dbg[1]['file'];
+        $preamble .= self::$lastTraceSourceUsage . "---\n$time";        
+      }      
+      $preamble .= '  ' . str_pad(' ' . $dbg[1]['line'], 4, ' ', STR_PAD_LEFT) . ': ';
+      $message = str_replace("\n", "\n    ", $message);
+      $fp = self::getTraceFileHandler();
+      if ($fp) {
+        fwrite($fp, "$preamble $message\n");        
       }
     }
   }

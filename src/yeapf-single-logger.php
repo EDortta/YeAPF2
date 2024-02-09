@@ -8,3 +8,7 @@ function _log($message) {
     }
 
   }
+
+function _trace($message) {
+    \YeAPF\yLogger::trace(0, YeAPF_LOG_DEBUG, $message);
+}
