@@ -17,10 +17,10 @@ class DebugLabels
         ];
     }
 
-    static public function get($label): int
+    static public function get($label): ?int
     {
         if (!isset(self::$labels[$label])) {
-            return 0;
+            return null;
         } else {
             return self::$labels[$label]['value'];
         }
@@ -29,7 +29,7 @@ class DebugLabels
     static public function getFileFromLabel($label): string 
     {
         if (!isset(self::$labels[$label])) {
-            return '';
+            return null;
         } else {
             return self::$labels[$label]['file'];
         }

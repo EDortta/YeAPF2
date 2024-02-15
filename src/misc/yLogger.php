@@ -133,53 +133,55 @@ class yLogger
   }
 
   // Log
-  static public function log(int $area, int $warningLevel, string $message)
+  static public function log(int|string $area, int $warningLevel, string $message)
   {
     global $currentURI;
 
     if (self::startup()) {
       if ($warningLevel >= self::$minLogLevel - 99) {
-        $dbg = debug_backtrace();
-        $time = date('h:i:s ');
-        $preamble = "$time";
-        if (self::$lastLogSourceUsage != $dbg[1]['file']) {
-          self::$lastLogSourceUsage = $dbg[1]['file'];
-          $preamble .= self::$lastLogSourceUsage . "---\n$time";
-          // echo json_encode($dbg[1],JSON_PRETTY_PRINT);
-        }
-        if ($currentURI > '') {
-          $preamble .= '  ' . str_pad(' ' . $dbg[1]['line'], 4, ' ', STR_PAD_LEFT) . ': [' . $currentURI . '] ';
-        } else {
-          $preamble .= '  ' . str_pad(' ' . $dbg[1]['line'], 4, ' ', STR_PAD_LEFT) . ': ';
-        }
-
-        $message = str_replace("\n", ' ', $message);
-        if (trim($message) > '') {
-          if (self::$syslogOpened) {
-            if ($warningLevel <= YeAPF_LOG_DEBUG)
-              $OS_level = LOG_DEBUG;
-            elseif ($warningLevel <= YeAPF_LOG_INFO)
-              $OS_level = LOG_INFO;
-            elseif ($warningLevel <= YeAPF_LOG_NOTICE)
-              $OS_level = LOG_NOTICE;
-            elseif ($warningLevel <= YeAPF_LOG_WARNING)
-              $OS_level = LOG_WARNING;
-            elseif ($warningLevel <= YeAPF_LOG_ERR)
-              $OS_level = LOG_ERR;
-            elseif ($warningLevel <= YeAPF_LOG_CRIT)
-              $OS_level = LOG_CRIT;
-            elseif ($warningLevel <= YeAPF_LOG_ALERT)
-              $OS_level = LOG_ALERT;
-            elseif ($warningLevel <= YeAPF_LOG_EMERG)
-              $OS_level = LOG_EMERG;
-            else
-              $OS_level = LOG_INFO;
-            syslog($OS_level, $message);
+        if (0 === $area || in_array($area, self::$activeLogAreas)) {
+          $dbg = debug_backtrace();
+          $time = date('h:i:s ');
+          $preamble = "$time";
+          if (self::$lastLogSourceUsage != $dbg[1]['file']) {
+            self::$lastLogSourceUsage = $dbg[1]['file'];
+            $preamble .= self::$lastLogSourceUsage . "---\n$time";
+            // echo json_encode($dbg[1],JSON_PRETTY_PRINT);
+          }
+          if ($currentURI > '') {
+            $preamble .= '  ' . str_pad(' ' . $dbg[1]['line'], 4, ' ', STR_PAD_LEFT) . ': [' . $currentURI . '] ';
+          } else {
+            $preamble .= '  ' . str_pad(' ' . $dbg[1]['line'], 4, ' ', STR_PAD_LEFT) . ': ';
           }
 
-          $fp = self::getLogFileHandler();
-          if ($fp) {
-            fwrite($fp, "$preamble $message\n");
+          $message = str_replace("\n", ' ', $message);
+          if (trim($message) > '') {
+            if (self::$syslogOpened) {
+              if ($warningLevel <= YeAPF_LOG_DEBUG)
+                $OS_level = LOG_DEBUG;
+              elseif ($warningLevel <= YeAPF_LOG_INFO)
+                $OS_level = LOG_INFO;
+              elseif ($warningLevel <= YeAPF_LOG_NOTICE)
+                $OS_level = LOG_NOTICE;
+              elseif ($warningLevel <= YeAPF_LOG_WARNING)
+                $OS_level = LOG_WARNING;
+              elseif ($warningLevel <= YeAPF_LOG_ERR)
+                $OS_level = LOG_ERR;
+              elseif ($warningLevel <= YeAPF_LOG_CRIT)
+                $OS_level = LOG_CRIT;
+              elseif ($warningLevel <= YeAPF_LOG_ALERT)
+                $OS_level = LOG_ALERT;
+              elseif ($warningLevel <= YeAPF_LOG_EMERG)
+                $OS_level = LOG_EMERG;
+              else
+                $OS_level = LOG_INFO;
+              syslog($OS_level, $message);
+            }
+
+            $fp = self::getLogFileHandler();
+            if ($fp) {
+              fwrite($fp, "$preamble $message\n");
+            }
           }
         }
       }
@@ -290,18 +292,20 @@ class yLogger
   static public function trace(int $area, int $warningLevel, string $message)
   {
     if ($warningLevel >= self::$minTraceLevel - 99) {
-      $dbg = debug_backtrace();
-      $time = date('h:i:s ');
-      $preamble = "$time";
-      if (self::$lastTraceSourceUsage != $dbg[1]['file']) {
-        self::$lastTraceSourceUsage = $dbg[1]['file'];
-        $preamble .= self::$lastTraceSourceUsage . "---\n$time";
-      }
-      $preamble .= '  ' . str_pad(' ' . $dbg[1]['line'], 4, ' ', STR_PAD_LEFT) . ': ';
-      $message = str_replace("\n", "\n    ", $message);
-      $fp = self::getTraceFileHandler();
-      if ($fp) {
-        fwrite($fp, "$preamble $message\n");
+      if (0 === $area || in_array($area, self::$activeTraceAreas)) {
+        $dbg = debug_backtrace();
+        $time = date('h:i:s ');
+        $preamble = "$time";
+        if (self::$lastTraceSourceUsage != $dbg[1]['file']) {
+          self::$lastTraceSourceUsage = $dbg[1]['file'];
+          $preamble .= self::$lastTraceSourceUsage . "---\n$time";
+        }
+        $preamble .= '  ' . str_pad(' ' . $dbg[1]['line'], 4, ' ', STR_PAD_LEFT) . ': ';
+        $message = str_replace("\n", "\n    ", $message);
+        $fp = self::getTraceFileHandler();
+        if ($fp) {
+          fwrite($fp, "$preamble $message\n");
+        }
       }
     }
   }

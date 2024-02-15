@@ -17,9 +17,9 @@ class Bulletin extends \YeAPF\SanitizedKeyData
         int $return_code,
         \OpenSwoole\Http\Request $request ,
         \OpenSwoole\Http\Response $response) {
-        echo "Bulletin\n";
-        echo "Content Type: ".$this->contentType."\n";
-        echo "Charactet Set: ".$this->charactetSet."\n";
+        // echo "Bulletin\n";
+        // echo "Content Type: ".$this->contentType."\n";
+        // echo "Charactet Set: ".$this->charactetSet."\n";
         $response->header("Content-Type", $this->contentType.'; charset='.$this->charactetSet);
         $response->status($return_code);
         // $response->header("Response-Code", $return_code);

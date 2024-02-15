@@ -43,7 +43,7 @@ require_once __DIR__ . '/yeapf-config.php';
     $debugAreas = \YeAPF\YeAPFConfig::getSection('mode')->debug->areas ?? [];
     $intDebugAreas = [];
     foreach ($debugAreas as $k) {
-      $intDebugAreas[] = DebugLabels::get($k);
+      $intDebugAreas[] = DebugLabels::get($k)??$k;
     }
     \YeAPF\yLogger::defineLogFilters($logLevel, $intDebugAreas);
 
@@ -62,7 +62,7 @@ require_once __DIR__ . '/yeapf-config.php';
     $traceAreas = \YeAPF\YeAPFConfig::getSection('mode')->trace->areas ?? [];
     $intTraceAreas = [];
     foreach ($traceAreas as $k) {
-      $intTraceAreas[] = DebugLabels::get($k);
+      $intTraceAreas[] = DebugLabels::get($k)??$k;
     }
     \YeAPF\yLogger::defineTraceFilters($traceLevel, $intTraceAreas);
   }
