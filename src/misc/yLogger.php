@@ -21,6 +21,10 @@ class yLogger
   static private $logFileHandler = null;
 
   // trace
+  static private $traceBuffer = [];
+
+  static private $useTraceBuffer = true;
+
   static private $traceStartMicrotime = null;
 
   static private $lastTraceSourceUsage = null;
@@ -195,12 +199,13 @@ class yLogger
     self::$traceStartMicrotime = microtime(true);
   }
 
-  static public function defineTraceFilters(int $traceLevel, array $activeTraceAreas = [])
+  static public function defineTraceFilters(int $traceLevel, array $activeTraceAreas = [], ?bool $bufferedOutput = true)
   {
     if (!empty($activeTraceAreas)) {
       self::$activeTraceAreas = $activeTraceAreas;
     }
     self::$minTraceLevel = $traceLevel;
+    self::$useTraceBuffer = $bufferedOutput;
   }
 
   static public function addTraceArea(int $area)
@@ -270,22 +275,29 @@ class yLogger
     return self::$traceFileHandler;
   }
 
-  static public function closeTrace()
+  static public function closeTrace($flushBuffer=false)
   {
-    if (null != self::$traceFileHandler) {
-      fwrite(self::$traceFileHandler, str_repeat('-', 80) . "\n");
-      fwrite(self::$traceFileHandler, 'Ended at ' . date('Y-m-d H:i:s') . "\n");
-      $details = ['httpCode', 'return'];
-      foreach ($details as $d) {
-        self::_traceDetail($d);
+    if ($flushBuffer || !self::$useTraceBuffer) {
+      $fp = self::getTraceFileHandler();
+      if ($fp) {
+        foreach(self::$traceBuffer as $b) {
+          fwrite($fp, "$b\n");
+        }
+        self::$traceBuffer = [];
+        fwrite($fp, str_repeat('-', 80) . "\n");
+        fwrite($fp, 'Ended at ' . date('Y-m-d H:i:s') . "\n");
+        $details = ['httpCode', 'return'];
+        foreach ($details as $d) {
+          self::_traceDetail($d);
+        }
+        $consumedMicrotime = microtime(true) - self::$traceStartMicrotime;
+        fwrite($fp, 'Consumed ' . $consumedMicrotime . ' seconds' . "\n");
+        self::$traceStartMicrotime = null;
+  
+        fflush($fp);
+        fclose($fp);
+        self::$traceFileHandler = null;
       }
-      $consumedMicrotime = microtime(true) - self::$traceStartMicrotime;
-      fwrite(self::$traceFileHandler, 'Consumed ' . $consumedMicrotime . ' seconds' . "\n");
-      self::$traceStartMicrotime = null;
-
-      fflush(self::$traceFileHandler);
-      fclose(self::$traceFileHandler);
-      self::$traceFileHandler = null;
     }
   }
 
@@ -302,9 +314,13 @@ class yLogger
         }
         $preamble .= '  ' . str_pad(' ' . $dbg[1]['line'], 4, ' ', STR_PAD_LEFT) . ': ';
         $message = str_replace("\n", "\n    ", $message);
-        $fp = self::getTraceFileHandler();
-        if ($fp) {
-          fwrite($fp, "$preamble $message\n");
+        if (self::$useTraceBuffer) {
+          self::$traceBuffer[] = "$preamble $message";
+        } else {
+          $fp = self::getTraceFileHandler();
+          if ($fp) {
+            fwrite($fp, "$preamble $message\n");
+          }
         }
       }
     }

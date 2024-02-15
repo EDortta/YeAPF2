@@ -563,7 +563,7 @@ abstract class HTTP2Service
         
                 $ret_code = 406;
 
-                $aBulletin = new \YeAPF\Bulletin();
+                $aBulletin = new \YeAPF\Bulletin();                
                 try {
                     $method = $request->server['request_method'];
                     if (mb_strtolower(substr(trim(($request->header['content-type'])??''), 0, 16)) === 'application/json') {
@@ -738,7 +738,7 @@ abstract class HTTP2Service
 
                     // _trace("FINNISH $uri");
                     $this->closeContext();
-                    \YeAPF\yLogger::closeTrace();
+                    \YeAPF\yLogger::closeTrace($ret_code>299);
                 }
             });
 

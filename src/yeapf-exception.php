@@ -55,7 +55,7 @@ function handleException($message, $code, $file, $line, $trace, $isException = t
     echo $dbgInfo;
     _log($dbgInfo);
     if ($isException) {
-      \YeAPF\yLogger::closeTrace();
+      \YeAPF\yLogger::closeTrace(true);
       \YeAPF\yLogger::closeLog();
       exit($ret['code']);
     }
