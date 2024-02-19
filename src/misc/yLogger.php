@@ -8,6 +8,7 @@ class yLogger
 
   static private $tag = 'YeAPF';
   static private $syslogOpened = false;
+  static private $serverInfo = [];
 
   // log
   static private $logFolder = null;
@@ -34,6 +35,8 @@ class yLogger
   static private $minTraceLevel = YeAPF_LOG_WARNING;
 
   static private $traceFileHandler = null;
+
+  static private $traceFileName = null;
 
   static private $traceDetails = [];
 
@@ -80,6 +83,50 @@ class yLogger
 
   // Log Tag and Filters
 
+  static public function setLogTags(array|string $serverInfo, ?string $serverValue = null)
+  {
+    $validTags = [
+      YeAPF_LOG_TAG_SERVER,
+      YeAPF_LOG_TAG_SERVICE,
+      YeAPF_LOG_TAG_CLIENT,
+      YeAPF_LOG_TAG_USER,
+      YeAPF_LOG_TAG_USERID,
+      YeAPF_LOG_TAG_REQUEST_TIME,
+      YeAPF_LOG_TAG_REQUEST,
+      YeAPF_LOG_TAG_RESULT,
+      YeAPF_LOG_TAG_RESPONSE_SIZE,
+      YeAPF_LOG_TAG_RESPONSE_TIME,
+      YeAPF_LOG_TAG_RESPONSE_ERROR,
+      YeAPF_LOG_TAG_REFERER,
+      YeAPF_LOG_TAG_USERAGENT,
+    ];
+    if (is_string($serverInfo)) {
+      if (in_array($serverInfo, $validTags)) {
+        self::$serverInfo[$serverInfo] = $serverValue;
+      }
+    } else {
+      foreach ($serverInfo as $tag => $value) {
+        if (in_array($tag, $validTags)) {
+          self::$serverInfo[$tag] = $value;
+        }
+      }
+    }
+  }
+
+  static public function getLogTags(string $tag)
+  {
+    $ret = '-';
+    if (isset(self::$serverInfo[$tag])) {
+      $ret = self::$serverInfo[$tag];
+      if (is_string($ret)) {
+        if (strpos($ret, ' ') !== false) {
+          $ret = '"' . $ret . '"';
+        }
+      }
+    }
+    return $ret;
+  }
+
   static public function defineLogTag(string $tag)
   {
     self::$tag = $tag;
@@ -123,7 +170,7 @@ class yLogger
     return self::$logFileHandler;
   }
 
-  static private function closeLog()
+  static public function closeLog()
   {
     if (self::$syslogOpened) {
       closelog();
@@ -137,19 +184,19 @@ class yLogger
   }
 
   // Log
-  static public function log(int|string $area, int $warningLevel, string $message)
+  static public function log(int|string $area, int $minLogLevel, string $message)
   {
     global $currentURI;
 
     if (self::startup()) {
-      if ($warningLevel >= self::$minLogLevel - 99) {
+      if ($minLogLevel >= self::$minLogLevel - 99) {
         if (0 === $area || in_array($area, self::$activeLogAreas)) {
           $dbg = debug_backtrace();
           $time = date('h:i:s ');
           $preamble = "$time";
           if (self::$lastLogSourceUsage != $dbg[1]['file']) {
             self::$lastLogSourceUsage = $dbg[1]['file'];
-            $preamble .= self::$lastLogSourceUsage . "---\n$time";
+            $preamble .= '[' . self::$lastLogSourceUsage . "] ------\n$time";
             // echo json_encode($dbg[1],JSON_PRETTY_PRINT);
           }
           if ($currentURI > '') {
@@ -160,28 +207,6 @@ class yLogger
 
           $message = str_replace("\n", ' ', $message);
           if (trim($message) > '') {
-            if (self::$syslogOpened) {
-              if ($warningLevel <= YeAPF_LOG_DEBUG)
-                $OS_level = LOG_DEBUG;
-              elseif ($warningLevel <= YeAPF_LOG_INFO)
-                $OS_level = LOG_INFO;
-              elseif ($warningLevel <= YeAPF_LOG_NOTICE)
-                $OS_level = LOG_NOTICE;
-              elseif ($warningLevel <= YeAPF_LOG_WARNING)
-                $OS_level = LOG_WARNING;
-              elseif ($warningLevel <= YeAPF_LOG_ERR)
-                $OS_level = LOG_ERR;
-              elseif ($warningLevel <= YeAPF_LOG_CRIT)
-                $OS_level = LOG_CRIT;
-              elseif ($warningLevel <= YeAPF_LOG_ALERT)
-                $OS_level = LOG_ALERT;
-              elseif ($warningLevel <= YeAPF_LOG_EMERG)
-                $OS_level = LOG_EMERG;
-              else
-                $OS_level = LOG_INFO;
-              syslog($OS_level, $message);
-            }
-
             $fp = self::getLogFileHandler();
             if ($fp) {
               fwrite($fp, "$preamble $message\n");
@@ -192,6 +217,57 @@ class yLogger
     }
   }
 
+  static public function syslog(int|string $area = 0, int $minLogLevel = YeAPF_LOG_DEBUG, string $message = '')
+  {
+    if (self::startup()) {
+      if ($minLogLevel >= self::$minLogLevel - 99) {
+        if (0 === $area || in_array($area, self::$activeLogAreas)) {
+          if (self::$syslogOpened) {
+            if ($minLogLevel <= YeAPF_LOG_DEBUG)
+              $OS_level = LOG_DEBUG;
+            elseif ($minLogLevel <= YeAPF_LOG_INFO)
+              $OS_level = LOG_INFO;
+            elseif ($minLogLevel <= YeAPF_LOG_NOTICE)
+              $OS_level = LOG_NOTICE;
+            elseif ($minLogLevel <= YeAPF_LOG_WARNING)
+              $OS_level = LOG_WARNING;
+            elseif ($minLogLevel <= YeAPF_LOG_ERROR)
+              $OS_level = LOG_ERR;
+            elseif ($minLogLevel <= YeAPF_LOG_CRITICAL)
+              $OS_level = LOG_CRIT;
+            elseif ($minLogLevel <= YeAPF_LOG_ALERT)
+              $OS_level = LOG_ALERT;
+            elseif ($minLogLevel <= YeAPF_LOG_EMERG)
+              $OS_level = LOG_EMERG;
+            else
+              $OS_level = LOG_INFO;
+
+            $message = str_replace("\n", ' ', $message);
+            $message = trim($message);
+            if (strpos($message, ' ') !== false) {
+              $message = '"' . $message . '"';
+            }
+            $sysLogMessage = ''
+              // . date('Y-m-d\TH:i:sP') . ' '
+              // . self::getLogTags(YeAPF_LOG_TAG_SERVER) . ' '
+              // . self::getLogTags(YeAPF_LOG_TAG_SERVICE) . ': '
+              . self::getLogTags(YeAPF_LOG_TAG_CLIENT) . ' '
+              . self::getLogTags(YeAPF_LOG_TAG_USER) . ' '
+              . self::getLogTags(YeAPF_LOG_TAG_USERID) . ' '
+              . self::getLogTags(YeAPF_LOG_TAG_REQUEST_TIME) . ' '
+              . self::getLogTags(YeAPF_LOG_TAG_REQUEST) . ' '
+              . self::getLogTags(YeAPF_LOG_TAG_RESULT) . ' '
+              . self::getLogTags(YeAPF_LOG_TAG_RESPONSE_SIZE) . ' '
+              . self::getLogTags(YeAPF_LOG_TAG_REFERER) . ' '
+              . self::getLogTags(YeAPF_LOG_TAG_USERAGENT) . ' '
+              . self::getLogTags(YeAPF_LOG_TAG_RESPONSE_TIME) . 'ms '
+              . $message;
+            syslog($OS_level, $sysLogMessage);
+          }
+        }
+      }
+    }
+  }
   // Trace
 
   static public function markStartupTimestamp()
@@ -250,6 +326,20 @@ class yLogger
     }
   }
 
+  static private function _setTraceFilename()
+  {
+    if (null == self::$traceFileName) {
+      $fileName = self::$logFolder . '/trace/' . date('Y-m-d-H-') . generateShortUniqueId() . '.trace';
+      self::$traceFileName = $fileName;
+    }
+    return self::$traceFileName;
+  }
+
+  static public function getTraceFilename()
+  {
+    return self::$traceFileName;
+  }
+
   static private function getTraceFileHandler()
   {
     if (null == self::$traceStartMicrotime)
@@ -259,7 +349,7 @@ class yLogger
         mkdir(self::$logFolder . '/trace', 0777, true) || throw new \Exception('Trace folder ' . self::$logFolder . '/trace cannot be created', 1);
       }
       if (is_writable(self::$logFolder . '/trace')) {
-        $fileName = self::$logFolder . '/trace/' . date('Y-m-d-H-') . generateShortUniqueId() . '.trace';
+        $fileName = self::_setTraceFilename();
         self::$traceFileHandler = fopen($fileName, 'a+');
         if (!empty(self::$traceDetails['descriptor'])) {
           fwrite(self::$traceFileHandler, self::$traceDetails['descriptor'] . "\n");
@@ -275,12 +365,12 @@ class yLogger
     return self::$traceFileHandler;
   }
 
-  static public function closeTrace($flushBuffer=false)
+  static public function closeTrace($flushBuffer = false)
   {
     if ($flushBuffer || !self::$useTraceBuffer) {
       $fp = self::getTraceFileHandler();
       if ($fp) {
-        foreach(self::$traceBuffer as $b) {
+        foreach (self::$traceBuffer as $b) {
           fwrite($fp, "$b\n");
         }
         self::$traceBuffer = [];
@@ -293,10 +383,11 @@ class yLogger
         $consumedMicrotime = microtime(true) - self::$traceStartMicrotime;
         fwrite($fp, 'Consumed ' . $consumedMicrotime . ' seconds' . "\n");
         self::$traceStartMicrotime = null;
-  
+
         fflush($fp);
         fclose($fp);
         self::$traceFileHandler = null;
+        self::$traceFileName = null;
       }
     }
   }
@@ -305,12 +396,14 @@ class yLogger
   {
     if ($warningLevel >= self::$minTraceLevel - 99) {
       if (0 === $area || in_array($area, self::$activeTraceAreas)) {
+        self::_setTraceFilename();
+
         $dbg = debug_backtrace();
         $time = date('h:i:s ');
         $preamble = "$time";
         if (self::$lastTraceSourceUsage != $dbg[1]['file']) {
           self::$lastTraceSourceUsage = $dbg[1]['file'];
-          $preamble .= self::$lastTraceSourceUsage . "---\n$time";
+          $preamble .= '[' . self::$lastTraceSourceUsage . "] ------\n$time";
         }
         $preamble .= '  ' . str_pad(' ' . $dbg[1]['line'], 4, ' ', STR_PAD_LEFT) . ': ';
         $message = str_replace("\n", "\n    ", $message);

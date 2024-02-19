@@ -15,6 +15,20 @@ define('YeAPF_LOG_ALERT', 699);
 define('YeAPF_LOG_EMERG', 799);
 
 
+define('YeAPF_LOG_TAG_SERVER', 'server');   // usually hostname and/or IP
+define('YeAPF_LOG_TAG_SERVICE', 'service'); // service name
+define('YeAPF_LOG_TAG_CLIENT', 'client');   // client IP
+define('YeAPF_LOG_TAG_USER', 'user');       // RFC1413
+define('YeAPF_LOG_TAG_USERID', 'userid');   // .htaccess login
+define('YeAPF_LOG_TAG_REQUEST_TIME', 'request_time');
+define('YeAPF_LOG_TAG_REQUEST','request');  // GET /list/all ...
+define('YeAPF_LOG_TAG_RESULT','result');    // 200
+define('YeAPF_LOG_TAG_RESPONSE_SIZE','response_size'); // bytes
+define('YeAPF_LOG_TAG_RESPONSE_TIME','response_time'); // ms
+define('YeAPF_LOG_TAG_RESPONSE_ERROR','response_error');
+define('YeAPF_LOG_TAG_REFERER','referer');
+define('YeAPF_LOG_TAG_USERAGENT','useragent');
+
 /*****************************************/
 /* KEY-DATA */
 

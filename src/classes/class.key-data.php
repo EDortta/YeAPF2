@@ -589,7 +589,7 @@ class SanitizedKeyData extends KeyData
         $regExpression = $this->__constraints[$keyName]['regExpression'] ?? null;
         $defaultValue = $this->__constraints[$keyName]['defaultValue'] ?? null;
 
-        if (!$acceptNULL && (empty($value) || $value === null)) {
+        if (!$acceptNULL && ((empty($value) && !is_numeric($value)) || $value === null)) {
           $value = $defaultValue ?? null;
         }
 
@@ -606,7 +606,7 @@ class SanitizedKeyData extends KeyData
           if (YeAPF_TYPE_STRING == $type) {
             if ($debug)
               _trace('Checkpoint#2 at ' . __LINE__);
-            $pureValue=$this->unsanitize($value??'');
+            $pureValue = $this->unsanitize($value ?? '');
             if ($length > 0 && strlen($pureValue ?? '') > $length) {
               list($message, $error) = ['String value has ' . strlen($pureValue ?? '') . ' chars. Value too long in ' . get_class() . '.' . $keyName . ' It is ' . $length . ' chars long', YeAPF_INVALID_KEY_VALUE];
               if ($debug)
@@ -904,10 +904,10 @@ class SanitizedKeyData extends KeyData
   public function __set(string $name, mixed $value)
   {
     $debug = true;
-    
+
     $value = $this->sanitize($value);
     if ($debug)
-      _trace("Setting '$name' with ---[" . print_r($value, true) . "]---\n");
+      _trace("Setting '$name' with ---[" . gettype($value) . ':' . print_r($value, true) . ']---');
 
     $regExpCount = 0;
     if (\YeAPF\YeAPFConfig::allowExpressionsInSanitizedInput()) {
@@ -940,6 +940,7 @@ class SanitizedKeyData extends KeyData
     if (0 == $regExpCount) {
       // print_r('['.$name.'] ');
       // print_r($value);
+      _trace("Checking constraints for '$name' with ---[" . gettype($value) . ':' . print_r($value, true) . ']---');
       $value = $this->checkConstraint($name, $value);
       if ($debug)
         _trace('  :: value = ' . print_r($value, true) . "\n");
@@ -967,6 +968,7 @@ class SanitizedKeyData extends KeyData
         }
       }
     } else {
+      _trace('Using simplified expression: ' . print_r($simplifiedExpression, true));
       $value = $simplifiedExpression;
     }
     parent::__set($name, $value);

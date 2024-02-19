@@ -36,15 +36,24 @@ function handleException($message, $code, $file, $line, $trace, $isException = t
     else
       $dbgInfo .= "ERROR\n";
     if ($ret['code'] ?? 0 > 0) {
-      $dbgInfo .= '     CODE: ' . dec2hex($ret['code']) . "\n";
+      $dbgInfo .= '      CODE: ' . dec2hex($ret['code']) . "\n";
     }
 
-    $dbgInfo .= '  MESSAGE: ' . trim(wordwrap('           ' . $ret['message'], $width - 11, "\n           ")) . "\n";
-    $dbgInfo .= '     FILE: ' . substr($ret['file'] . ':' . $ret['line'], -$width + 11) . "\n";
-    $dbgInfo .= "STACK TRC:\n";
+    $dbgInfo .= '   MESSAGE: ' . trim(wordwrap('           ' . $ret['message'], $width - 11, "\n           ")) . "\n";
+    $dbgInfo .= '      FILE: ' . substr($ret['file'] . ':' . $ret['line'], -$width + 11) . "\n";
+    $dbgInfo .= " STACK TRC:\n";
     foreach ($ret['trace'] as $trace) {
       if (!empty($trace['file']))
         $dbgInfo .= '    ' . substr($trace['file'] . ':' . $trace['line'], -$width + 11) . "\n";
+    }
+
+    if ($isException) {
+      _trace($dbgInfo.str_repeat('=', $width));
+    }
+
+    $traceFilename = \YeAPF\yLogger::getTraceFilename();
+    if ($traceFilename) {
+      $dbgInfo.="TRACE FILE: $traceFilename\n";
     }
     $dbgInfo .= str_repeat('=', $width) . "\n";
 
@@ -54,10 +63,10 @@ function handleException($message, $code, $file, $line, $trace, $isException = t
 
     echo $dbgInfo;
     _log($dbgInfo);
-    if ($isException) {
+    if ($isException) {    
       \YeAPF\yLogger::closeTrace(true);
       \YeAPF\yLogger::closeLog();
-      exit($ret['code']);
+      exit($ret['code']??0);
     }
     $__handlingException = false;
   }
