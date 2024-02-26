@@ -1295,7 +1295,9 @@ class PersistentCollection extends \YeAPF\ORM\SharedSanitizedCollection implemen
         if (is_array($data)) {
             $ret->importData($data);
         } else {
-            $ret->importData($data->exportData());
+            if (!is_bool($data)){
+              $ret->importData($data->exportData());
+            }
         }
         return $ret;
     }

@@ -105,7 +105,7 @@ class Translator extends \YeAPF\Plugins\ServicePlugin implements \YeAPF\Plugins\
     string $tag = null,
     string $DOMText = null
   ) {
-    $debug = false;
+    $debug = true;
     $ret = [];
 
     if (strpos($targetLang, '-') !== false) {

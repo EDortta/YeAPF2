@@ -829,7 +829,9 @@ abstract class HTTP2Service
                     
                     if ($ret_code > 299) {
                         \YeAPF\yLogger::syslog(0, YeAPF_LOG_ERROR, \YeAPF\yLogger::getTraceFilename().' '.$this->error);
-                        \YeAPF\handleException(...$this->stackTrace);
+                        if (!empty($this->stackTrace)){
+                          \YeAPF\handleException(...$this->stackTrace);
+                        }
                     } else {
                         \YeAPF\yLogger::syslog(0, YeAPF_LOG_INFO);
                     }
