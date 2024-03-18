@@ -11,6 +11,8 @@ class yLogger
   static private $serverInfo = [];
 
   // log
+  static private $logFacility = YeAPF_LOG_USING_FILE;
+
   static private $logFolder = null;
 
   static private $lastLogSourceUsage = null;
@@ -25,6 +27,8 @@ class yLogger
   static private $traceBuffer = [];
 
   static private $useTraceBuffer = true;
+
+  static private $traceToLog = false;
 
   static private $traceStartMicrotime = null;
 
@@ -127,6 +131,26 @@ class yLogger
     return $ret;
   }
 
+  static public function setLogFacility(int $facility)
+  {
+    $validBits = YeAPF_LOG_USING_FILE | YeAPF_LOG_USING_DB | YeAPF_LOG_USING_CONSOLE | YeAPF_LOG_USING_SYSLOG;
+    if (($facility & $validBits) == $facility) {
+      self::$logFacility = $facility;
+    } else {
+      throw new \Exception('Invalid log facility');      
+    }
+  }
+
+  static public function getLogFacility(): int
+  {
+    return self::$logFacility;
+  }
+
+  static public function logFacilityEnabled(int $facility): bool
+  {
+    return (self::$logFacility & $facility) == $facility;
+  }
+
   static public function defineLogTag(string $tag)
   {
     self::$tag = $tag;
@@ -184,39 +208,6 @@ class yLogger
   }
 
   // Log
-  static public function log(int|string $area, int $minLogLevel, string $message)
-  {
-    global $currentURI;
-
-    if (self::startup()) {
-      if ($minLogLevel >= self::$minLogLevel - 99) {
-        if (0 === $area || in_array($area, self::$activeLogAreas)) {
-          $dbg = debug_backtrace();
-          $time = date('h:i:s ');
-          $preamble = "$time";
-          if (self::$lastLogSourceUsage != $dbg[1]['file']) {
-            self::$lastLogSourceUsage = $dbg[1]['file'];
-            $preamble .= '[' . self::$lastLogSourceUsage . "] ------\n$time";
-            // echo json_encode($dbg[1],JSON_PRETTY_PRINT);
-          }
-          if ($currentURI > '') {
-            $preamble .= '  ' . str_pad(' ' . $dbg[1]['line'], 4, ' ', STR_PAD_LEFT) . ': [' . $currentURI . '] ';
-          } else {
-            $preamble .= '  ' . str_pad(' ' . $dbg[1]['line'], 4, ' ', STR_PAD_LEFT) . ': ';
-          }
-
-          $message = str_replace("\n", ' ', $message);
-          if (trim($message) > '') {
-            $fp = self::getLogFileHandler();
-            if ($fp) {
-              fwrite($fp, "$preamble $message\n");
-            }
-          }
-        }
-      }
-    }
-  }
-
   static public function syslog(int|string $area = 0, int $minLogLevel = YeAPF_LOG_DEBUG, string $message = '')
   {
     if (self::startup()) {
@@ -268,6 +259,50 @@ class yLogger
       }
     }
   }
+
+  static public function log(int|string $area, int $minLogLevel, string $message)
+  {
+    global $currentURI;
+
+    if (self::startup()) {
+      if ($minLogLevel >= self::$minLogLevel - 99) {
+        if (0 === $area || in_array($area, self::$activeLogAreas)) {
+          $dbg = debug_backtrace();
+          $time = date('h:i:s ');
+          $preamble = "$time";
+          if (self::$lastLogSourceUsage != $dbg[1]['file']) {
+            self::$lastLogSourceUsage = $dbg[1]['file'];
+            $preamble .= '[' . self::$lastLogSourceUsage . "] ------\n$time";
+            // echo json_encode($dbg[1],JSON_PRETTY_PRINT);
+          }
+          if ($currentURI > '') {
+            $preamble .= '  ' . str_pad(' ' . $dbg[1]['line'], 4, ' ', STR_PAD_LEFT) . ': [' . $currentURI . '] ';
+          } else {
+            $preamble .= '  ' . str_pad(' ' . $dbg[1]['line'], 4, ' ', STR_PAD_LEFT) . ': ';
+          }
+
+          $message = str_replace("\n", ' ', $message);
+          if (trim($message) > '') {
+            if (self::logFacilityEnabled(YeAPF_LOG_USING_FILE)) {
+              $fp = self::getLogFileHandler();
+              if ($fp) {
+                fwrite($fp, "$preamble $message\n");
+              }
+            }
+
+            if (self::logFacilityEnabled(YeAPF_LOG_USING_SYSLOG)) {
+              self::syslog($area, $minLogLevel, $message);
+            }
+
+            if (self::logFacilityEnabled(YeAPF_LOG_USING_CONSOLE)) {
+              echo "$preamble $message\n";
+            }
+          }
+        }
+      }
+    }
+  }
+
   // Trace
 
   static public function markStartupTimestamp()
@@ -275,13 +310,17 @@ class yLogger
     self::$traceStartMicrotime = microtime(true);
   }
 
-  static public function defineTraceFilters(int $traceLevel, array $activeTraceAreas = [], ?bool $bufferedOutput = true)
+  static public function defineTraceFilters(?int $traceLevel = null, array $activeTraceAreas = [], ?bool $bufferedOutput = null, ?bool $traceToLog = null)
   {
     if (!empty($activeTraceAreas)) {
       self::$activeTraceAreas = $activeTraceAreas;
     }
-    self::$minTraceLevel = $traceLevel;
-    self::$useTraceBuffer = $bufferedOutput;
+    if (null !== $traceLevel)
+      self::$minTraceLevel = $traceLevel;
+    if (null !== $bufferedOutput)
+      self::$useTraceBuffer = $bufferedOutput;
+    if (null !== $traceToLog)
+      self::$traceToLog = $traceToLog;
   }
 
   static public function addTraceArea(int $area)
@@ -318,6 +357,8 @@ class yLogger
       $lineStart = mb_strtoupper("$d") . str_repeat('.', 12 - strlen($d));
       if (is_array(self::$traceDetails[$d])) {
         foreach (self::$traceDetails[$d] as $k => $v) {
+          if (is_object($v))
+            $v = json_encode($v);
           fwrite(self::$traceFileHandler, $lineStart . "$k: $v\n");
           $lineStart = str_repeat(' ', 12);
         }
@@ -405,15 +446,19 @@ class yLogger
           self::$lastTraceSourceUsage = $dbg[1]['file'];
           $preamble .= '[' . self::$lastTraceSourceUsage . "] ------\n$time";
         }
-        $preamble .= '  ' . str_pad(' ' . $dbg[1]['line'], 4, ' ', STR_PAD_LEFT) . ': ';
-        $message = str_replace("\n", "\n    ", $message);
+        $preamble .= '  ' . str_pad(' ' . $dbg[1]['line'], 5, ' ', STR_PAD_LEFT) . ': ';
+        $formattedMessage = str_replace("\n", "\n    ", $message);
         if (self::$useTraceBuffer) {
-          self::$traceBuffer[] = "$preamble $message";
+          self::$traceBuffer[] = "$preamble $formattedMessage";
         } else {
           $fp = self::getTraceFileHandler();
           if ($fp) {
-            fwrite($fp, "$preamble $message\n");
+            fwrite($fp, "$preamble $formattedMessage\n");
           }
+        }
+
+        if (self::$traceToLog) {
+          self::log($area, $warningLevel, $message);
         }
       }
     }

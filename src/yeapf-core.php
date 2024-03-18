@@ -28,6 +28,13 @@ require_once __DIR__ . '/yeapf-config.php';
       'EMERG' => YeAPF_LOG_EMERG,
     ];
 
+    $logFacilityMap = [
+      'FILE' => YeAPF_LOG_USING_FILE,
+      'DB' => YeAPF_LOG_USING_DB,
+      'CONSOLE' => YeAPF_LOG_USING_CONSOLE,
+      'SYSLOG' => YeAPF_LOG_USING_SYSLOG
+    ];
+
     $debugConfig = \YeAPF\YeAPFConfig::getSection('mode')->debug ?? json_decode("{'enabled': false,'level': 'WARNING'}", false);
     $logEnabled = $debugConfig->enabled ?? false;
     $logLevelStr = $debugConfig->level ?? 'WARNING';
@@ -40,6 +47,15 @@ require_once __DIR__ . '/yeapf-config.php';
         $logLevel = $logLevelMap[$logLevelStr] ?? YeAPF_LOG_WARNING;
       }
     }
+
+    $logFacilities = \YeAPF\YeAPFConfig::getSection('mode')->debug->facility ?? [];
+    $intLogFacilities = 0;
+    foreach ($logFacilities as $k) {
+      $intLogFacilities |= ($logFacilityMap[$k]??0);
+    }
+    \YeAPF\yLogger::setLogFacility($intLogFacilities);
+
+
     $debugAreas = \YeAPF\YeAPFConfig::getSection('mode')->debug->areas ?? [];
     $intDebugAreas = [];
     foreach ($debugAreas as $k) {
@@ -64,7 +80,12 @@ require_once __DIR__ . '/yeapf-config.php';
     foreach ($traceAreas as $k) {
       $intTraceAreas[] = DebugLabels::get($k)??$k;
     }
-    \YeAPF\yLogger::defineTraceFilters($traceLevel, $intTraceAreas);
+    \YeAPF\yLogger::defineTraceFilters(
+      traceLevel: $traceLevel, 
+      activeTraceAreas: $intTraceAreas,
+      bufferedOutput: true,
+      traceToLog: false
+    );
   }
 )();
 

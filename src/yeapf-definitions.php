@@ -14,6 +14,10 @@ define('YeAPF_LOG_CRITICAL', 599);
 define('YeAPF_LOG_ALERT', 699);
 define('YeAPF_LOG_EMERG', 799);
 
+define('YeAPF_LOG_USING_FILE', 0x00000001);
+define('YeAPF_LOG_USING_DB', 0x00000002);
+define('YeAPF_LOG_USING_CONSOLE', 0x00000004);
+define('YeAPF_LOG_USING_SYSLOG', 0x00000008);
 
 define('YeAPF_LOG_TAG_SERVER', 'server');   // usually hostname and/or IP
 define('YeAPF_LOG_TAG_SERVICE', 'service'); // service name
@@ -140,6 +144,7 @@ define('YeAPF_GET_RESPONSES', YeAPF_SERVICE_BASE + 3);
 define('YeAPF_GET_CONSTRAINTS', YeAPF_SERVICE_BASE + 4);
 define('YeAPF_GET_SECURITY', YeAPF_SERVICE_BASE + 5);
 define('YeAPF_GET_PRIVATE_PATH_FLAG', YeAPF_SERVICE_BASE + 6);
+define('YeAPF_GET_TAGS', YeAPF_SERVICE_BASE + 7);
 
 /***************************/
 /* SECURITY */

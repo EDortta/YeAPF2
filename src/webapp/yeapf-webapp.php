@@ -234,6 +234,10 @@ class WebApp
                 $entrance = rtrim($entrance, '/');
 
                 $uri = implode('/', $uri);
+                if (substr($uri, -4) == '.htm' || substr($uri, -5) == '.html') {
+                    $uri = substr($uri, 0, strlen($uri) - 5);
+                }
+
                 $content = '';
 
                 if (!file_exists("template/pages/$entrance/$entrance.html")) {
@@ -261,7 +265,7 @@ class WebApp
                             }
                         }
                     }
-                    $context['page_content'] = $page_content;
+                    $context['page_content'] = $yAnalyzer->do($page_content, $context);
                 } else {
                     if (file_exists("pages/$uri/$uri.html")) {
                         $content = file_get_contents("pages/$uri/$uri.html");
@@ -282,13 +286,13 @@ class WebApp
                 }
             }
 
+            
             // die("actualContentType: $actualContentType</pre>");
-
             $acceptedContentTypes = ['application/json', 'text/plain', 'text/html', 'text/markdown'];            
             if ($actualContentType !== null && in_array($actualContentType, $acceptedContentTypes)) {
-                $content = $yAnalyzer->do($content, $context);
+                // $content = $yAnalyzer->do($content, $context);
             }
-            // $content = $yAnalyzer->do($content, $context);
+            $content = $yAnalyzer->do($content, $context);
 
             if ($antiCache) {
                 $content = self::applyAntiCache($content, $antiCache);

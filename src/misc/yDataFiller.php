@@ -228,12 +228,14 @@ class DataFiller
         $maxLength = null;
         $classes = null;
 
+        $ufFiles = glob(__DIR__ . '/.data/v2/*.csv');
+
         $genString = static function ($base, $minLen, $maxLen) {
             $ret = '';
             $n = null;
             $j = null;
             // echo "Len from $minLen to $maxLen ... ";
-            $maxLen = self::y_rand(0,$maxLen);
+            $maxLen = self::y_rand(0, $maxLen);
             $maxLen = intval($maxLen + $minLen, 0);
             // echo "$maxLen\n";
             $j = 0;
@@ -268,14 +270,13 @@ class DataFiller
             return $ret;
         };
 
-        $cacheForNextField = [];
+        $cacheForNextField = ['ddd' => 11, 'localidade' => 'São Paulo'];
         $nameEnterpiseType = '';
 
         foreach ($aElements as $elem) {
             $fieldType = strtolower($elem['type']);
             $fieldId = $elem['id'];
             $maxLength = isset($elem['maxlength']) ? intval($elem['maxlength']) : 100;
-            $maxLength = round(self::y_rand($maxLength * 0.25, $maxLength),0);
             // echo "maxLength: $maxLength\n";
             $lClasses = isset($elem['className']) ? explode(' ', $elem['className']) : array();
             for ($n = 0; $n < count($lClasses); $n++) {
@@ -286,12 +287,12 @@ class DataFiller
             if ($fieldId) {
                 if (!empty($cacheForNextField[$fieldId])) {
                     $fieldValue = $cacheForNextField[$fieldId];
-                    unset($cacheForNextField[$fieldId]);
+                    // unset($cacheForNextField[$fieldId]);
                 } else {
                     if (isset($elem['cached'])) {
                         if (!empty($cacheForNextField[$elem['cached']])) {
                             $fieldValue = $cacheForNextField[$elem['cached']];
-                            unset($cacheForNextField[$elem['cached']]);
+                            // unset($cacheForNextField[$elem['cached']]);
                         }
                     }
                 }
@@ -299,10 +300,12 @@ class DataFiller
                 if (empty($fieldValue)) {
                     switch ($fieldType) {
                         case 'password':
+                            $maxLength = round(self::y_rand($maxLength * 0.25, $maxLength), 0);
                             $fieldValue = $genString($_scratch['ch'], 6, 15);
                             break;
 
                         case 'textarea':
+                            $maxLength = round(self::y_rand($maxLength * 0.25, $maxLength), 0);
                             $fieldValue = $genString($_scratch['t'], 1, 15 * $maxLength);
                             break;
 
@@ -331,8 +334,9 @@ class DataFiller
                         case 'tel':
                             $fieldValue = 1 * $genNumber(10, 52);
                             for ($aux = 0; $aux < 3; $aux++) {
-                                $fieldValue .= ' ' . $genNumber(100, 999);
+                                $fieldValue .= '-' . $genNumber(100, 999);
                             }
+                            $fieldValue = substr($fieldValue, -$maxLength);
 
                             break;
 
@@ -387,23 +391,50 @@ class DataFiller
                                         $inexistent = [];
                                     }
 
+                                    if (count($ufFiles) > 0) {
+                                        $ufFile = $ufFiles[array_rand($ufFiles)];
+                                        $uf = substr(basename($ufFile), 0, 2);
+                                        $ufFileLines = file($ufFile);
+                                        $ufLine = $ufFileLines[array_rand($ufFileLines)];
+                                        $cepValues = explode(',', $ufLine);
+                                        $cep = $cepValues[0];
+                                    } else {
+                                        $cep = '';
+                                        $uf = '';
+                                    }
+
                                     do {
                                         $errorFlag = false;
-                                        do {
-                                            $cepRow = $cepList[array_rand($cepList)];
-                                            $cepValues = explode(';', $cepRow);
-                                            $cacheForNextField['uf'] = $cepValues[0];
-                                            $cacheForNextField['min_cep'] = $cepValues[3];
-                                            $cacheForNextField['max_cep'] = $cepValues[4];
-                                            $fieldValue = mt_rand($cacheForNextField['min_cep'], $cacheForNextField['max_cep']);
-                                            if (in_array($cacheForNextField['uf'], ['SP', 'RJ', 'MG', 'PR', 'SC', 'RS']))
-                                                $fieldValue = floor($fieldValue / 100) * 100;
-                                            else
-                                                $fieldValue = floor($fieldValue / 1000) * 1000;
-                                        } while (in_array($fieldValue, $alreadyFetched));
+
+                                        if (count($ufFiles) > 0) {                                            
+                                            do {
+                                                $ufFile = $ufFiles[array_rand($ufFiles)];
+                                                $uf = substr(basename($ufFile), 0, 2);
+                                                $ufFileLines = file($ufFile);
+                                                $ufLine = $ufFileLines[array_rand($ufFileLines)];
+                                                $cepValues = explode(',', $ufLine);
+                                                $fieldValue = $cepValues[0];
+                                                $cacheForNextField['uf'] = $uf;
+                                                // die("$fieldValue - $uf");
+                                            } while (in_array($fieldValue, $alreadyFetched));
+                                        } else {
+                                            do {
+                                                $cepRow = $cepList[array_rand($cepList)];
+                                                $cepValues = explode(';', $cepRow);
+                                                $cacheForNextField['uf'] = $cepValues[0];
+                                                $cacheForNextField['min_cep'] = $cepValues[3];
+                                                $cacheForNextField['max_cep'] = $cepValues[4];
+                                                $fieldValue = mt_rand($cacheForNextField['min_cep'], $cacheForNextField['max_cep']);
+                                                if (in_array($cacheForNextField['uf'], ['SP', 'RJ', 'MG', 'PR', 'SC', 'RS']))
+                                                    $fieldValue = floor($fieldValue / 100) * 100;
+                                                else
+                                                    $fieldValue = floor($fieldValue / 1000) * 1000;
+                                            } while (in_array($fieldValue, $alreadyFetched));
+                                        }
+
                                         $alreadyFetched[] = $fieldValue;
 
-                                        echo "  $fieldValue\n";
+                                        echo "  $fieldValue\r";
                                         if (!file_exists(__DIR__ . "/.cache/$fieldValue.json")) {
                                             $url = "https://viacep.com.br/ws/$fieldValue/json/";
                                             // echo "URL: $url\n";
@@ -414,13 +445,21 @@ class DataFiller
                                             curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
                                             $result = curl_exec($ch);
                                             curl_close($ch);
-                                            // print_r($result);
-                                            $resultData = json_decode($result, true);
-                                            if (empty($resultData['erro']))
-                                                file_put_contents(__DIR__ . "/.cache/$fieldValue.json", $result);
-                                            else {
-                                                $errorFlag = true;
-                                                $inexistent[] = $fieldValue;
+
+                                            $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                                            if (200===$http_code) {
+                                                // print_r($result);
+                                                $resultData = json_decode($result, true);
+                                                if (strlen($result) > 0 && empty($resultData['erro']??null && !empty($resultData))) {
+                                                    file_put_contents(__DIR__ . "/.cache/$fieldValue.json", $result);
+                                                    echo "\n";
+                                                } else {
+                                                    $errorFlag = true;
+                                                    $inexistent[] = $fieldValue;
+                                                } 
+                                                sleep(2);                                               
+                                            } else {
+                                                exit(100);
                                             }
                                         }
                                     } while ($errorFlag);
@@ -447,6 +486,7 @@ class DataFiller
                                 $fieldValue = $genNumber(0, 99999, 5);
                                 $fieldValue .= '-' . $genNumber(0, 9999, 4);
                             } else {
+                                $maxLength = round(self::y_rand($maxLength * 0.25, $maxLength), 0);
                                 if (($classHasName($lClasses, 'name')) || ($classHasName($lClasses, 'nome'))) {
                                     $canCut = false;
                                     if (($classHasName($lClasses, 'female')) || ($classHasName($lClasses, 'feminino'))) {
@@ -459,9 +499,9 @@ class DataFiller
                                         $fieldValue = mb_strtolower($genString(array_merge($_scratch['fn'], $_scratch['mn']), 1, $maxLength / 2));
                                         $fieldValue .= ' ' . mb_strtoupper($genString($_scratch['sn'], 1, $maxLength - strlen($fieldValue)));
                                     }
-                                    if ($nameEnterpiseType>'') {
-                                      $fieldValue = mb_strtoupper("$fieldValue - $nameEnterpiseType");
-                                      $nameEnterpiseType="";
+                                    if ($nameEnterpiseType > '') {
+                                        $fieldValue = mb_strtoupper("$fieldValue - $nameEnterpiseType");
+                                        $nameEnterpiseType = '';
                                     }
                                 } else {
                                     $fieldValue = $genString($_scratch['t'], 1, $maxLength);
@@ -476,7 +516,6 @@ class DataFiller
                 }
 
                 $ret[$fieldId] = $fieldValue;
-
             }
         }
         return $ret;

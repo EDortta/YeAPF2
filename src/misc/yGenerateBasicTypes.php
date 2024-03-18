@@ -82,6 +82,7 @@ namespace YeAPF;
         keyName: 'cnpj',
         keyType: YeAPF_TYPE_STRING,
         length: 14,
+        sedInputExpression: YeAPF_SED_BR_IN_CNPJ,
         sedOutputExpression: YeAPF_SED_BR_OUT_CNPJ
     );
 

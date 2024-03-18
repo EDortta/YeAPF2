@@ -598,7 +598,7 @@ class SharedSanitizedCollection extends \YeAPF\ORM\SharedSanitizedKeyData implem
 
     public function getDocumentModel()
     {
-        _trace("Getting Document Model on '" . $this->collectionName . "' @" . get_class());
+        _trace("Getting Document Model on '" . $this->collectionName . "' @" . __CLASS__);
         $ret = $this->documentModel;
         _trace('Returning Document Model' . (is_null($ret) ? ' (null)' : json_encode($ret->getDocumentModelConstraints())));
         return $ret;
@@ -633,7 +633,7 @@ class SharedSanitizedCollection extends \YeAPF\ORM\SharedSanitizedKeyData implem
     {
         $ret = false;
         if ($this->getRedisConnection()->getConnected()) {
-            _trace("Getting document $id from REDIS $this->collectionName");
+            _trace("Getting document $id from REDIS '$this->collectionName'");
             $ret = $this->getRedisConnection()->hgetall("$this->collectionName:$id");
             _trace('Returning document ' . json_encode($ret));
             if (empty($ret))
@@ -1282,7 +1282,7 @@ class PersistentCollection extends \YeAPF\ORM\SharedSanitizedCollection implemen
                 while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
                     $ret[] = $row[$this->getCollectionIdName()];
                 }
-                \_trace('RET: ' . print_r($ret, true));
+                \_trace('RET: ' . print_r("Returning ".count($ret). " records", true));
             }
         );
         return $ret;

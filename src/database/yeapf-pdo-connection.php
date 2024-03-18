@@ -71,7 +71,7 @@ class PDOConnection extends \YeAPF\Connection\DBConnection
 
         if (self::$trulyConnected) {
             self::$poolId = PDOConnectionLock::getNewPoolId();
-            \_trace('Trying to connect to Database Server (PDO)');
+            \_trace('CONNECTING TO DATABASE SERVER (PDO)');
             do {
                 try {
                     self::$connectionString = $yAnalyzer->do('#(driver):host=#(server);port=#(port);dbname=#(dbname)', json_decode(json_encode($auxConfig), true));

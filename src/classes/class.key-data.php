@@ -598,7 +598,7 @@ class SanitizedKeyData extends KeyData
         if (null === $value && !$acceptNULL) {
           if ($debug)
             _trace('Checkpoint#2 at ' . __LINE__);
-          list($message, $error) = ['null not allowed in ' . get_class() . ' -> ' . $keyName, YeAPF_NULL_NOT_ALLOWED];
+          list($message, $error) = ['null not allowed in ' . __CLASS__ . ' -> ' . $keyName, YeAPF_NULL_NOT_ALLOWED];
           if ($debug)
             _trace($message);
           throw new \YeAPF\YeAPFException($message, YeAPF_NULL_NOT_ALLOWED);
@@ -608,7 +608,7 @@ class SanitizedKeyData extends KeyData
               _trace('Checkpoint#2 at ' . __LINE__);
             $pureValue = $this->unsanitize($value ?? '');
             if ($length > 0 && strlen($pureValue ?? '') > $length) {
-              list($message, $error) = ['String value has ' . strlen($pureValue ?? '') . ' chars. Value too long in ' . get_class() . '.' . $keyName . ' It is ' . $length . ' chars long', YeAPF_INVALID_KEY_VALUE];
+              list($message, $error) = ['String value has ' . strlen($pureValue ?? '') . ' chars. Value too long in ' . __CLASS__ . '.' . $keyName . ' It is ' . $length . ' chars long', YeAPF_INVALID_KEY_VALUE];
               if ($debug)
                 _trace($message);
               throw new \YeAPF\YeAPFException($message, YeAPF_VALUE_TOO_LONG);
@@ -627,14 +627,14 @@ class SanitizedKeyData extends KeyData
                 }
               }
               if (!is_int($value)) {
-                list($message, $error) = ['INVALID INTEGER value in ' . get_class() . '.' . $keyName, YeAPF_INVALID_KEY_VALUE];
+                list($message, $error) = ['INVALID INTEGER value in ' . __CLASS__ . '.' . $keyName, YeAPF_INVALID_KEY_VALUE];
                 if ($debug)
                   _trace($message);
                 throw new \YeAPF\YeAPFException($message, YeAPF_INVALID_INT_VALUE);
               }
               if (null !== $minValue) {
                 if ($value < $minValue) {
-                  list($message, $error) = ['INVALID INTEGER value: out of bounds in ' . get_class() . '.' . $keyName, YeAPF_VALUE_OUT_OF_RANGE];
+                  list($message, $error) = ['INVALID INTEGER value: out of bounds in ' . __CLASS__ . '.' . $keyName, YeAPF_VALUE_OUT_OF_RANGE];
                   if ($debug)
                     _trace($message);
                   throw new \YeAPF\YeAPFException($message, YeAPF_INVALID_INT_VALUE);
@@ -643,7 +643,7 @@ class SanitizedKeyData extends KeyData
 
               if (null !== $maxValue) {
                 if ($value > $maxValue) {
-                  list($message, $error) = ['INVALID INTEGER value: out of bounds in ' . get_class() . '.' . $keyName, YeAPF_VALUE_OUT_OF_RANGE];
+                  list($message, $error) = ['INVALID INTEGER value: out of bounds in ' . __CLASS__ . '.' . $keyName, YeAPF_VALUE_OUT_OF_RANGE];
                   if ($debug)
                     _trace($message);
                   throw new \YeAPF\YeAPFException($message, YeAPF_INVALID_INT_VALUE);
@@ -655,14 +655,14 @@ class SanitizedKeyData extends KeyData
               _trace('Checkpoint#2 at ' . __LINE__);
             if (!(null === $value && $acceptNULL)) {
               if (!is_numeric($value)) {
-                list($message, $error) = ['INVALID FLOAT value in ' . get_class() . '.' . $keyName, YeAPF_INVALID_KEY_VALUE];
+                list($message, $error) = ['INVALID FLOAT value in ' . __CLASS__ . '.' . $keyName, YeAPF_INVALID_KEY_VALUE];
                 if ($debug)
                   _trace($message);
                 throw new \YeAPF\YeAPFException($message, YeAPF_INVALID_FLOAT_VALUE);
               }
               if (null !== $minValue) {
                 if ($value < $minValue) {
-                  list($message, $error) = ['INVALID FLOAT value: out of bounds in ' . get_class() . '.' . $keyName, YeAPF_VALUE_OUT_OF_RANGE];
+                  list($message, $error) = ['INVALID FLOAT value: out of bounds in ' . __CLASS__ . '.' . $keyName, YeAPF_VALUE_OUT_OF_RANGE];
                   if ($debug)
                     _trace($message);
                   throw new \YeAPF\YeAPFException($message, YeAPF_INVALID_FLOAT_VALUE);
@@ -670,7 +670,7 @@ class SanitizedKeyData extends KeyData
               }
               if (null !== $maxValue) {
                 if ($value > $maxValue) {
-                  list($message, $error) = ['INVALID FLOAT value: out of bounds in ' . get_class() . '.' . $keyName, YeAPF_VALUE_OUT_OF_RANGE];
+                  list($message, $error) = ['INVALID FLOAT value: out of bounds in ' . __CLASS__ . '.' . $keyName, YeAPF_VALUE_OUT_OF_RANGE];
                   if ($debug)
                     _trace($message);
                   throw new \YeAPF\YeAPFException($message, YeAPF_INVALID_FLOAT_VALUE);
@@ -700,7 +700,7 @@ class SanitizedKeyData extends KeyData
                 }
               }
               if (!is_bool($value)) {
-                list($message, $error) = ['INVALID BOOLEAN value in ' . get_class() . '.' . $keyName . ': ' . print_r($value, true), YeAPF_INVALID_KEY_VALUE];
+                list($message, $error) = ['INVALID BOOLEAN value in ' . __CLASS__ . '.' . $keyName . ': ' . print_r($value, true), YeAPF_INVALID_KEY_VALUE];
                 if ($debug)
                   _trace($message);
                 throw new \YeAPF\YeAPFException($message, YeAPF_VALUE_OUT_OF_RANGE);
@@ -711,13 +711,13 @@ class SanitizedKeyData extends KeyData
               _trace('Checkpoint#2 at ' . __LINE__);
             if (!(null === $value && $acceptNULL)) {
               if (!is_string($value)) {
-                list($message, $error) = ['INVALID DATE type (string expected) in ' . get_class() . '.' . $keyName, YeAPF_INVALID_DATE_TYPE];
+                list($message, $error) = ['INVALID DATE type (string expected) in ' . __CLASS__ . '.' . $keyName, YeAPF_INVALID_DATE_TYPE];
                 if ($debug)
                   _trace($message);
                 throw new \YeAPF\YeAPFException($message, YeAPF_INVALID_DATE_TYPE);
               } else {
                 if (!preg_match(YeAPF_DATE_REGEX, $value)) {
-                  list($message, $error) = ['INVALID DATE value in ' . get_class() . '.' . $keyName, YeAPF_INVALID_DATE_VALUE];
+                  list($message, $error) = ['INVALID DATE value in ' . __CLASS__ . '.' . $keyName, YeAPF_INVALID_DATE_VALUE];
                   if ($debug)
                     _trace($message);
                   {
@@ -725,7 +725,7 @@ class SanitizedKeyData extends KeyData
                   }
                 }
                 if (strlen($value) > $length) {
-                  list($message, $error) = ['INVALID DATE. Value too long in ' . get_class() . '.' . $keyName . ' (' . strlen($value) . ' presents but no more than ' . $length . ' chars allowed)', YeAPF_VALUE_TOO_LONG];
+                  list($message, $error) = ['INVALID DATE. Value too long in ' . __CLASS__ . '.' . $keyName . ' (' . strlen($value) . ' presents but no more than ' . $length . ' chars allowed)', YeAPF_VALUE_TOO_LONG];
                   if ($debug)
                     _trace($message);
                   throw new \YeAPF\YeAPFException($message, YeAPF_VALUE_TOO_LONG);
@@ -737,7 +737,7 @@ class SanitizedKeyData extends KeyData
               _trace('Checkpoint#2 at ' . __LINE__);
             if (!(null === $value && $acceptNULL)) {
               if (!is_string($value)) {
-                list($message, $error) = ['INVALID DATETIME type (string expected) in ' . get_class() . '.' . $keyName, YeAPF_INVALID_DATE_TYPE];
+                list($message, $error) = ['INVALID DATETIME type (string expected) in ' . __CLASS__ . '.' . $keyName, YeAPF_INVALID_DATE_TYPE];
                 if ($debug)
                   _trace($message);
                 throw new \YeAPF\YeAPFException($message, YeAPF_INVALID_DATETIME_VALUE);
@@ -748,7 +748,7 @@ class SanitizedKeyData extends KeyData
                   }
                 }
                 if (!preg_match(YeAPF_DATETIME_REGEX, $value)) {
-                  list($message, $error) = ['INVALID DATETIME value in ' . get_class() . '.' . $keyName, YeAPF_INVALID_DATE_VALUE];
+                  list($message, $error) = ['INVALID DATETIME value in ' . __CLASS__ . '.' . $keyName, YeAPF_INVALID_DATE_VALUE];
                   if ($debug)
                     _trace($message);
                   throw new \YeAPF\YeAPFException($message, YeAPF_INVALID_DATETIME_VALUE);
@@ -760,13 +760,13 @@ class SanitizedKeyData extends KeyData
               _trace('Checkpoint#2 at ' . __LINE__);
             if (!(null === $value && $acceptNULL)) {
               if (!is_string($value)) {
-                list($message, $error) = ['INVALID TIME type (string expected) in ' . get_class() . '.' . $keyName, YeAPF_INVALID_DATE_TYPE];
+                list($message, $error) = ['INVALID TIME type (string expected) in ' . __CLASS__ . '.' . $keyName, YeAPF_INVALID_DATE_TYPE];
                 if ($debug)
                   _trace($message);
                 throw new \YeAPF\YeAPFException($message, YeAPF_INVALID_TIME_TYPE);
               } else {
                 if (!preg_match(YeAPF_TIME_REGEX, $value))
-                  list($message, $error) = ['INVALID TIME value in ' . get_class() . '.' . $keyName, YeAPF_INVALID_DATE_VALUE];
+                  list($message, $error) = ['INVALID TIME value in ' . __CLASS__ . '.' . $keyName, YeAPF_INVALID_DATE_VALUE];
                 if ($debug)
                   _trace($message);
                 {
@@ -782,14 +782,14 @@ class SanitizedKeyData extends KeyData
                 $value = json_encode($value);
               }
               if (!is_string($value)) {
-                list($message, $error) = ['INVALID JSON type (string expected) in ' . get_class() . '.' . $keyName, YeAPF_INVALID_JSON_TYPE];
+                list($message, $error) = ['INVALID JSON type (string expected) in ' . __CLASS__ . '.' . $keyName, YeAPF_INVALID_JSON_TYPE];
                 if ($debug)
                   _trace($message);
                 throw new \YeAPF\YeAPFException($message, YeAPF_INVALID_JSON_TYPE);
               } else {
                 $json = json_decode($value, true);
                 if (null === $json) {
-                  list($message, $error) = ['INVALID JSON value in ' . get_class() . '.' . $keyName, YeAPF_INVALID_JSON_VALUE];
+                  list($message, $error) = ['INVALID JSON value in ' . __CLASS__ . '.' . $keyName, YeAPF_INVALID_JSON_VALUE];
                   if ($debug)
                     _trace($message);
                   throw new \YeAPF\YeAPFException($message, YeAPF_INVALID_JSON_VALUE);
@@ -799,7 +799,7 @@ class SanitizedKeyData extends KeyData
           } else {
             if ($debug)
               _trace('Checkpoint#2 at ' . __LINE__);
-            list($message, $error) = ['INVALID KEY type in ' . get_class() . '.' . $keyName . ' or not implemented', YeAPF_INVALID_KEY_TYPE];
+            list($message, $error) = ['INVALID KEY type in ' . __CLASS__ . '.' . $keyName . ' or not implemented', YeAPF_INVALID_KEY_TYPE];
             if ($debug)
               _trace($message);
             throw new \YeAPF\YeAPFException($message, YeAPF_INVALID_KEY_TYPE);
@@ -812,9 +812,9 @@ class SanitizedKeyData extends KeyData
         if (null !== $regExpression) {
           if ($value !== null) {
             if ($debug)
-              _trace('RegExpression: ' . $regExpression . ' in ' . get_class() . ' -> ' . $keyName);
+              _trace('RegExpression: ' . $regExpression . ' in ' . __CLASS__ . ' -> ' . $keyName);
             if (false === preg_match($regExpression, "$value")) {
-              list($message, $error) = ["Value does not satisfies '$regExpression' in " . get_class() . ' -> ' . $keyName, YeAPF_INVALID_KEY_VALUE];
+              list($message, $error) = ["Value does not satisfies '$regExpression' in " . __CLASS__ . ' -> ' . $keyName, YeAPF_INVALID_KEY_VALUE];
               if ($debug)
                 _trace($message);
               throw new \YeAPF\YeAPFException($message, YeAPF_VALUE_DOES_NOT_SATISFY_REGEXP);

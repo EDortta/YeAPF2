@@ -110,6 +110,7 @@ abstract class HTTP2Service
 
                             $this->handlers[$method][$fnPath]['responses'] = $attendantConstraints(\YeAPF_GET_RESPONSES);
                             $this->handlers[$method][$fnPath]['description'] = $attendantConstraints(\YeAPF_GET_DESCRIPTION);
+                            $this->handlers[$method][$fnPath]['tags'] = $attendantConstraints(\YeAPF_GET_TAGS);
 
                             $this->handlers[$method][$fnPath]['operationId'] = $attendantConstraints(\YeAPF_GET_OPERATION_ID);
                             if ($this->handlers[$method][$fnPath]['operationId'] == null) {
@@ -180,7 +181,7 @@ abstract class HTTP2Service
 
         $sanitizedPathElements = [];
         foreach ($path as $index => $pathElement) {
-            $sanitizedPathElement = preg_replace('/[^a-zA-Z0-9_\-@:\*\{\}]/', '', $pathElement);
+            $sanitizedPathElement = preg_replace('/[^a-zA-Z\0-9_\-@:\*\{\}]/', '', $pathElement);
             $sanitizedPathElement = mb_convert_encoding($sanitizedPathElement ?? '', 'UTF-8', 'UTF-8');
             $sanitizedPathElements[] = $sanitizedPathElement;
         }
@@ -236,6 +237,7 @@ abstract class HTTP2Service
             'info' => [
                 'title' => $this->getAPIDetail('info', 'title') ?? 'API Documentation',
                 'contact' => $this->getAPIDetail('info', 'contact') ?? '',
+                'description' => $this->getAPIDetail('info', 'description') ?? 'API Documentation',
                 'version' => $this->getAPIDetail('info', 'version') ?? '1.0.0'
             ],
         ];
@@ -266,6 +268,9 @@ abstract class HTTP2Service
             return $str;
         };
 
+        $openApi['tags'] = [];
+        $auxTags=[];
+
         foreach ($this->handlers as $method => $endpoints) {
             $method = strtolower($method);
             foreach ($endpoints as $endpoint => $details) {
@@ -292,6 +297,15 @@ abstract class HTTP2Service
                         'summary' => $details['attendant'][1],
                         'responses' => $responses
                     ];
+
+                    if (!empty($details['tags'])) {
+                        $openApi['paths'][$path][$method]['tags'] = $details['tags'];
+                        foreach ($details['tags'] as $tag) {
+                            if (!in_array($tag, $auxTags)) {
+                                $auxTags[] = $tag;
+                            }
+                        }
+                    }
 
                     if (null != $details['description']) {
                         $openApi['paths'][$path][$method]['description'] = $details['description'];
@@ -331,8 +345,13 @@ abstract class HTTP2Service
                         $required = [];
                         _trace('CONSTRAINTS: ' . json_encode($details['constraints']));
                         foreach ($details['constraints'] as $fieldName => $constraint) {
+                            if ('datetime'==$constraint['type']) {
+                                $auxType='string';
+                            } else {
+                                $auxType=$constraint['type'];
+                            }
                             $properties[$fieldName] = [
-                                'type' => $constraint['type'],
+                                'type' => $auxType,
                             ];
                             if ($constraint['length']) {
                                 $properties[$fieldName]['maxLength'] = $constraint['length'];
@@ -376,6 +395,13 @@ abstract class HTTP2Service
                     }
                 }
             }
+        }
+
+        asort($auxTags);
+        foreach ($auxTags as $k=>$tag) {
+            $openApi['tags'][] = [
+                'name' => $tag
+            ];
         }
         return $openApi;
     }
@@ -718,8 +744,13 @@ abstract class HTTP2Service
                         try {
                             if ($minSecOk) {
                                 $tokenExpirationAchieved = false;
+                                $params['__secToken']=[];
                                 if ('JWT' == $bearerFormat) {
                                     $aJWT = new \YeAPF\Security\yJWT($secToken);
+                                    $params['__secToken']=[
+                                        'text' => $secToken,
+                                        'jwt' => $aJWT
+                                    ];
                                     if ($aJWT->getImportResult()) {
                                         $expirationTime = $aJWT->exp;
 
@@ -732,7 +763,8 @@ abstract class HTTP2Service
                                     } else {
                                         $tokenExpirationAchieved = true;
                                         $aBulletin->message = 'Token cannot be used: ' . $aJWT->explainImportResult();
-                                        _trace('Token cannot be used. Import result: ' . $aJWT->explainImportResult());
+
+                                        _trace($aBulletin->message);
                                     }
                                 }
                                 if ($tokenExpirationAchieved) {
@@ -743,8 +775,7 @@ abstract class HTTP2Service
                                     _trace("Calling handler >>>> $method $uri");
                                     // check this
                                     // aux appears to 1) import as referential array and 2) not being used
-                                    $aux->importData($params);
-                                    $params['secToken'] = $secToken;
+                                    $aux->importData($params);                                    
 
                                     $serviceStage=6;
 

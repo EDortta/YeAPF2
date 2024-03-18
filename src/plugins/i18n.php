@@ -88,8 +88,9 @@ class Translator extends \YeAPF\Plugins\ServicePlugin implements \YeAPF\Plugins\
   {
     $filename = self::getAssetsFolder() . '/' . $data->tag . '/' . $data->lang . '.txt';
     if (!is_dir(dirname($filename)))
-      mkdir(dirname($filename), 0777, true);
-    file_put_contents($filename, $data->text);
+      mkdir(dirname($filename), 0777, true) || _trace('Cannot create ' . dirname($filename));
+    if (!is_writable(dirname($filename)))
+      file_put_contents($filename, $data->text);
   }
 
   private function loadFromAssets(\YeAPF\SanitizedKeyData $data)
@@ -127,11 +128,12 @@ class Translator extends \YeAPF\Plugins\ServicePlugin implements \YeAPF\Plugins\
       Coroutine::create(function () use ($debug, $tag, $scope, $targetLang, $DOMText, $channel, &$ret) {
         $channel->push(true);
         try {
+          $saveFlag = true;
           $result = [];
           $tag = trim($tag);
           if (0 < strlen($tag)) {
             if ($debug)
-              _trace('Into coroutine');
+              _trace("Into coroutine for $tag '$DOMText'");
 
             /** Check it the text is already in database */
             try {
@@ -139,16 +141,13 @@ class Translator extends \YeAPF\Plugins\ServicePlugin implements \YeAPF\Plugins\
 
               if ($debug)
                 _trace('After clone: ' . print_r($translatedText, true));
-              if ($debug)
-                _trace('Classname: ' . get_class($translatedText));
+              // if ($debug)
+              //   _trace('Classname: ' . get_class($translatedText));
 
               $translatedText->tag = $tag;
+              $translatedText->lang = $targetLang;
               if ($debug)
                 _trace('After clone and tagged: ' . print_r($translatedText, true));
-              $translatedText->lang = $targetLang;
-
-              if ($debug)
-                _trace('Translated: ' . print_r($translatedText, true));
 
               $alreadyTranslated = self::$persistentTranslations->findByExample($translatedText);
 
@@ -192,7 +191,8 @@ class Translator extends \YeAPF\Plugins\ServicePlugin implements \YeAPF\Plugins\
                     $originalText->id = \YeAPF\generateUniqueId();
                     if ($debug)
                       _trace('Saving original version');
-                    self::$persistentTranslations->setDocument($originalText->id, $originalText);
+                    if ($saveFlag)
+                      self::$persistentTranslations->setDocument($originalText->id, $originalText);
                     if ($debug)
                       _trace('Saved text: ' . $originalText->text);
                     $original = clone $originalText;
@@ -205,16 +205,13 @@ class Translator extends \YeAPF\Plugins\ServicePlugin implements \YeAPF\Plugins\
                   if ('watson' == self::$config->model) {
                     $wordCount = str_word_count($original->text ?? '');
 
-                    if ($debug)
+                    if ($debug) {
                       _trace("Translation required\n");
-                    if ($debug)
                       _trace("Current 'original' state " . json_encode($original) . "\n");
-                    if ($debug)
                       _trace("'original' id: '" . $original->id . "'\n");
-                    if ($debug)
                       _trace("'original' text: '" . $original->text . "'\n");
-                    if ($debug)
                       _trace('Words to be translated: ' . $wordCount . "\n");
+                    }
                     $url = self::$config->url;
                     $apikey = self::$config->apikey;
 
@@ -225,16 +222,24 @@ class Translator extends \YeAPF\Plugins\ServicePlugin implements \YeAPF\Plugins\
                         _trace("Text to be translated: $auxText\n");
                       self::loadFromAssets($translatedText);
                       if (is_null($translatedText->text) || 0 == strlen($translatedText->text)) {
-                        $watson = \YeAPF\Request::do($url, 'POST', [
+                        $watsonPayload = [
                           'text' => [$auxText],
                           'model_id' => 'en-' . $targetLang,
-                        ], [
-                          'username' => 'apikey',
-                          'password' => $apikey,
-                        ]);
+                        ];
+                        if ($debug)
+                          _trace('Calling Watson API... ' . json_encode($watsonPayload));
+
+                        $watson = \YeAPF\Request::do(
+                          $url,
+                          'POST',
+                          $watsonPayload, [
+                            'username' => 'apikey',
+                            'password' => $apikey,
+                          ]
+                        );
 
                         if ($debug)
-                          _trace(var_dump($watson));
+                          _trace('Watson response: ' . var_dump($watson));
 
                         $translatedPhrase = '';
                         $aux = json_decode($watson, true);
@@ -255,14 +260,24 @@ class Translator extends \YeAPF\Plugins\ServicePlugin implements \YeAPF\Plugins\
                         $translatedPhrase = $translatedText->text;
                         $result['cached'] = true;
                       }
-
-                      $translatedText->id = \YeAPF\generateUniqueId();
-                      self::$persistentTranslations->setDocument($translatedText->id, $translatedText);
+                      
                       $result['text'] = $translatedPhrase;
 
-                      $originalText->text = $auxText;
-                      self::saveIntoAssets($originalText);
-                      self::saveIntoAssets($translatedText);
+                      if ($saveFlag) {
+                        $translatedText->id = \YeAPF\generateUniqueId();
+                        self::$persistentTranslations->setDocument($translatedText->id, $translatedText);
+                        
+  
+                        $originalText->text = $auxText;
+                        if (mb_strtolower($originalText->tag) <> mb_strtolower($originalText->text)) {
+                          self::saveIntoAssets($originalText);
+                        }
+                        if (mb_strtolower($translatedText->tag) <> mb_strtolower($translatedText->text)) {
+                          self::saveIntoAssets($translatedText);
+                        }
+                      }
+
+
                     } else {
                       if ($debug)
                         _trace("No text to be translated\n");

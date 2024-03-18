@@ -12,8 +12,8 @@ class RedisConnection extends \YeAPF\Connection\DBConnection
     {
         $auxConfig = self::$config->redis ?? new \stdClass();
 
-        _trace('Trying to connect to Redis Server');
-        _trace(print_r($auxConfig,true));
+        _trace('CONNECTING TO REDIS SERVER');
+        // _trace(print_r($auxConfig,true));
         do {
             try {
                 self::$redis = new \Redis();
