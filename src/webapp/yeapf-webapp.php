@@ -57,6 +57,13 @@ class WebApp
         return $url;
     }
 
+    static function getMainAccess() 
+    {
+        $ret =  dirname(self::getBaseURL());
+        $ret = preg_replace('#^(https?://)#', '', $ret);
+        return $ret;
+    }
+
     static function getURI($defaultURI = '')
     {
         if (null == self::$uri) {

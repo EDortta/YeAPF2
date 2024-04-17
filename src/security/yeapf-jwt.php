@@ -18,7 +18,7 @@ class yJWT extends \YeAPF\SanitizedKeyData
      * uot is for YeAPF applications usage meaning "Use One Time Token"
      * These kind of token will be discarded after the first well succeded use
      */
-    private $registeredClaimNames = ['iss', 'sub', 'aud', 'nbf', 'exp', 'iat', 'jti', 'uot'];
+    private $registeredClaimNames = ['iss', 'sub', 'aud', 'nbf', 'exp', 'iat', 'jti', 'uot', 'key'];
     private $timeToLive;
     private $jwtToken;
     private $importResult;
@@ -133,9 +133,13 @@ class yJWT extends \YeAPF\SanitizedKeyData
         }
     }
 
-    public function tokenInBin($token): bool
+    public function tokenInBin($token=null): bool
     {
         $ret = false;
+        if (null == $token || strlen($token) == 0) {
+            $token = $this->jwtToken ?? '';
+        }
+
         $folder = self::getAssetsFolder();
         if (is_dir($folder)) {
             $filePath = $folder . '/' . md5($token) . '.jwt';

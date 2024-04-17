@@ -269,7 +269,7 @@ abstract class HTTP2Service
         };
 
         $openApi['tags'] = [];
-        $auxTags=[];
+        $auxTags = [];
 
         foreach ($this->handlers as $method => $endpoints) {
             $method = strtolower($method);
@@ -345,10 +345,10 @@ abstract class HTTP2Service
                         $required = [];
                         _trace('CONSTRAINTS: ' . json_encode($details['constraints']));
                         foreach ($details['constraints'] as $fieldName => $constraint) {
-                            if ('datetime'==$constraint['type']) {
-                                $auxType='string';
+                            if ('datetime' == $constraint['type']) {
+                                $auxType = 'string';
                             } else {
-                                $auxType=$constraint['type'];
+                                $auxType = $constraint['type'];
                             }
                             $properties[$fieldName] = [
                                 'type' => $auxType,
@@ -398,7 +398,7 @@ abstract class HTTP2Service
         }
 
         asort($auxTags);
-        foreach ($auxTags as $k=>$tag) {
+        foreach ($auxTags as $k => $tag) {
             $openApi['tags'][] = [
                 'name' => $tag
             ];
@@ -645,11 +645,11 @@ abstract class HTTP2Service
                     $headers = $request->header;
 
                     _trace("START $uri ($method)");
-                    $serviceStage=1;
+                    $serviceStage = 1;
                     $this->openContext();
-                    $serviceStage=2;
+                    $serviceStage = 2;
                     $this->configureAndStartup();
-                    $serviceStage=3;
+                    $serviceStage = 3;
 
                     _trace('ATTENDANTS: ' . json_encode($this->handlers));
 
@@ -717,7 +717,7 @@ abstract class HTTP2Service
                             }
                         }
 
-                        $serviceStage=4;
+                        $serviceStage = 4;
 
                         $inlineVariables = new \YeAPF\SanitizedKeyData($handler['constraints'] ?? null);
                         $pathSegments = explode('/', $handler['path']);
@@ -738,51 +738,78 @@ abstract class HTTP2Service
                         }
                         _trace('INLINES: ' . json_encode($inlineVariables));
 
-                        $serviceStage=5;
+                        $serviceStage = 5;
 
                         $aux = new \YeAPF\SanitizedKeyData($handler['constraints'] ?? null);
                         try {
                             if ($minSecOk) {
-                                $tokenExpirationAchieved = false;
-                                $params['__secToken']=[];
+                                $tokenNotUsable = false;
                                 if ('JWT' == $bearerFormat) {
+                                    $params['__secToken'] = [];
                                     $aJWT = new \YeAPF\Security\yJWT($secToken);
-                                    $params['__secToken']=[
-                                        'text' => $secToken,
-                                        'jwt' => $aJWT
+                                    $params['__secToken'] = [
+                                        'text' => $secToken
                                     ];
-                                    if ($aJWT->getImportResult()) {
+                                    $importResult = $aJWT->getImportResult();
+                                    if ($importResult == YeAPF_JWT_SIGNATURE_VERIFICATION_OK) {
+                                        $params['__secToken']['jwt'] = $aJWT->exportData();
                                         $expirationTime = $aJWT->exp;
 
-                                        $tokenExpirationAchieved = ($expirationTime < time());
+                                        $tokenNotUsable = ($expirationTime < time());
                                         _trace("Expiration time: $expirationTime");
                                         _trace('   Current Time: ' . time());
                                         _trace('      Time diff: ' . ($expirationTime - time()));
-                                        _trace('Token expiration: ' . ($tokenExpirationAchieved ? 'Achieved' : 'Not achieved'));
+                                        _trace('Token expiration: ' . ($tokenNotUsable ? 'Achieved' : 'Not achieved'));
                                         _trace('Decoded token:' . print_r($aJWT->exportData(), true));
-                                    } else {
-                                        $tokenExpirationAchieved = true;
-                                        $aBulletin->message = 'Token cannot be used: ' . $aJWT->explainImportResult();
 
-                                        _trace($aBulletin->message);
+                                        if ($tokenNotUsable) {
+                                            _trace('Token expired');
+                                            $aBulletin->reason = 'Token expired';
+                                            $ret_code = 401;
+                                        } else {
+                                            if ($aJWT->tokenInBin()) {
+                                                $tokenNotUsable = true;
+                                                $aBulletin->reason = 'Token already deleted';
+                                                $ret_code = 401;
+                                            } else {
+                                                if (($aJWT->nbf ?? 0) > time()) {
+                                                    $tokenNotUsable = true;
+                                                    $aBulletin->reason = 'Token not yet valid. Use only after ' . date('Y-m-d H:i:s', $aJWT->nbf ?? 0) . ' Issued at ' . date('Y-m-d H:i:s', $aJWT->iat) . ' Current time: ' . date('Y-m-d H:i:s', time());
+                                                    $ret_code = 401;
+                                                } else {
+                                                    if ($aJWT->iss != $this->getMainAccess()) {
+                                                        $tokenNotUsable = true;
+                                                        $aBulletin->reason = "Token issued for another server '" . $aJWT->iss . "' and not for '" . $this->getMainAccess() . "'";
+                                                        $ret_code = 401;
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    } else {
+                                        $tokenNotUsable = true;
+                                        $aBulletin->reason = 'Token cannot be used. 0x' . dechex($importResult) . ':' . $aJWT->explainImportResult();
+                                        $ret_code = 401;
+
+                                        _trace($aBulletin->reason);
                                     }
                                 }
-                                if ($tokenExpirationAchieved) {
-                                    _trace('TOKEN EXPIRED');
-                                    $aBulletin->message = 'Token expired';
-                                    $ret_code = 401;
+                                if ($tokenNotUsable) {
+                                    if (406 == $ret_code) {
+                                        $aBulletin->reason = $aBulletin->reason ?? 'Token expired or damaged';
+                                        $ret_code = 401;
+                                    }
                                 } else {
                                     _trace("Calling handler >>>> $method $uri");
                                     // check this
                                     // aux appears to 1) import as referential array and 2) not being used
-                                    $aux->importData($params);                                    
+                                    $aux->importData($params);
 
-                                    $serviceStage=6;
+                                    $serviceStage = 6;
 
                                     $ret_code = $handler['attendant']($aBulletin, $uri, $params, ...$inlineVariables);
                                     $cleanCode = true;
 
-                                    $serviceStage=8;
+                                    $serviceStage = 8;
 
                                     if ($ret_code >= 200 && $ret_code <= 299) {
                                         if ('JWT' == $bearerFormat) {
@@ -795,20 +822,18 @@ abstract class HTTP2Service
                                 }
                             } else {
                                 _trace('Security not satisfied');
-                                $aBulletin->message = 'Method not allowed';
+                                $aBulletin->reason = 'Method not allowed';
                                 $ret_code = 405;
                             }
                         } catch (\Exception $e) {
                             $this->error = $e->getMessage();
                             _trace($e->getMessage());
+                            $aBulletin->reason = $e->getMessage();
                             $ret_code = 500;
                         }
-
-                        
                     } else {
                         $ret_code = $this->answerQuery($aBulletin, $uri, $params) ?? 204;
                     }
-
                 } catch (\Exception $e) {
                     _trace('EXCEPTION: ' . $e->getMessage());
                     $this->stackTrace = [
@@ -829,6 +854,7 @@ abstract class HTTP2Service
                         'trace' => $e->getTrace()
                     ];
                     $this->error = $e->getMessage();
+                    $aBulletin->reason = $e->getMessage();
                     $ret_code = 551;
                 } catch (\Throwable $e) {
                     _trace('THROWABLE: ' . $e->getMessage());
@@ -840,13 +866,14 @@ abstract class HTTP2Service
                         'trace' => $e->getTrace()
                     ];
                     $this->error = $e->getMessage();
+                    $aBulletin->reason = $e->getMessage();
                     $ret_code = 552;
                 } finally {
                     if (!$cleanCode) {
                         if ($ret_code < 500) {
                             $ret_code = 500;
                         }
-                        _trace("NOT CLEAN CODE: $ret_code");                        
+                        _trace("NOT CLEAN CODE: $ret_code");
                     }
 
                     $contentLength = strlen(json_encode($aBulletin->exportData()));
@@ -857,16 +884,16 @@ abstract class HTTP2Service
                             YeAPF_LOG_TAG_RESPONSE_TIME => microtime(true) - $startTimestamp
                         ]
                     );
-                    
+
                     if ($ret_code > 299) {
-                        \YeAPF\yLogger::syslog(0, YeAPF_LOG_ERROR, \YeAPF\yLogger::getTraceFilename().' '.$this->error);
-                        if (!empty($this->stackTrace)){
-                          \YeAPF\handleException(...$this->stackTrace);
+                        \YeAPF\yLogger::syslog(0, YeAPF_LOG_ERROR, \YeAPF\yLogger::getTraceFilename() . ' ' . $this->error);
+                        if (!empty($this->stackTrace)) {
+                            \YeAPF\handleException(...$this->stackTrace);
                         }
                     } else {
                         \YeAPF\yLogger::syslog(0, YeAPF_LOG_INFO);
                     }
-                    
+
                     \YeAPF\yLogger::setTraceDetails(
                         httpCode: $ret_code,
                         return: $aBulletin->exportData()
