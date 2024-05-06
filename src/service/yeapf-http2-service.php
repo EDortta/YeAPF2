@@ -500,7 +500,7 @@ abstract class HTTP2Service
 
     public function start($port = 9501, $host = '0.0.0.0')
     {
-        _log("Starting service on $host:$port");
+        _log("Preparing service on $host:$port");
         if (!$this->ready) {
             // revisar el blog https://blog.restcase.com/4-most-used-rest-api-authentication-methods/
             $this->setAPIDetail(
@@ -539,7 +539,7 @@ abstract class HTTP2Service
             ]);
 
             $server->on('Start', function (Server $server) use ($host, $port) {
-                _log("Service started at $host:$port\n");
+                _log("Service started on $host:$port\n");
                 // $this->configureAndStartup();
             });
 
@@ -556,6 +556,8 @@ abstract class HTTP2Service
                 global $currentURI;
 
                 \YeAPF\yLogger::setTraceDescriptor('HTTP2 service on ' . $request->server['request_uri']);
+                // _log("Request arrived");
+                // \YeAPF\yLogger::log(0, YeAPF_LOG_DEBUG, "REQUEST ARRIVED: " . $request->server['request_uri']);
 
                 // $authorizationHeader = $request->getHeaderLine('Authorization');
                 // $bearerToken = '';
@@ -607,7 +609,7 @@ abstract class HTTP2Service
                             YeAPF_LOG_TAG_CLIENT => $this->getClientIP(),
                             YeAPF_LOG_TAG_REQUEST_TIME => gmdate('Y-m-d\TH:i:sP', $requestTime),
                             YeAPF_LOG_TAG_REQUEST => "{$requestMethod} {$requestUri} {$requestProtocol}",
-                            YeAPF_LOG_TAG_REFERER => $httpReferer,
+                            YeAPF_LOG_TAG_REFERRER => $httpReferer,
                             YeAPF_LOG_TAG_USERAGENT => $httpUserAgent
                         ]
                     );
@@ -618,6 +620,8 @@ abstract class HTTP2Service
                 // _trace('PATH_INFO: ' . $request->server['path_info']);
                 // _trace('REQUEST: ' . json_encode($request));
 
+                
+
                 \YeAPF\yLogger::setTraceDetails(
                     uri: $this->getExternalURL() . $request->server['path_info'],
                     headers: $request->header,
@@ -625,6 +629,7 @@ abstract class HTTP2Service
                     cookie: $request->cookie,
                     method: $request->server['request_method'],
                 );
+                
 
                 $ret_code = 406;
                 $cleanCode = false;
@@ -805,9 +810,11 @@ abstract class HTTP2Service
                                     $aux->importData($params);
 
                                     $serviceStage = 6;
+                                    
 
                                     $ret_code = $handler['attendant']($aBulletin, $uri, $params, ...$inlineVariables);
                                     $cleanCode = true;
+                                    
 
                                     $serviceStage = 8;
 
@@ -869,6 +876,7 @@ abstract class HTTP2Service
                     $aBulletin->reason = $e->getMessage();
                     $ret_code = 552;
                 } finally {
+
                     if (!$cleanCode) {
                         if ($ret_code < 500) {
                             $ret_code = 500;
@@ -885,14 +893,16 @@ abstract class HTTP2Service
                         ]
                     );
 
-                    if ($ret_code > 299) {
-                        \YeAPF\yLogger::syslog(0, YeAPF_LOG_ERROR, \YeAPF\yLogger::getTraceFilename() . ' ' . $this->error);
+                    if ($ret_code > 299) {                        
+                        \YeAPF\yLogger::log(0, YeAPF_LOG_ERROR, \YeAPF\yLogger::getTraceFilename() . ' ' . $this->error);
                         if (!empty($this->stackTrace)) {
                             \YeAPF\handleException(...$this->stackTrace);
                         }
-                    } else {
-                        \YeAPF\yLogger::syslog(0, YeAPF_LOG_INFO);
+                    } else {                        
+                        \YeAPF\yLogger::log(0, YeAPF_LOG_DEBUG);
                     }
+
+                    // _log("RETURN: $ret_code BODY: " . json_encode($aBulletin->exportData()));
 
                     \YeAPF\yLogger::setTraceDetails(
                         httpCode: $ret_code,
@@ -909,7 +919,7 @@ abstract class HTTP2Service
 
             $server->on('Close', function (Server $server) use ($host, $port) {
                 $this->closeContext();
-                _log("Service closed at $host:$port\n");
+                // \YeAPF\yLogger::log(0, YeAPF_LOG_INFO, "Service closed at $host:$port\n");
             });
 
             $server->start();

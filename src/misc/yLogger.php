@@ -23,6 +23,10 @@ class yLogger
 
   static private $logFileHandler = null;
 
+  static private $outputStyle = YeAPF_LOG_STYLE_AS_STRINGS;
+
+  static private $logStyle = 0x0100;
+
   // trace
   static private $traceBuffer = [];
 
@@ -101,7 +105,7 @@ class yLogger
       YeAPF_LOG_TAG_RESPONSE_SIZE,
       YeAPF_LOG_TAG_RESPONSE_TIME,
       YeAPF_LOG_TAG_RESPONSE_ERROR,
-      YeAPF_LOG_TAG_REFERER,
+      YeAPF_LOG_TAG_REFERRER,
       YeAPF_LOG_TAG_USERAGENT,
     ];
     if (is_string($serverInfo)) {
@@ -137,7 +141,7 @@ class yLogger
     if (($facility & $validBits) == $facility) {
       self::$logFacility = $facility;
     } else {
-      throw new \Exception('Invalid log facility');      
+      throw new \Exception('Invalid log facility');
     }
   }
 
@@ -158,7 +162,11 @@ class yLogger
       closelog();
       self::$syslogOpened = false;
     }
-    self::$syslogOpened = openlog($tag, LOG_PID | LOG_CONS, LOG_LOCAL0);
+
+    self::$syslogOpened = openlog(
+      $tag,
+      LOG_NDELAY | LOG_PID | LOG_PERROR, LOG_LOCAL0
+    );
   }
 
   static public function defineLogFilters(int $logLevel, array $activeLogAreas = [])
@@ -168,6 +176,25 @@ class yLogger
 
     self::$activeTraceAreas = $activeLogAreas;
     self::$minTraceLevel = $logLevel;
+  }
+
+  static public function setOutputStyle(int $style)
+  {
+    $validLogStyles =
+      YeAPF_LOG_STYLE_AS_STRINGS
+      | YeAPF_LOG_STYLE_AS_JSON
+      | YeAPF_LOG_STYLE_AS_XML
+      | YeAPF_LOG_STYLE_AS_ONE_STRING;
+    if (($style & $validLogStyles) == $style) {
+      self::$outputStyle = $style;
+    } else {
+      throw new \Exception('Invalid log style');
+    }
+  }
+
+  static public function getOutputStyle(): int
+  {
+    return self::$outputStyle;
   }
 
   static public function addLogArea(int $area)
@@ -207,10 +234,82 @@ class yLogger
     }
   }
 
+  static private function buildLogMessage(string $message)
+  {
+    $logStyle = self::getOutputStyle();
+    if (YeAPF_LOG_STYLE_AS_ONE_STRING == $logStyle) {
+      $message = str_replace("\n", ' ', $message);
+    }
+
+    $message = trim($message);
+    if (strpos($message, ' ') !== false) {
+      // $message = '"' . $message . '"';
+    }
+
+    $structuredMessage = [
+      // 'server' => self::getLogTags(YeAPF_LOG_TAG_SERVER),
+      // 'service' => self::getLogTags(YeAPF_LOG_TAG_SERVICE),
+      'client' => self::getLogTags(YeAPF_LOG_TAG_CLIENT),
+      'user' => self::getLogTags(YeAPF_LOG_TAG_USER),
+      'userid' => self::getLogTags(YeAPF_LOG_TAG_USERID),
+      'time' => self::getLogTags(YeAPF_LOG_TAG_REQUEST_TIME),
+      'request' => self::getLogTags(YeAPF_LOG_TAG_REQUEST),
+      'result' => self::getLogTags(YeAPF_LOG_TAG_RESULT),
+      'size' => self::getLogTags(YeAPF_LOG_TAG_RESPONSE_SIZE),
+      'referrer' => self::getLogTags(YeAPF_LOG_TAG_REFERRER),
+      'useragent' => self::getLogTags(YeAPF_LOG_TAG_USERAGENT),
+      'wasted' => self::getLogTags(YeAPF_LOG_TAG_RESPONSE_TIME),
+      'message' => $message
+    ];
+
+    switch ($logStyle) {
+      case YeAPF_LOG_STYLE_AS_STRINGS:
+      case YeAPF_LOG_STYLE_AS_ONE_STRING:
+        {
+          $ret = '';
+          foreach ($structuredMessage as $k => $v) {
+            $ret .= $v . ' ';
+          }
+        }
+        break;
+      case YeAPF_LOG_STYLE_AS_JSON:
+        {
+          $ret = json_encode($structuredMessage);
+        }
+        break;
+      case YeAPF_LOG_STYLE_AS_XML:
+        {
+          $ret = xml_encode($structuredMessage);
+        }
+        break;
+    }
+
+    $ret = ''
+      // . date('Y-m-d\TH:i:sP') . ' '
+      // . self::getLogTags(YeAPF_LOG_TAG_SERVER) . ' '
+      // . self::getLogTags(YeAPF_LOG_TAG_SERVICE) . ': '
+      . self::getLogTags(YeAPF_LOG_TAG_CLIENT) . ' '
+      . self::getLogTags(YeAPF_LOG_TAG_USER) . ' '
+      . self::getLogTags(YeAPF_LOG_TAG_USERID) . ' '
+      . self::getLogTags(YeAPF_LOG_TAG_REQUEST_TIME) . ' '
+      . self::getLogTags(YeAPF_LOG_TAG_REQUEST) . ' '
+      . self::getLogTags(YeAPF_LOG_TAG_RESULT) . ' '
+      . self::getLogTags(YeAPF_LOG_TAG_RESPONSE_SIZE) . ' '
+      . self::getLogTags(YeAPF_LOG_TAG_REFERRER) . ' '
+      . self::getLogTags(YeAPF_LOG_TAG_USERAGENT) . ' '
+      . self::getLogTags(YeAPF_LOG_TAG_RESPONSE_TIME) . 'ms '
+      . $message;
+
+    return $ret;
+  }
+
   // Log
   static public function syslog(int|string $area = 0, int $minLogLevel = YeAPF_LOG_DEBUG, string $message = '')
   {
     if (self::startup()) {
+      // touch('/var/log/emergency.log');
+      // error_log("  area: $area - minLogLevel: $minLogLevel - self:minLogLevel: " . self::$minLogLevel . "\n", 3, '/var/log/emergency.log');
+
       if ($minLogLevel >= self::$minLogLevel - 99) {
         if (0 === $area || in_array($area, self::$activeLogAreas)) {
           if (self::$syslogOpened) {
@@ -233,26 +332,14 @@ class yLogger
             else
               $OS_level = LOG_INFO;
 
-            $message = str_replace("\n", ' ', $message);
-            $message = trim($message);
-            if (strpos($message, ' ') !== false) {
-              $message = '"' . $message . '"';
-            }
-            $sysLogMessage = ''
-              // . date('Y-m-d\TH:i:sP') . ' '
-              // . self::getLogTags(YeAPF_LOG_TAG_SERVER) . ' '
-              // . self::getLogTags(YeAPF_LOG_TAG_SERVICE) . ': '
-              . self::getLogTags(YeAPF_LOG_TAG_CLIENT) . ' '
-              . self::getLogTags(YeAPF_LOG_TAG_USER) . ' '
-              . self::getLogTags(YeAPF_LOG_TAG_USERID) . ' '
-              . self::getLogTags(YeAPF_LOG_TAG_REQUEST_TIME) . ' '
-              . self::getLogTags(YeAPF_LOG_TAG_REQUEST) . ' '
-              . self::getLogTags(YeAPF_LOG_TAG_RESULT) . ' '
-              . self::getLogTags(YeAPF_LOG_TAG_RESPONSE_SIZE) . ' '
-              . self::getLogTags(YeAPF_LOG_TAG_REFERER) . ' '
-              . self::getLogTags(YeAPF_LOG_TAG_USERAGENT) . ' '
-              . self::getLogTags(YeAPF_LOG_TAG_RESPONSE_TIME) . 'ms '
-              . $message;
+            $sysLogMessage = self::buildLogMessage($message);
+
+            // error_log("  $sysLogMessage OS_level: $OS_level\n", 3, '/var/log/emergency.log');
+
+            // $stderr = fopen('php://stderr', 'w');
+            // fwrite($stderr, $sysLogMessage . "\n");
+            // fclose($stderr);
+
             syslog($OS_level, $sysLogMessage);
           }
         }
@@ -260,43 +347,53 @@ class yLogger
     }
   }
 
-  static public function log(int|string $area, int $minLogLevel, string $message)
+  static public function log(int|string $area, int $minLogLevel = YeAPF_LOG_INFO, string $message = '')
   {
     global $currentURI;
 
     if (self::startup()) {
+      // echo "minLogLevel: $minLogLevel\n";
+      // self::syslog(0, self::$minLogLevel, "minLogLevel: $minLogLevel");
       if ($minLogLevel >= self::$minLogLevel - 99) {
         if (0 === $area || in_array($area, self::$activeLogAreas)) {
           $dbg = debug_backtrace();
           $time = date('h:i:s ');
           $preamble = "$time";
-          if (self::$lastLogSourceUsage != $dbg[1]['file']) {
-            self::$lastLogSourceUsage = $dbg[1]['file'];
-            $preamble .= '[' . self::$lastLogSourceUsage . "] ------\n$time";
-            // echo json_encode($dbg[1],JSON_PRETTY_PRINT);
+          $dbgNdx = 1;
+          if (empty($dbg[$dbgNdx]['file'])) {
+            $dbgNdx--;
           }
-          if ($currentURI > '') {
-            $preamble .= '  ' . str_pad(' ' . $dbg[1]['line'], 4, ' ', STR_PAD_LEFT) . ': [' . $currentURI . '] ';
+          if (isset($dbg[$dbgNdx]['file']) && self::$lastLogSourceUsage != $dbg[$dbgNdx]['file']) {
+            self::$lastLogSourceUsage = $dbg[$dbgNdx]['file'];
+            $preamble .= '[' . self::$lastLogSourceUsage . "] ------\n$time";
+            // echo json_encode($dbg[$dbgNdx],JSON_PRETTY_PRINT);
+          }
+          if (isset($dbg[$dbgNdx]['line'])) {
+            if ($currentURI > '') {
+              $preamble .= '  ' . str_pad(' ' . $dbg[$dbgNdx]['line'], 4, ' ', STR_PAD_LEFT) . ': [' . $currentURI . '] ';
+            } else {
+              $preamble .= '  ' . str_pad(' ' . $dbg[$dbgNdx]['line'], 4, ' ', STR_PAD_LEFT) . ': ';
+            }
           } else {
-            $preamble .= '  ' . str_pad(' ' . $dbg[1]['line'], 4, ' ', STR_PAD_LEFT) . ': ';
+            $preamble .= ' dbg=' . json_encode($dbg) . "\n";
           }
 
           $message = str_replace("\n", ' ', $message);
-          if (trim($message) > '') {
-            if (self::logFacilityEnabled(YeAPF_LOG_USING_FILE)) {
-              $fp = self::getLogFileHandler();
-              if ($fp) {
-                fwrite($fp, "$preamble $message\n");
-              }
-            }
 
-            if (self::logFacilityEnabled(YeAPF_LOG_USING_SYSLOG)) {
-              self::syslog($area, $minLogLevel, $message);
+          if (self::logFacilityEnabled(YeAPF_LOG_USING_FILE)) {
+            $fp = self::getLogFileHandler();
+            if ($fp) {
+              fwrite($fp, "$preamble " . self::buildLogMessage($message) . "\n");
             }
+          }
 
-            if (self::logFacilityEnabled(YeAPF_LOG_USING_CONSOLE)) {
-              echo "$preamble $message\n";
-            }
+          if (self::logFacilityEnabled(YeAPF_LOG_USING_SYSLOG)) {
+            if (trim($message) > '')
+              self::syslog($area, $minLogLevel, "$message");
+          }
+
+          if (self::logFacilityEnabled(YeAPF_LOG_USING_CONSOLE)) {
+            echo "$preamble " . self::buildLogMessage($message) . "\n";
           }
         }
       }

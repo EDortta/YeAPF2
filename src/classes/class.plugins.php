@@ -84,8 +84,8 @@ class PluginList {
    */
   static public function loadPlugins(string $folder, int $level = 10) {
     if ($level > 0) {
-      \_log("Plugin loader from '$folder'");
       if (is_dir($folder)) {
+        \_log("Plugin loader from '$folder'");
         if ($dh = opendir($folder)) {
           while (($filename = readdir($dh)) !== false) {
             if (!is_dir("$folder/$filename")) {
@@ -103,8 +103,8 @@ class PluginList {
           }
           closedir($dh);
         }
+        \_log("Plugins ready");
       }
-      \_log("Plugins ready");
     }
   }
 }

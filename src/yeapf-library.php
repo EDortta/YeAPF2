@@ -231,3 +231,36 @@ function generateStrongPassword(int $length, int $strength): string
 
   return $password;
 }
+
+function xml_encode(array|string $data): string
+{
+  if (!is_array($data) && !is_string($data)) {
+    throw new InvalidArgumentException('Data must be an array or a valid JSON string.');
+  }
+
+  function inner_xml_encode(array|string $data, int $indentLevel = 0): string
+  {
+    $xmlString = '';
+    if (is_array($data)) {
+      foreach ($data as $key => $value) {
+        $tagName = is_int($key) ? 'item' : $key;
+        $innerIndent = str_repeat(' ', $indentLevel * 2);
+        $xmlString .= PHP_EOL . $innerIndent . '<' . $tagName . '>' . inner_xml_encode($value, $indentLevel + 1) . '</' . $tagName . '>' . PHP_EOL;
+      }
+    } else {
+      $xmlString = trim($data);
+    }
+    return $xmlString;
+  }
+
+  if (is_string($data)) {
+    try {
+      $data = json_decode($data, true, 512, JSON_THROW_ON_ERROR);
+    } catch (JsonException $e) {
+      throw new InvalidArgumentException('Invalid JSON string provided: ' . $e->getMessage());
+    }
+  }
+
+  $xmlString = inner_xml_encode($data);
+  return $xmlString;
+}

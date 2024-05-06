@@ -19,6 +19,11 @@ define('YeAPF_LOG_USING_DB', 0x00000002);
 define('YeAPF_LOG_USING_CONSOLE', 0x00000004);
 define('YeAPF_LOG_USING_SYSLOG', 0x00000008);
 
+define('YeAPF_LOG_STYLE_AS_STRINGS', 0x000000100);
+define('YeAPF_LOG_STYLE_AS_JSON', 0x000000200);
+define('YeAPF_LOG_STYLE_AS_XML', 0x000000400);
+define('YeAPF_LOG_STYLE_AS_ONE_STRING', 0x000000800);
+
 define('YeAPF_LOG_TAG_SERVER', 'server');   // usually hostname and/or IP
 define('YeAPF_LOG_TAG_SERVICE', 'service'); // service name
 define('YeAPF_LOG_TAG_CLIENT', 'client');   // client IP
@@ -30,7 +35,7 @@ define('YeAPF_LOG_TAG_RESULT','result');    // 200
 define('YeAPF_LOG_TAG_RESPONSE_SIZE','response_size'); // bytes
 define('YeAPF_LOG_TAG_RESPONSE_TIME','response_time'); // ms
 define('YeAPF_LOG_TAG_RESPONSE_ERROR','response_error');
-define('YeAPF_LOG_TAG_REFERER','referer');
+define('YeAPF_LOG_TAG_REFERRER','referer');
 define('YeAPF_LOG_TAG_USERAGENT','useragent');
 
 /*****************************************/

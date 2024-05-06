@@ -1212,8 +1212,10 @@ class PersistentCollection extends \YeAPF\ORM\SharedSanitizedCollection implemen
                 function ($conn) use ($id, $sql, &$ret, $params) {
                     $data = $conn->queryAndFetch($sql, $params);
                     \_trace('DATA: ' . print_r($data, true));
-                    parent::setDocument($id, $data);
-                    $ret->importData(parent::getDocument($id));
+                    if ($data) {
+                        parent::setDocument($id, $data);
+                        $ret->importData(parent::getDocument($id));
+                    }
                 }
             );
         }
@@ -1282,7 +1284,7 @@ class PersistentCollection extends \YeAPF\ORM\SharedSanitizedCollection implemen
                 while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
                     $ret[] = $row[$this->getCollectionIdName()];
                 }
-                \_trace('RET: ' . print_r("Returning ".count($ret). " records", true));
+                \_trace('RET: ' . print_r('Returning ' . count($ret) . ' records', true));
             }
         );
         return $ret;
@@ -1295,8 +1297,8 @@ class PersistentCollection extends \YeAPF\ORM\SharedSanitizedCollection implemen
         if (is_array($data)) {
             $ret->importData($data);
         } else {
-            if (!is_bool($data)){
-              $ret->importData($data->exportData());
+            if (!is_bool($data)) {
+                $ret->importData($data->exportData());
             }
         }
         return $ret;
@@ -1399,7 +1401,7 @@ class PersistentCollection extends \YeAPF\ORM\SharedSanitizedCollection implemen
         if ($count <= 0) {
             $sql .= "offset $start";
         } else {
-            $count-=count($cachedIdList);
+            $count -= count($cachedIdList);
             $sql .= "limit $count offset $start";
         }
 
