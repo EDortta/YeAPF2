@@ -57,9 +57,9 @@ class WebApp
         return $url;
     }
 
-    static function getMainAccess() 
+    static function getMainAccess()
     {
-        $ret =  dirname(self::getBaseURL());
+        $ret = dirname(self::getBaseURL());
         $ret = preg_replace('#^(https?://)#', '', $ret);
         return $ret;
     }
@@ -174,7 +174,7 @@ class WebApp
                 }
             }, $content);
         } else {
-            $content = preg_replace($filesHookExpr, '$1$4?' . $antiCacheURI . '$5', $content??'');
+            $content = preg_replace($filesHookExpr, '$1$4?' . $antiCacheURI . '$5', $content ?? '');
         }
 
         return $content;
@@ -215,102 +215,100 @@ class WebApp
 
         self::initialize();
 
-        if (self::clientExpectJSON()) {
-            header('Content-Type: application/json');
-            echo json_encode($context);
+        $uri = self::getURI();
+
+        if (strpos($uri, '?') > 0) {
+            $uri = substr($uri, 0, strpos($uri, '?'));
+        }
+
+        $routeHandler = self::getRouteHandler($uri, $_SERVER['REQUEST_METHOD']);
+        if ($routeHandler) {
+            $content = $routeHandler($uri, $context);
         } else {
-            $uri = self::getURI();
-
-            if (strpos($uri, '?') > 0) {
-                $uri = substr($uri, 0, strpos($uri, '?'));
-            }
-
-            $routeHandler = self::getRouteHandler($uri, $_SERVER['REQUEST_METHOD']);
-            if ($routeHandler) {
-                $content = $routeHandler($uri, $context);
+            if (self::clientExpectJSON()) {
+                header('Content-Type: application/json');
             } else {
                 header('Content-Type: text/html; charset=utf-8');
+            }
 
-                $entrance = '';
-                $uri = explode('/', $uri);
-                $c = self::$uselessURI;
-                while ($c > 0) {
-                    $entrance = array_shift($uri) . '/';
-                    $c--;
-                }
-                $entrance = rtrim($entrance, '/');
+            $entrance = '';
+            $uri = explode('/', $uri);
+            $c = self::$uselessURI;
+            while ($c > 0) {
+                $entrance = array_shift($uri) . '/';
+                $c--;
+            }
+            $entrance = rtrim($entrance, '/');
 
-                $uri = implode('/', $uri);
-                if (substr($uri, -4) == '.htm' || substr($uri, -5) == '.html') {
-                    $uri = substr($uri, 0, strlen($uri) - 5);
-                }
+            $uri = implode('/', $uri);
+            if (substr($uri, -4) == '.htm' || substr($uri, -5) == '.html') {
+                $uri = substr($uri, 0, strlen($uri) - 5);
+            }
 
-                $content = '';
+            $content = '';
 
-                if (!file_exists("template/pages/$entrance/$entrance.html")) {
-                    $entrance = '404';
-                }
+            if (!file_exists("template/pages/$entrance/$entrance.html")) {
+                $entrance = '404';
+            }
 
-                $context['mode'] = self::$mode;
+            $context['mode'] = self::$mode;
 
-                if (file_exists("template/pages/$entrance/$entrance.html")) {
-                    $content = file_get_contents("template/pages/$entrance/$entrance.html");
-                    $content = str_replace('../../', self::$folder . '/template/', $content);
+            if (file_exists("template/pages/$entrance/$entrance.html")) {
+                $content = file_get_contents("template/pages/$entrance/$entrance.html");
+                $content = str_replace('../../', self::$folder . '/template/', $content);
 
-                    $page_content = "Content of 'pages/$uri.html' or 'pages/$uri/$uri.html' not found!";
+                $page_content = "Content of 'pages/$uri.html' or 'pages/$uri/$uri.html' not found!";
 
-                    if (file_exists("pages/$uri.html")) {
-                        $page_content = file_get_contents("pages/$uri.html");
+                if (file_exists("pages/$uri.html")) {
+                    $page_content = file_get_contents("pages/$uri.html");
+                    if ($antiCache) {
+                        // $page_content = self::applyAntiCache($page_content, $antiCache);
+                    }
+                } else {
+                    if (file_exists("pages/$uri/$uri.html")) {
+                        $page_content = file_get_contents("pages/$uri/$uri.html");
                         if ($antiCache) {
                             // $page_content = self::applyAntiCache($page_content, $antiCache);
                         }
-                    } else {
-                        if (file_exists("pages/$uri/$uri.html")) {
-                            $page_content = file_get_contents("pages/$uri/$uri.html");
-                            if ($antiCache) {
-                                // $page_content = self::applyAntiCache($page_content, $antiCache);
-                            }
-                        }
-                    }
-                    $context['page_content'] = $yAnalyzer->do($page_content, $context);
-                } else {
-                    if (file_exists("pages/$uri/$uri.html")) {
-                        $content = file_get_contents("pages/$uri/$uri.html");
-                    } else if (file_exists("pages/$uri.html")) {
-                        $content = file_get_contents("pages/$uri.html");
                     }
                 }
-            }
-
-            // echo "<pre>";
-            $headers = headers_list();
-            $actualContentType=null;
-            foreach ($headers as $header) {
-                // echo "$header\n";
-                if (strpos(strtolower($header), 'content-type:') === 0) {
-                    $header = substr($header,14);
-                    $actualContentType = explode(';', $header)[0];
+                $context['page_content'] = $yAnalyzer->do($page_content, $context);
+            } else {
+                if (file_exists("pages/$uri/$uri.html")) {
+                    $content = file_get_contents("pages/$uri/$uri.html");
+                } else if (file_exists("pages/$uri.html")) {
+                    $content = file_get_contents("pages/$uri.html");
                 }
             }
-
-            
-            // die("actualContentType: $actualContentType</pre>");
-            $acceptedContentTypes = ['application/json', 'text/plain', 'text/html', 'text/markdown'];            
-            if ($actualContentType !== null && in_array($actualContentType, $acceptedContentTypes)) {
-                // $content = $yAnalyzer->do($content, $context);
-            }
-            $content = $yAnalyzer->do($content, $context);
-
-            if ($antiCache) {
-                $content = self::applyAntiCache($content, $antiCache);
-            }
-
-            if ('devel' != ($context['mode'] ?? 'devel')) {
-                $content = preg_replace('/^ +/m', '', $content);
-                $content = preg_replace('/\n/m', ' ', $content);
-            }
-            // $content = str_replace("#(page_content)", $page_content, $content);
-            echo $content;
         }
+
+        // echo "<pre>";
+        $headers = headers_list();
+        $actualContentType = null;
+        foreach ($headers as $header) {
+            // echo "$header\n";
+            if (strpos(strtolower($header), 'content-type:') === 0) {
+                $header = substr($header, 14);
+                $actualContentType = explode(';', $header)[0];
+            }
+        }
+
+        // die("actualContentType: $actualContentType</pre>");
+        $acceptedContentTypes = ['application/json', 'text/plain', 'text/html', 'text/markdown'];
+        if ($actualContentType !== null && in_array($actualContentType, $acceptedContentTypes)) {
+            // $content = $yAnalyzer->do($content, $context);
+        }
+        $content = $yAnalyzer->do($content, $context);
+
+        if ($antiCache) {
+            $content = self::applyAntiCache($content, $antiCache);
+        }
+
+        if ('devel' != ($context['mode'] ?? 'devel')) {
+            $content = preg_replace('/^ +/m', '', $content);
+            $content = preg_replace('/\n/m', ' ', $content);
+        }
+        // $content = str_replace("#(page_content)", $page_content, $content);
+        echo $content;
     }
 }
