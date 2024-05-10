@@ -13,7 +13,7 @@ class WebApp
     public static function initialize()
     {
         if (null == self::$mode) {
-            self::$mode = \YeAPF\YeAPFConfig::getSection('mode')->mode;
+            self::$mode = \YeAPF\YeAPFConfig::getSection('mode')->mode??'devel';
         }
     }
 
