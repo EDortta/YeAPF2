@@ -13,7 +13,7 @@ class WebApp
     public static function initialize()
     {
         if (null == self::$mode) {
-            self::$mode = \YeAPF\YeAPFConfig::getSection('mode')->mode??'devel';
+            self::$mode = \YeAPF\YeAPFConfig::getSection('mode')->mode ?? 'devel';
         }
     }
 
@@ -207,6 +207,70 @@ class WebApp
         return $ret;
     }
 
+    static function renderPage($uri, &$context, string|null|bool $antiCache = true) {
+        header('Content-Type: text/html; charset=utf-8');
+
+        $entrance = '';
+        $uri = explode('/', $uri);
+        $c = self::$uselessURI;
+        while ($c > 0) {
+            $entrance = array_shift($uri) . '/';
+            $c--;
+        }
+        $entrance = rtrim($entrance, '/');
+
+        $uri = implode('/', $uri);
+        if (substr($uri, -4) == '.htm' || substr($uri, -5) == '.html') {
+            $uri = substr($uri, 0, strlen($uri) - 5);
+        }
+
+        $content = '';
+
+        if (!file_exists("template/pages/$entrance/$entrance.html")) {
+            $entrance = '404';
+        }
+
+        $context['mode'] = self::$mode;
+
+        if (file_exists("template/pages/$entrance/$entrance.html")) {
+            $content = file_get_contents("template/pages/$entrance/$entrance.html");
+            $content = str_replace('../../', self::$folder . '/template/', $content);
+
+            $page_content = "Content of 'pages/$uri.html' or 'pages/$uri/$uri.html' not found!";
+
+            if (file_exists("pages/$uri.html")) {
+                $page_content = file_get_contents("pages/$uri.html");
+                if ($antiCache) {
+                    // $page_content = self::applyAntiCache($page_content, $antiCache);
+                }
+            } else {
+                if (file_exists("pages/$uri/$uri.html")) {
+                    $page_content = file_get_contents("pages/$uri/$uri.html");
+                    if ($antiCache) {
+                        // $page_content = self::applyAntiCache($page_content, $antiCache);
+                    }
+                }
+            }
+            $context['page_content'] = $yAnalyzer->do($page_content, $context);
+        } else {
+            $places = ["pages/$uri.html", "pages/$uri/$uri.html", "$uri.html", "$uri/$uri.html"];
+            $pageFound = false;
+            foreach ($places as $place) {
+                if (file_exists($place)) {
+                    $content = file_get_contents($place);
+                    if ($antiCache) {
+                        // $content = self::applyAntiCache($content, $antiCache);
+                    }
+                    $pageFound = true;
+                    break;
+                }
+            }
+            if (!$pageFound)
+                $content = "Page '$uri.html' not found!";
+        }
+        return $content;
+    }
+
     static function go(array $context = [], string|null|bool $antiCache = true)
     {
         global $yAnalyzer;
@@ -223,63 +287,12 @@ class WebApp
 
         $routeHandler = self::getRouteHandler($uri, $_SERVER['REQUEST_METHOD']);
         if ($routeHandler) {
-            $content = $routeHandler($uri, $context);
-        } else {
             if (self::clientExpectJSON()) {
                 header('Content-Type: application/json');
-            } else {
-                header('Content-Type: text/html; charset=utf-8');
             }
-
-            $entrance = '';
-            $uri = explode('/', $uri);
-            $c = self::$uselessURI;
-            while ($c > 0) {
-                $entrance = array_shift($uri) . '/';
-                $c--;
-            }
-            $entrance = rtrim($entrance, '/');
-
-            $uri = implode('/', $uri);
-            if (substr($uri, -4) == '.htm' || substr($uri, -5) == '.html') {
-                $uri = substr($uri, 0, strlen($uri) - 5);
-            }
-
-            $content = '';
-
-            if (!file_exists("template/pages/$entrance/$entrance.html")) {
-                $entrance = '404';
-            }
-
-            $context['mode'] = self::$mode;
-
-            if (file_exists("template/pages/$entrance/$entrance.html")) {
-                $content = file_get_contents("template/pages/$entrance/$entrance.html");
-                $content = str_replace('../../', self::$folder . '/template/', $content);
-
-                $page_content = "Content of 'pages/$uri.html' or 'pages/$uri/$uri.html' not found!";
-
-                if (file_exists("pages/$uri.html")) {
-                    $page_content = file_get_contents("pages/$uri.html");
-                    if ($antiCache) {
-                        // $page_content = self::applyAntiCache($page_content, $antiCache);
-                    }
-                } else {
-                    if (file_exists("pages/$uri/$uri.html")) {
-                        $page_content = file_get_contents("pages/$uri/$uri.html");
-                        if ($antiCache) {
-                            // $page_content = self::applyAntiCache($page_content, $antiCache);
-                        }
-                    }
-                }
-                $context['page_content'] = $yAnalyzer->do($page_content, $context);
-            } else {
-                if (file_exists("pages/$uri/$uri.html")) {
-                    $content = file_get_contents("pages/$uri/$uri.html");
-                } else if (file_exists("pages/$uri.html")) {
-                    $content = file_get_contents("pages/$uri.html");
-                }
-            }
+            $content = $routeHandler($uri, $context);
+        } else {
+            $content = self::renderPage($uri, $context, $antiCache);
         }
 
         // echo "<pre>";
