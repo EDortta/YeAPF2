@@ -107,7 +107,11 @@ class WebApp
 
     static function clientExpectJSON()
     {
-        return (isset($_SERVER['HTTP_ACCEPT']) && strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false);
+        // echo "<pre>";
+        // die(print_r($_SERVER));
+        $ret = (isset($_SERVER['HTTP_ACCEPT']) && strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false);
+        // die("ret = $ret");
+        return $ret;
     }
 
     static function getRequest()
@@ -286,13 +290,18 @@ class WebApp
         }
 
         $routeHandler = self::getRouteHandler($uri, $_SERVER['REQUEST_METHOD']);
+        if (self::clientExpectJSON()) {
+            header('Content-Type: application/json', true);
+        }
+
         if ($routeHandler) {
-            if (self::clientExpectJSON()) {
-                header('Content-Type: application/json');
-            }
             $content = $routeHandler($uri, $context);
         } else {
-            $content = self::renderPage($uri, $context, $antiCache);
+            if (!empty($context['__json'])) {
+                $content = ($context['__json']);
+            } else {
+                $content = self::renderPage($uri, $context, $antiCache);
+            }
         }
 
         // echo "<pre>";
