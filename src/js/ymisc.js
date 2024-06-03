@@ -13,9 +13,9 @@ class yMisc {
     static isEmail(email) {
         var aux = (email && email.unquote()) || '';
         var re =
-          /^(([^\*<>()[\]\\.,;:\s@\"]+(\.[^\*<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+            /^(([^\*<>()[\]\\.,;:\s@\"]+(\.[^\*<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
         return re.test(aux);
-      }
+    }
 
     static pad(number, length) {
         var str = '' + number;
@@ -232,56 +232,56 @@ function isEmpty(obj) {
 }
 
 
-         /* as the array keys could be used with data coming from
-          * interbase (UPPERCASE) postgresql (lowercase most of the time)
-          * or mysql (mixed case when configured properly), we need
-          * to let the programmer use which one he wants in the data model
-          * while keep the array untoched.
-          * Not only that, the field names on client side can be prefixed and/or
-          * postfixed, so we need to chose the more adequated
-          * This function guess which one is the best */
-         var suggestKeyName = function(aObj, aKeyName, fieldPrefix,
-            fieldPostfix) {
-            var ret = null;
-            if (aKeyName) {
-              var aColList;
-              if (!Array.isArray(aObj))
-                aColList = aObj;
-              else {
-                aColList = {};
-                for (var a = 0; a < aObj.length; a++) {
-                  aColName = aObj[a];
-                  aColList[aColName] = aColName;
-                }
-              }
+/* as the array keys could be used with data coming from
+ * interbase (UPPERCASE) postgresql (lowercase most of the time)
+ * or mysql (mixed case when configured properly), we need
+ * to let the programmer use which one he wants in the data model
+ * while keep the array untoched.
+ * Not only that, the field names on client side can be prefixed and/or
+ * postfixed, so we need to chose the more adequated
+ * This function guess which one is the best */
+var suggestKeyName = function (aObj, aKeyName, fieldPrefix,
+    fieldPostfix) {
+    var ret = null;
+    if (aKeyName) {
+        var aColList;
+        if (!Array.isArray(aObj))
+            aColList = aObj;
+        else {
+            aColList = {};
+            for (var a = 0; a < aObj.length; a++) {
+                aColName = aObj[a];
+                aColList[aColName] = aColName;
+            }
+        }
 
-              var UKey = aKeyName.toUpperCase();
-              for (var i in aColList) {
-                if (aColList.hasOwnProperty(i))
-                  if (i.toUpperCase() == UKey)
+        var UKey = aKeyName.toUpperCase();
+        for (var i in aColList) {
+            if (aColList.hasOwnProperty(i))
+                if (i.toUpperCase() == UKey)
                     ret = i;
-              }
+        }
 
-              if (fieldPrefix || fieldPostfix) {
-                if (ret === null) {
-                  fieldPrefix = fieldPrefix || '';
-                  fieldPostfix = fieldPostfix || '';
-                  if ((UKey.substr(0, fieldPrefix.length)) == fieldPrefix.toUpperCase()) {
+        if (fieldPrefix || fieldPostfix) {
+            if (ret === null) {
+                fieldPrefix = fieldPrefix || '';
+                fieldPostfix = fieldPostfix || '';
+                if ((UKey.substr(0, fieldPrefix.length)) == fieldPrefix.toUpperCase()) {
                     aKeyName = aKeyName.substr(fieldPrefix.length);
                     ret = suggestKeyName(aColList, aKeyName);
-                  }
-
-                  if (ret === null) {
-                    if (UKey.substr(UKey.length - fieldPostfix.length) ==
-                      fieldPostfix.toUpperCase()) {
-                      aKeyName = aKeyName.substr(0, aKeyName.length -
-                        fieldPostfix.length);
-                      ret = suggestKeyName(aColList, aKeyName);
-                    }
-                  }
                 }
-              }
+
+                if (ret === null) {
+                    if (UKey.substr(UKey.length - fieldPostfix.length) ==
+                        fieldPostfix.toUpperCase()) {
+                        aKeyName = aKeyName.substr(0, aKeyName.length -
+                            fieldPostfix.length);
+                        ret = suggestKeyName(aColList, aKeyName);
+                    }
+                }
             }
-            return ret;
-          };
+        }
+    }
+    return ret;
+};
 

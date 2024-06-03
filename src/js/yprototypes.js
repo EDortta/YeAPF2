@@ -244,6 +244,91 @@ if (!String.prototype.toFloat) {
     };
 }
 
+if (!String.prototype.isCPF) {
+    //+ Carlos R. L. Rodrigues
+    //@ http://jsfromhell.com/string/is-cpf [rev. #1]
+
+    String.prototype.isCPF = function () {
+        var s, c = this;
+        if ((c = c.replace(/[^\d]/g, "").split("")).length != 11) return false;
+        if (new RegExp("^" + c[0] + "{11}$").test(c.join(""))) return false;
+        for (s = 10, n = 0, i = 0; s >= 2; n += c[i++] * s--) { }
+        if (c[9] != (((n %= 11) < 2) ? 0 : 11 - n)) return false;
+        for (s = 11, n = 0, i = 0; s >= 2; n += c[i++] * s--) { }
+        if (c[10] != (((n %= 11) < 2) ? 0 : 11 - n)) return false;
+        return true;
+    };
+
+
+    function _mod_(a, b) { return Math.round(a - (Math.floor(a / b) * b)); }
+    //+ Johny W.Alves
+    //@ http://www.johnywalves.com.br/artigos/js-gerador-cnpj-cpf/
+    String.prototype.gerarCNPJ = function () {
+        var n1 = Math.round(Math.random() * 9);
+        var n2 = Math.round(Math.random() * 9);
+        var n3 = Math.round(Math.random() * 9);
+        var n4 = Math.round(Math.random() * 9);
+        var n5 = Math.round(Math.random() * 9);
+        var n6 = Math.round(Math.random() * 9);
+        var n7 = Math.round(Math.random() * 9);
+        var n8 = Math.round(Math.random() * 9);
+        var n9 = 0;
+        var n10 = 0;
+        var n11 = 0;
+        var n12 = 1;
+
+        var aux = n1 * 5 + n2 * 4 + n3 * 3 + n4 * 2 + n5 * 9 + n6 * 8 + n7 * 7 + n8 * 6 + n9 * 5 + n10 * 4 + n11 * 3 + n12 * 2;
+        aux = _mod_(aux, 11);
+        var nv1 = aux < 2 ? 0 : 11 - aux;
+
+        aux = n1 * 6 + n2 * 5 + n3 * 4 + n4 * 3 + n5 * 2 + n6 * 9 + n7 * 8 + n8 * 7 + n9 * 6 + n10 * 5 + n11 * 4 + n12 * 3 + nv1 * 2;
+        aux = _mod_(aux, 11);
+        var nv2 = aux < 2 ? 0 : 11 - aux;
+
+        return "" + n1 + n2 + "." + n3 + n4 + n5 + "." + n6 + n7 + n8 + "/" + n9 + n10 + n11 + n12 + "-" + nv1 + nv2;
+    };
+
+    //+ Johny W.Alves
+    //@ http://www.johnywalves.com.br/artigos/js-gerador-cnpj-cpf/
+    String.prototype.gerarCPF = function () {
+        var n1 = Math.round(Math.random() * 9);
+        var n2 = Math.round(Math.random() * 9);
+        var n3 = Math.round(Math.random() * 9);
+        var n4 = Math.round(Math.random() * 9);
+        var n5 = Math.round(Math.random() * 9);
+        var n6 = Math.round(Math.random() * 9);
+        var n7 = Math.round(Math.random() * 9);
+        var n8 = Math.round(Math.random() * 9);
+        var n9 = Math.round(Math.random() * 9);
+
+        var aux = n1 * 10 + n2 * 9 + n3 * 8 + n4 * 7 + n5 * 6 + n6 * 5 + n7 * 4 + n8 * 3 + n9 * 2;
+        aux = _mod_(aux, 11);
+        var nv1 = aux < 2 ? 0 : 11 - aux;
+
+        aux = n1 * 11 + n2 * 10 + n3 * 9 + n4 * 8 + n5 * 7 + n6 * 6 + n7 * 5 + n8 * 4 + n9 * 3 + nv1 * 2;
+        aux = _mod_(aux, 11);
+        var nv2 = aux < 2 ? 0 : 11 - aux;
+
+        return "" + n1 + n2 + n3 + "." + n4 + n5 + n6 + "." + n7 + n8 + n9 + "-" + nv1 + nv2;
+    };
+
+}
+
+if (!String.prototype.isCNPJ) {
+    //+ Carlos R. L. Rodrigues
+    //@ http://jsfromhell.com/string/is-cnpj [rev. #1]
+
+    String.prototype.isCNPJ = function () {
+        var i, b = [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2], c = this;
+        if ((c = c.replace(/[^\d]/g, "").split("")).length != 14) return false;
+        for (i = 0, n = 0; i < 12; n += c[i] * b[++i]) { }
+        if (c[12] != (((n %= 11) < 2) ? 0 : 11 - n)) return false;
+        for (i = 0, n = 0; i <= 12; n += c[i] * b[i++]) { }
+        if (c[13] != (((n %= 11) < 2) ? 0 : 11 - n)) return false;
+        return true;
+    };
+}
+
 Function.prototype.method = function (name, func) {
     this.prototype[name] = func;
     return this;

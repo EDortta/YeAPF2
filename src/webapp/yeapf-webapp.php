@@ -178,7 +178,8 @@ class WebApp
                 }
             }, $content);
         } else {
-            $content = preg_replace($filesHookExpr, '$1$4?' . $antiCacheURI . '$5', $content ?? '');
+            if (is_array($content) || is_string($content))
+              $content = preg_replace($filesHookExpr, '$1$4?' . $antiCacheURI . '$5', $content ?? '');
         }
 
         return $content;
@@ -303,6 +304,11 @@ class WebApp
                 $content = self::renderPage($uri, $context, $antiCache);
             }
         }
+
+
+        if (is_array($content))
+          $content = json_encode($content);
+
 
         // echo "<pre>";
         $headers = headers_list();
