@@ -214,6 +214,8 @@ class WebApp
 
     static function renderPage($uri, &$context, string|null|bool $antiCache = true) {
         header('Content-Type: text/html; charset=utf-8');
+        
+        global $yAnalyzer;
 
         $entrance = '';
         $uri = explode('/', $uri);
