@@ -188,6 +188,12 @@ define('YeAPF_FLOAT_REGEX', '/^([0-9]+)\.([0-9]+)$/');
 define('YeAPF_BOOL_REGEX', '/^(true|false)$/i');
 define('YeAPF_STRING_REGEX', '/^[^\p{C}]*$/u'); 
 
+define('YeAPF_URL_REGEX', '/^((https?|ftp|file):\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/');
+define('YeAPF_IP_REGEX', '/^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$/');
+define('YeAPF_MAC_REGEX', '/^([0-9a-fA-F]{2}[:]){5}([0-9a-fA-F]{2})$/');
+
+define('YeAPF_ID_REGEX', '/^([0-9a-zA-Z_\-]+)$/');
+
 define('YeAPF_EMAIL_REGEX', '/^([a-zA-Z0-9_\-\.]+)@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.)|(([a-zA-Z0-9\-]+\.)+))([a-zA-Z]{2,4}|[0-9]{1,3})(\]?)$/');
 define('YeAPF_UUID_REGEX', '/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/');
 

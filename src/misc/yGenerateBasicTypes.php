@@ -79,6 +79,13 @@ namespace YeAPF;
     );
 
     $myDocumentModel->setConstraint(
+        keyName: 'id',
+        keyType: YeAPF_TYPE_STRING,
+        length: 48,
+        regExpression: YeAPF_ID_REGEX
+    );
+
+    $myDocumentModel->setConstraint(
         keyName: 'cnpj',
         keyType: YeAPF_TYPE_STRING,
         length: 14,

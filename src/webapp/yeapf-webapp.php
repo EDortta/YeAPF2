@@ -324,11 +324,11 @@ class WebApp
         }
 
         // die("actualContentType: $actualContentType</pre>");
-        $acceptedContentTypes = ['application/json', 'text/plain', 'text/html', 'text/markdown'];
-        if ($actualContentType !== null && in_array($actualContentType, $acceptedContentTypes)) {
-            // $content = $yAnalyzer->do($content, $context);
+        $processableContentTypes = ['application/json', 'text/plain', 'text/html', 'text/markdown'];
+        if ($actualContentType !== null && in_array($actualContentType, $processableContentTypes)) {
+            $content = $yAnalyzer->do($content, $context);
         }
-        $content = $yAnalyzer->do($content, $context);
+        // $content = $yAnalyzer->do($content, $context);
 
         if ($antiCache) {
             $content = self::applyAntiCache($content, $antiCache);

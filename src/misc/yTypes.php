@@ -93,6 +93,13 @@ class BasicTypes {
 				'tag' => ';;',
 			],
 
+			'id' => [
+				'type' => 'string',
+				'length' => 48,
+				'regExpression' => '/^([0-9a-zA-Z_\-]+)$/',
+				'tag' => ';;',
+			],
+
 			'cnpj' => [
 				'type' => 'string',
 				'length' => 14,
