@@ -47,7 +47,7 @@ abstract class HTTP2Service
 
     abstract function startup();
     abstract function shutdown();
-    abstract function answerQuery(\YeAPF\Bulletin &$bulletin, string $uri);
+    abstract function answerQuery(\YeAPF\IBulletin &$bulletin, string $uri);
 
     public function setHandler(
         string $path,
@@ -91,7 +91,7 @@ abstract class HTTP2Service
                         _trace('** Actual params: ' . implode(', ', $refFunParams));
                         _trace("** $path DISABLED!");
                         _trace('***********************************');
-                        // throw new \Exception($errMsg);
+                        // throw new \YeAPF\YeAPFException($errMsg);
                     } else {
                         $this->handlers[$method][$fnPath] =
                             [
@@ -132,7 +132,7 @@ abstract class HTTP2Service
                                 foreach ($security as $requiredSec) {
                                     if (!in_array($requiredSec, $schemes)) {
                                         _trace("Invalid security scheme $requiredSec");
-                                        throw new \Exception("Invalid security scheme $requiredSec");
+                                        throw new \YeAPF\YeAPFException("Invalid security scheme $requiredSec");
                                     }
                                 }
 
@@ -147,11 +147,11 @@ abstract class HTTP2Service
                         }
                     }
                 } else {
-                    throw new \Exception("Not allowed method $method");
+                    throw new \YeAPF\YeAPFException("Not allowed method $method");
                 }
             }
         } else {
-            throw new \Exception('Invalid attendant');
+            throw new \YeAPF\YeAPFException('Invalid attendant');
         }
     }
 
@@ -635,7 +635,7 @@ abstract class HTTP2Service
                 $cleanCode = false;
                 $serviceStage = 0;
 
-                $aBulletin = new \YeAPF\Bulletin();
+                $aBulletin = new \YeAPF\Http2Bulletin();
                 try {
                     $method = $request->server['request_method'];
                     if (mb_strtolower(substr(trim(($request->header['content-type']) ?? ''), 0, 16)) === 'application/json') {

@@ -8,7 +8,15 @@ class WebApp
     static $folder = null;
     static $mode = null;
     static $uselessURI = 0;
-    static $routes = [];
+
+    static private $handlers = [
+        'GET' => [],
+        'POST' => [],
+        'DELETE' => [],
+        'PATCH' => [],
+        'HEAD' => [],
+        'OPTIONS' => [],
+    ];
 
     public static function initialize()
     {
@@ -179,7 +187,7 @@ class WebApp
             }, $content);
         } else {
             if (is_array($content) || is_string($content))
-              $content = preg_replace($filesHookExpr, '$1$4?' . $antiCacheURI . '$5', $content ?? '');
+                $content = preg_replace($filesHookExpr, '$1$4?' . $antiCacheURI . '$5', $content ?? '');
         }
 
         return $content;
@@ -187,34 +195,118 @@ class WebApp
 
     static function setRouteHandler($path, $method, $handler)
     {
-        $path = ltrim($path, '/');
-        $path = ltrim($path, '\/');
-        if (!isset(self::$routes[$path])) {
-            self::$routes[$path] = [];
-        }
-        if (!isset(self::$routes[$path][$method])) {
-            self::$routes[$path][$method] = $handler;
+        if (!isset(self::$handlers[$method])) {
+            throw new \YeAPF\YeAPFException("Not allowed method $method");
         } else {
-            throw new \YeAPF\YeAPFException('Route already exists');
+            // $path = ltrim($path, '/');
+            // $path = ltrim($path, '\/');
+
+            $pSlash = strrpos($path, '/');
+            $pEscapedSlash = strrpos($path, '\/');
+            if ($pSlash != $pEscapedSlash + 1) {
+                $path = preg_quote($path, '/');
+            }
+
+            $path = str_replace('\{\{', '{{', $path);
+            $path = str_replace('\}\}', '}}', $path);
+            $path = str_replace('\:\:', '::', $path);
+
+            $path = str_replace('*', '([^\/\s]*)', $path);
+
+            $typedParameterExpression = '/\{\{([\w]+)::([\w]+)\}\}/';
+            if (preg_match_all($typedParameterExpression, $path, $matches)) {
+                $tmpHandlerParams = [];
+                $p0 = 0;
+                $regexpPath = '';
+                foreach ($matches[1] as $index => $paramName) {
+                    $paramType = $matches[2][$index];
+
+                    $paramDeclaration = '{{' . $paramName . '::' . $paramType . '}}';
+                    $p1 = strpos($path, $paramDeclaration, $p0);
+                    $p2 = strpos($path, $paramDeclaration, $p1 + strlen($paramDeclaration));
+                    if ($p2 !== false) {
+                        throw new \YeAPF\YeAPFException("Parameter $paramName already declared in path $path");
+                    }
+
+                    $typeDefinition = BasicTypes::get($paramType);
+                    if (null == $typeDefinition) {
+                        throw new \YeAPF\YeAPFException("Type $paramType not found when declaring '$path'");
+                    }
+
+                    $auxRegExpression = $typeDefinition['regExpression'];
+                    $auxRegExpression = str_replace('/^', '', $auxRegExpression);
+                    $auxRegExpression = str_replace('$/', '', $auxRegExpression);
+                    $auxRegExpression = rtrim($auxRegExpression, '/');
+                    if (substr($auxRegExpression, 0, 1) != '(' || substr($auxRegExpression, -1, 1) != ')') {
+                        $auxRegExpression = '(' . $auxRegExpression . ')';
+                    }
+
+                    $regexpPath .= substr($path, $p0, $p1 - $p0) . $auxRegExpression;
+                    $p0 = $p1 + strlen($paramDeclaration);
+
+                    $tmpHandlerParams[] = [
+                        'name' => $paramName,
+                        'type' => $paramType
+                    ];
+                }
+
+                $fnPath = preg_replace($typedParameterExpression, '*', $path);
+                $fnPath = str_replace('\/', '/', $fnPath);
+                if (isset(self::$handlers[$method][$regexpPath])) {
+                    throw new \YeAPF\YeAPFException("Path $path already exists");
+                } else {
+                    self::$handlers[$method][$regexpPath] = [
+                        'handler' => $handler,
+                        'fnAlias' => $fnPath,
+                        'parameters' => []
+                    ];
+                    self::$handlers[$method][$regexpPath]['parameters'] = $tmpHandlerParams;
+                }
+            } else {
+                if (isset(self::$handlers[$method][$path])) {
+                    throw new \YeAPF\YeAPFException("Path $path already exists");
+                } else {
+                    $fnPath = preg_replace('/\((.*)\)/', '*', $path);
+                    $fnPath = str_replace('\/', '/', $fnPath);
+                    self::$handlers[$method][$path] = [
+                        'handler' => $handler,
+                        'fnAlias' => $fnPath,
+                        'parameters' => []
+                    ];
+                }
+            }
         }
     }
 
-    static function getRouteHandler($path, $method)
+    static function getRouteHandlerDefinition($path, $method)
     {
         $ret = null;
-        foreach (self::$routes as $pattern => $methods) {
-            if (preg_match('/' . $pattern . '/', $path) && isset($methods[$method])) {
-                $ret = $methods[$method];
-                break;
+
+        if (substr($path, 0, 1) != '/') {
+            $path = '/' . $path;
+        }
+
+        $matches = [];
+        foreach (self::$handlers[$method] as $pattern => $pathDefinition) {
+            if (preg_match('/' . $pattern . '/', $path, $match)) {
+                $matches[$pattern] = $pathDefinition;
             }
         }
 
+        krsort($matches);
+        reset($matches);
+        $ret = current($matches);
+
+        if (count(explode('/', $path)) != count(explode('/', key($matches) ?? ''))) {
+            $ret = null;
+        }
         return $ret;
     }
 
-    static function renderPage($uri, &$context, string|null|bool $antiCache = true) {
+    static function renderPage($uri, &$context, string|null|bool $antiCache = true)
+    {
         header('Content-Type: text/html; charset=utf-8');
-        
+
         global $yAnalyzer;
 
         $entrance = '';
@@ -292,53 +384,84 @@ class WebApp
             $uri = substr($uri, 0, strpos($uri, '?'));
         }
 
-        $routeHandler = self::getRouteHandler($uri, $_SERVER['REQUEST_METHOD']);
+        $method = $_SERVER['REQUEST_METHOD'];
+        $routeHandler = null;
+        $routeHandlerDefinition = self::getRouteHandlerDefinition($uri, $method);
+        if ($routeHandlerDefinition) {
+            $routeHandler = $routeHandlerDefinition['handler'];
+            $context['__routeHandler'] = $routeHandlerDefinition;
+
+            $splittedURI = explode('/', $uri);
+            $splittedFnPath = explode('/', $routeHandlerDefinition['fnAlias']);
+            if (empty($splittedFnPath[0])) {
+                array_shift($splittedFnPath);
+            }
+
+            $fnParams = [];
+            $pNdx = 0;
+            foreach ($splittedFnPath as $i => $fnPart) {
+                if (substr($fnPart, 0, 1) == '*') {
+                    if (isset($routeHandlerDefinition['parameters'][$pNdx])) {
+                        $fnParams[$routeHandlerDefinition['parameters'][$pNdx]['name']] = $splittedURI[$i];
+                    } else {
+                        $fnParams["param_$pNdx"] = $splittedURI[$i];
+                    }
+                    $pNdx++;
+                }
+            }
+
+            $context['__' . $method] = $fnParams;
+        }
+
         if (self::clientExpectJSON()) {
             header('Content-Type: application/json', true);
         }
 
         if ($routeHandler) {
-            $content = $routeHandler($uri, $context);
+            $aBulletin = new \YeAPF\WebBulletin();
+            $return_code = $routeHandler($aBulletin, $uri, $context, ...$fnParams);
+            if ($return_code >= 200 && $return_code < 300) {
+                
+            }
+            $aBulletin($return_code);
         } else {
             if (!empty($context['__json'])) {
                 $content = ($context['__json']);
             } else {
                 $content = self::renderPage($uri, $context, $antiCache);
             }
-        }
 
+            if (is_array($content))
+                $content = json_encode($content);
 
-        if (is_array($content))
-          $content = json_encode($content);
-
-
-        // echo "<pre>";
-        $headers = headers_list();
-        $actualContentType = null;
-        foreach ($headers as $header) {
-            // echo "$header\n";
-            if (strpos(strtolower($header), 'content-type:') === 0) {
-                $header = substr($header, 14);
-                $actualContentType = explode(';', $header)[0];
+            // echo "<pre>";
+            $headers = headers_list();
+            $actualContentType = null;
+            foreach ($headers as $header) {
+                // echo "$header\n";
+                if (strpos(strtolower($header), 'content-type:') === 0) {
+                    $header = substr($header, 14);
+                    $actualContentType = explode(';', $header)[0];
+                }
             }
-        }
 
-        // die("actualContentType: $actualContentType</pre>");
-        $processableContentTypes = ['application/json', 'text/plain', 'text/html', 'text/markdown'];
-        if ($actualContentType !== null && in_array($actualContentType, $processableContentTypes)) {
-            $content = $yAnalyzer->do($content, $context);
-        }
-        // $content = $yAnalyzer->do($content, $context);
+            // die("actualContentType: $actualContentType</pre>");
+            $processableContentTypes = ['application/json', 'text/plain', 'text/html', 'text/markdown'];
+            if ($actualContentType !== null && in_array($actualContentType, $processableContentTypes)) {
+                $content = $yAnalyzer->do($content, $context);
+            }
+            // $content = $yAnalyzer->do($content, $context);
 
-        if ($antiCache) {
-            $content = self::applyAntiCache($content, $antiCache);
-        }
+            if ($antiCache) {
+                $content = self::applyAntiCache($content, $antiCache);
+            }
 
-        if ('devel' != ($context['mode'] ?? 'devel')) {
-            $content = preg_replace('/^ +/m', '', $content);
-            $content = preg_replace('/\n/m', ' ', $content);
+            if ('devel' != ($context['mode'] ?? 'devel')) {
+                $content = preg_replace('/^ +/m', '', $content);
+                $content = preg_replace('/\n/m', ' ', $content);
+            }
+            // $content = str_replace("#(page_content)", $page_content, $content);
+            echo $content;
         }
-        // $content = str_replace("#(page_content)", $page_content, $content);
-        echo $content;
     }
 }
