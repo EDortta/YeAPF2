@@ -4,31 +4,21 @@ namespace YeAPF;
 
 interface IBulletin
 {
-
     public function getBinaryFile();
     public function setBinaryFile(string $binaryFile);
-
     public function getCharset();
     public function setCharset(string $charset);
-
     public function getContentType();
     public function setContentType(string $contentType);
-
     public function getDesiredOutputFormat();
-
     public function getFilename();
     public function setFilename(string $filename);
-
     public function getJsonFile();
     public function setJsonFile(string $jsonFile);
-
     public function getJsonString();
     public function setJsonString(string $jsonString);
-
     public function getReason();
     public function setReason(string $reason);
-
-
 }
 
 class BaseBulletin extends \YeAPF\SanitizedKeyData implements IBulletin
@@ -40,7 +30,6 @@ class BaseBulletin extends \YeAPF\SanitizedKeyData implements IBulletin
     private $__filename;
     private $__json;
     private $reason;
-
     private $__desiredOutputFormat = null;
 
     public function __construct(string $contentType = 'application/json', $charactetSet = 'UTF-8')
@@ -52,11 +41,11 @@ class BaseBulletin extends \YeAPF\SanitizedKeyData implements IBulletin
 
     private function __setDesiredOutputFormat(string $desiredOutputFormat)
     {
-        if (null==$this->__desiredOutputFormat) {
+        if (null == $this->__desiredOutputFormat) {
             $this->__desiredOutputFormat = $desiredOutputFormat;
         } else {
-            throw new \YeAPF\Exception("Desired output format already set.");
-        }        
+            throw new \YeAPF\Exception('Desired output format already set.');
+        }
     }
 
     public function getDesiredOutputFormat()
@@ -89,36 +78,83 @@ class BaseBulletin extends \YeAPF\SanitizedKeyData implements IBulletin
             throw new \YeAPF\Exception("File $binaryFile is not a file");
         }
 
-        $fileExtension = pathinfo($binaryFile, PATHINFO_EXTENSION);
-        switch ($fileExtension) {
-            case 'json':
-                $contentType = 'application/json';
-                break;
-            case 'pdf':
-                $contentType = 'application/pdf';
-                break;
-            case 'md':
-                $contentType = 'text/markdown';
-                break;
-            case 'gz':
-                $contentType = 'application/x-gzip';
-                break;
-            case 'html':
-                $contentType = 'text/html';
-                break;
-            case 'xml':
-                $contentType = 'application/xml';
-                break;
-            case 'zip':
-                $contentType = 'application/zip';
-                break;
-            case 'txt':
-                $contentType = 'text/plain';
-                break;
-            default:
-                $contentType = 'application/octet-stream';
-                break;
-        }
+        $contentType = match ($fileExtension) {
+            'aac' => 'audio/aac',
+            'abw' => 'application/x-abiword',
+            'apng' => 'image/apng',
+            'arc' => 'application/x-freearc',
+            'avif' => 'image/avif',
+            'avi' => 'video/x-msvideo',
+            'azw' => 'application/vnd.amazon.ebook',
+            'bin' => 'application/octet-stream',
+            'bmp' => 'image/bmp',
+            'bz' => 'application/x-bzip',
+            'bz2' => 'application/x-bzip2',
+            'cda' => 'application/x-cdf',
+            'csh' => 'application/x-csh',
+            'css' => 'text/css',
+            'csv' => 'text/csv',
+            'doc' => 'application/msword',
+            'md' => 'text/markdown',
+            'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'eot' => 'application/vnd.ms-fontobject',
+            'epub' => 'application/epub+zip',
+            'gz' => 'application/gzip',
+            'gif' => 'image/gif',
+            'htm', 'html' => 'text/html',
+            'ico' => 'image/vnd.microsoft.icon',
+            'ics' => 'text/calendar',
+            'jar' => 'application/java-archive',
+            'jpeg', 'jpg' => 'image/jpeg',
+            'js' => 'text/javascript',
+            'json' => 'application/json',
+            'jsonld' => 'application/ld+json',
+            'mid', 'midi' => 'audio/midi',
+            'mjs' => 'text/javascript',
+            'mp3' => 'audio/mpeg',
+            'mp4' => 'video/mp4',
+            'mpeg' => 'video/mpeg',
+            'mpkg' => 'application/vnd.apple.installer+xml',
+            'odp' => 'application/vnd.oasis.opendocument.presentation',
+            'ods' => 'application/vnd.oasis.opendocument.spreadsheet',
+            'odt' => 'application/vnd.oasis.opendocument.text',
+            'oga' => 'audio/ogg',
+            'ogv' => 'video/ogg',
+            'ogx' => 'application/ogg',
+            'opus' => 'audio/opus',
+            'otf' => 'font/otf',
+            'png' => 'image/png',
+            'pdf' => 'application/pdf',
+            'php' => 'application/x-httpd-php',
+            'ppt' => 'application/vnd.ms-powerpoint',
+            'pptx' => 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+            'rar' => 'application/vnd.rar',
+            'rtf' => 'application/rtf',
+            'sh' => 'application/x-sh',
+            'svg' => 'image/svg+xml',
+            'tar' => 'application/x-tar',
+            'tif', 'tiff' => 'image/tiff',
+            'ts' => 'video/mp2t',
+            'ttf' => 'font/ttf',
+            'txt' => 'text/plain',
+            'vsd' => 'application/vnd.visio',
+            'wav' => 'audio/wav',
+            'weba' => 'audio/webm',
+            'webm' => 'video/webm',
+            'webp' => 'image/webp',
+            'woff' => 'font/woff',
+            'woff2' => 'font/woff2',
+            'xhtml' => 'application/xhtml+xml',
+            'xls' => 'application/vnd.ms-excel',
+            'xlsx' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'xml' => 'application/xml',
+            'xul' => 'application/vnd.mozilla.xul+xml',
+            'zip' => 'application/zip',
+            '3gp' => 'video/3gpp',
+            '3g2' => 'video/3gpp2',
+            '7z' => 'application/x-7z-compressed',
+            default => 'application/octet-stream',
+        };
 
         $this->__setDesiredOutputFormat('binaryFile');
         $this->__binaryFile = $binaryFile;
@@ -244,9 +280,8 @@ class WebBulletin extends \YeAPF\BaseBulletin
     public function __invoke(
         int $return_code
     ) {
-        header('Content-Type: '. $this->contentType . '; charset=' . $this->charactetSet);
-        header('Response-Code: '. $return_code);
-
+        header('Content-Type: ' . $this->contentType . '; charset=' . $this->charactetSet);
+        header('Response-Code: ' . $return_code);
 
         switch ($this->getDesiredOutputFormat()) {
             case 'jsonFile':
@@ -254,9 +289,9 @@ class WebBulletin extends \YeAPF\BaseBulletin
                 readfile($this->getJsonFile());
                 break;
             case 'binaryFile':
-                header('Content-Disposition: attachment; filename="' . $this->
-                getFilename() ?? 'file.bin' . '"');
-                header('Content-Length: '. filesize($this->getBinaryFile()));
+                header('Content-Disposition: attachment; filename="' . $this
+                    ->getFilename() ?? 'file.bin' . '"');
+                header('Content-Length: ' . filesize($this->getBinaryFile()));
                 header('Content-Transfer-Encoding: binary');
                 readfile($this->getBinaryFile());
                 break;
