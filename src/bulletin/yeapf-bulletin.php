@@ -77,8 +77,54 @@ class BaseBulletin extends \YeAPF\SanitizedKeyData implements IBulletin
 
     public function setBinaryFile(string $binaryFile)
     {
+        if (!file_exists($binaryFile)) {
+            throw new \YeAPF\Exception("File $binaryFile not found");
+        }
+
+        if (!is_readable($binaryFile)) {
+            throw new \YeAPF\Exception("File $binaryFile is not readable");
+        }
+
+        if (!is_file($binaryFile)) {
+            throw new \YeAPF\Exception("File $binaryFile is not a file");
+        }
+
+        $fileExtension = pathinfo($binaryFile, PATHINFO_EXTENSION);
+        switch ($fileExtension) {
+            case 'json':
+                $contentType = 'application/json';
+                break;
+            case 'pdf':
+                $contentType = 'application/pdf';
+                break;
+            case 'md':
+                $contentType = 'text/markdown';
+                break;
+            case 'gz':
+                $contentType = 'application/x-gzip';
+                break;
+            case 'html':
+                $contentType = 'text/html';
+                break;
+            case 'xml':
+                $contentType = 'application/xml';
+                break;
+            case 'zip':
+                $contentType = 'application/zip';
+                break;
+            case 'txt':
+                $contentType = 'text/plain';
+                break;
+            default:
+                $contentType = 'application/octet-stream';
+                break;
+        }
+
         $this->__setDesiredOutputFormat('binaryFile');
         $this->__binaryFile = $binaryFile;
+
+        $this->setContentType($contentType);
+        $this->setFilename(basename($binaryFile));
     }
 
     public function getBinaryFile()

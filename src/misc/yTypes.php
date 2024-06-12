@@ -96,7 +96,7 @@ class BasicTypes {
 			'id' => [
 				'type' => 'string',
 				'length' => 48,
-				'regExpression' => '/^([0-9a-zA-Z_\-]+)$/',
+				'regExpression' => '/^([0-9a-zA-Z_\-\.]+)$/',
 				'tag' => ';;',
 			],
 
