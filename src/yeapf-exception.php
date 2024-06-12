@@ -74,7 +74,7 @@ function handleException($message, $code, $file, $line, $trace, $isException = t
 
 class YeAPFException extends \Exception
 {
-  function __construct(string $message, int $code, \Exception $previous = null)
+  function __construct(string $message, int $code = YeAPF_UNDEFINED_EXCEPTION, \Exception $previous = null)
   {
     $hex = '';
     $from = '';

@@ -8,14 +8,14 @@ class BasicTypes {
 	private static $basicTypes = [];
 	public static function startup() {
 		self::$basicTypes = [
-			'string' => [
+			'STRING' => [
 				'type' => 'string',
 				'length' => 256,
 				'regExpression' => '/^[^\p{C}]*$/u',
 				'tag' => ';;',
 			],
 
-			'short' => [
+			'SHORT' => [
 				'type' => 'integer',
 				'minValue' => -32767,
 				'maxValue' => 32767,
@@ -23,14 +23,14 @@ class BasicTypes {
 				'tag' => ';;',
 			],
 
-			'unsignedShort' => [
+			'UNSIGNEDSHORT' => [
 				'type' => 'integer',
 				'maxValue' => 65535,
 				'regExpression' => '/^([0-9]+$)/',
 				'tag' => ';;',
 			],
 
-			'long' => [
+			'LONG' => [
 				'type' => 'integer',
 				'minValue' => -2147483647,
 				'maxValue' => 2147483647,
@@ -38,14 +38,14 @@ class BasicTypes {
 				'tag' => ';;',
 			],
 
-			'unsignedLong' => [
+			'UNSIGNEDLONG' => [
 				'type' => 'integer',
 				'maxValue' => 4294967295,
 				'regExpression' => '/^([0-9]+$)/',
 				'tag' => ';;',
 			],
 
-			'float' => [
+			'FLOAT' => [
 				'type' => 'float',
 				'length' => 16,
 				'decimals' => 2,
@@ -53,54 +53,54 @@ class BasicTypes {
 				'tag' => ';;',
 			],
 
-			'date' => [
+			'DATE' => [
 				'type' => 'date',
 				'length' => 10,
 				'regExpression' => '/^(([12]\d{3})-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01]))/',
 				'tag' => ';;',
 			],
 
-			'time' => [
+			'TIME' => [
 				'type' => 'time',
 				'length' => 8,
 				'regExpression' => '/^([0-2]{1}[0-9]{1}):([0-5]{1}[0-9]{1}):([0-5]{1}[0-9]{1})[Z]{0,}$/',
 				'tag' => ';;',
 			],
 
-			'datetime' => [
+			'DATETIME' => [
 				'type' => 'datetime',
 				'length' => 19,
 				'regExpression' => '/^(([12]\d{3})-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01]))[ T]{1}([0-2]{1}[0-9]{1}):([0-5]{1}[0-9]{1}):([0-5]{1}[0-9]{1})[Z]{0,}$/',
 				'tag' => ';;',
 			],
 
-			'json' => [
+			'JSON' => [
 				'type' => 'json',
 				'regExpression' => '/^[\{\[].*[\}\]]$/',
 				'tag' => ';;',
 			],
 
-			'bool' => [
+			'BOOL' => [
 				'type' => 'boolean',
 				'regExpression' => '/^(true|false)$/i',
 				'tag' => ';;',
 			],
 
-			'email' => [
+			'EMAIL' => [
 				'type' => 'string',
 				'length' => 256,
 				'regExpression' => '/^([a-zA-Z0-9_\-\.]+)@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.)|(([a-zA-Z0-9\-]+\.)+))([a-zA-Z]{2,4}|[0-9]{1,3})(\]?)$/',
 				'tag' => ';;',
 			],
 
-			'id' => [
+			'ID' => [
 				'type' => 'string',
 				'length' => 48,
 				'regExpression' => '/^([0-9a-zA-Z_\-\.]+)$/',
 				'tag' => ';;',
 			],
 
-			'cnpj' => [
+			'CNPJ' => [
 				'type' => 'string',
 				'length' => 14,
 				'regExpression' => '/^[^\p{C}]*$/u',
@@ -109,7 +109,7 @@ class BasicTypes {
 				'tag' => ';;',
 			],
 
-			'cpf' => [
+			'CPF' => [
 				'type' => 'string',
 				'length' => 11,
 				'regExpression' => '/^[^\p{C}]*$/u',
@@ -126,7 +126,7 @@ class BasicTypes {
 		return array_keys(self::$basicTypes);
 	}
 	public static function set($keyName, $definition) {
-		self::$basicTypes[$keyName] = $definition;
+		self::$basicTypes[mb_strtoupper($keyName)] = $definition;
 	}
 }
 BasicTypes::startup();

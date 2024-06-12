@@ -6,87 +6,87 @@ namespace YeAPF;
     $myDocumentModel = new \YeAPF\SanitizedKeyData();
 
     $myDocumentModel->setConstraint(
-        keyName: 'string',
+        keyName: 'STRING',
         keyType: YeAPF_TYPE_STRING,
         length: 256,
     );
 
     $myDocumentModel->setConstraint(
-        keyName: 'short',
+        keyName: 'SHORT',
         keyType: YeAPF_TYPE_INT,
         minValue: - 32767,
         maxValue: 32767
     );
 
     $myDocumentModel->setConstraint(
-        keyName: 'unsignedShort',
+        keyName: 'UNSIGNEDSHORT',
         keyType: YeAPF_TYPE_INT,
         minValue: 0,
         maxValue: 65535
     );
 
     $myDocumentModel->setConstraint(
-        keyName: 'long',
+        keyName: 'LONG',
         keyType: YeAPF_TYPE_INT,
         minValue: - 2147483647,
         maxValue: 2147483647
     );
 
     $myDocumentModel->setConstraint(
-        keyName: 'unsignedLong',
+        keyName: 'UNSIGNEDLONG',
         keyType: YeAPF_TYPE_INT,
         minValue: 0,
         maxValue: 4294967295
     );
 
     $myDocumentModel->setConstraint(
-        keyName: 'float',
+        keyName: 'FLOAT',
         keyType: YeAPF_TYPE_FLOAT,
         length: 16,
         decimals: 2
     );
 
     $myDocumentModel->setConstraint(
-        keyName: 'date',
+        keyName: 'DATE',
         keyType: YeAPF_TYPE_DATE
     );
 
     $myDocumentModel->setConstraint(
-        keyName: 'time',
+        keyName: 'TIME',
         keyType: YeAPF_TYPE_TIME
     );
 
     $myDocumentModel->setConstraint(
-        keyName: 'datetime',
+        keyName: 'DATETIME',
         keyType: YeAPF_TYPE_DATETIME
     );
 
     $myDocumentModel->setConstraint(
-        keyName: 'json',
+        keyName: 'JSON',
         keyType: YeAPF_TYPE_JSON
     );
 
     $myDocumentModel->setConstraint(
-        keyName: 'bool',
+        keyName: 'BOOL',
         keyType: YeAPF_TYPE_BOOL
     );
 
     $myDocumentModel->setConstraint(
-        keyName: 'email',
+        keyName: 'EMAIL',
         keyType: YeAPF_TYPE_STRING,
         length: 256,
         regExpression: YeAPF_EMAIL_REGEX
     );
 
     $myDocumentModel->setConstraint(
-        keyName: 'id',
+        keyName: 'ID',
         keyType: YeAPF_TYPE_STRING,
         length: 48,
         regExpression: YeAPF_ID_REGEX
     );
 
     $myDocumentModel->setConstraint(
-        keyName: 'cnpj',
+        keyName: 'CNPJ',
         keyType: YeAPF_TYPE_STRING,
         length: 14,
         sedInputExpression: YeAPF_SED_BR_IN_CNPJ,
@@ -94,7 +94,7 @@ namespace YeAPF;
     );
 
     $myDocumentModel->setConstraint(
-        keyName: 'cpf',
+        keyName: 'CPF',
         keyType: YeAPF_TYPE_STRING,
         length: 11,
         sedOutputExpression: YeAPF_SED_BR_OUT_CPF
@@ -108,7 +108,7 @@ namespace YeAPF;
     $code .= "\t\tself::\$basicTypes = [\n";
 
     foreach ($myDocumentModel->getConstraints() as $keyName => $keyDefinition) {
-        $code .= "\t\t\t'" . $keyName . "' => [\n";
+        $code .= "\t\t\t'" . mb_strtoupper($keyName) . "' => [\n";
         foreach ($keyDefinition as $key => $value) {
             if ($value != null) {
                 if (!is_numeric($value))
@@ -124,7 +124,7 @@ namespace YeAPF;
 
     $code .= "\tpublic static function list() {\n\t\treturn array_keys(self::\$basicTypes);\n\t}\n";
 
-    $code .= "\tpublic static function set(\$keyName, \$definition) {\n\t\tself::\$basicTypes[\$keyName] = \$definition;\n\t}\n";
+    $code .= "\tpublic static function set(\$keyName, \$definition) {\n\t\tself::\$basicTypes[mb_strtoupper(\$keyName)] = \$definition;\n\t}\n";
 
     $code .= "}\nBasicTypes::startup();\n";
 
@@ -136,6 +136,7 @@ namespace YeAPF;
         }
     } else {
         _trace('Cannot write to folder ' . __DIR__ );
+        throw new \Exception('Cannot write to folder '.__DIR__);
     }
 
 })();

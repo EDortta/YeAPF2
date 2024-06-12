@@ -225,12 +225,12 @@ class WebApp
                     $p1 = strpos($path, $paramDeclaration, $p0);
                     $p2 = strpos($path, $paramDeclaration, $p1 + strlen($paramDeclaration));
                     if ($p2 !== false) {
-                        throw new \YeAPF\YeAPFException("Parameter $paramName already declared in path $path");
+                        throw new \YeAPF\YeAPFException("Parameter '$paramName' already declared in path $path");
                     }
 
                     $typeDefinition = BasicTypes::get($paramType);
                     if (null == $typeDefinition) {
-                        throw new \YeAPF\YeAPFException("Type $paramType not found when declaring '$path'");
+                        throw new \YeAPF\YeAPFException("Type '$paramType' not found when declaring '$path'");
                     }
 
                     $auxRegExpression = $typeDefinition['regExpression'];

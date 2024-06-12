@@ -60,6 +60,7 @@ define('YeAPF_TYPE_JSON', 'json');
 /**
  * Exception codes
  */
+define('YeAPF_UNDEFINED_EXCEPTION', 0x00000000);
 define('YeAPF_INVALID_SPACE_NAME', 0x00000001);
 define('YeAPF_METHOD_NOT_IMPLEMENTED', 0x00000002);
 
