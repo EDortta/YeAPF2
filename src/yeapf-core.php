@@ -127,11 +127,23 @@ require_once __DIR__ . '/yeapf-config.php';
 \_log('YeAPF Basic Types');
 
 
-clearstatcache();
-if ((!file_exists(__DIR__ . '/misc/yTypes.php')) || (filemtime(__DIR__ . '/yeapf-definitions.php') > filemtime(__DIR__ . '/misc/yTypes.php'))) {  
+$__yTypesObsolete=(function () {
+  global $__yTypesObsolete;
+  clearstatcache();  
+  if (!file_exists(__DIR__ . '/misc/yTypes.php')) {
+    $__yTypesObsolete=true;   
+  } else {
+    $t1 = filemtime(__DIR__ . '/misc/yTypes.php');
+    $t2 = filemtime(__DIR__ . '/yeapf-definitions.php');
+    $t3 = filemtime(__DIR__ . '/misc/yGenerateBasicTypes.php');
+    $__yTypesObsolete = ($t1 < $t2) || ($t1 < $t3);
+  }
+  return $__yTypesObsolete;
+})();
+
+if ($__yTypesObsolete) {
   require_once __DIR__ . '/misc/yGenerateBasicTypes.php';
 }
-
 require_once __DIR__ . '/misc/yTypes.php';
 
 \YeAPF\Plugins\PluginList::loadPlugins(__DIR__ . '/plugins');

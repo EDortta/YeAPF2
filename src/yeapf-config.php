@@ -13,7 +13,7 @@ class YeAPFConfig  {
   }
 
   public static function getAssetsFolder(): string {
-    $configFolder = self::getApplicationFolder()."/config";
+    $configFolder = self::getApplicationFolder()."/.config";
 
     if (is_dir($configFolder)) {
       $configFolder = realpath($configFolder);

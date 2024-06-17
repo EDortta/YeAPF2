@@ -44,18 +44,28 @@ define('YeAPF_LOG_TAG_USERAGENT','useragent');
 /**
  * Basic types for YeAPF
  */
-define('YeAPF_TYPE_STRING', 'string');
-define('YeAPF_TYPE_INT', 'integer');
-define('YeAPF_TYPE_FLOAT', 'float');
-define('YeAPF_TYPE_BOOL', 'boolean');
-define('YeAPF_TYPE_DATE', 'date');
-define('YeAPF_TYPE_TIME', 'time');
-define('YeAPF_TYPE_DATETIME', 'datetime');
-define('YeAPF_TYPE_BYTES', 'bytes');
-define('YeAPF_TYPE_JSON', 'json');
+define('YeAPF_TYPE_STRING', 'STRING');
+define('YeAPF_TYPE_INT', 'INTEGER');
+define('YeAPF_TYPE_FLOAT', 'FLOAT');
+define('YeAPF_TYPE_BOOL', 'BOOLEAN');
+define('YeAPF_TYPE_DATE', 'DATE');
+define('YeAPF_TYPE_TIME', 'TIME');
+define('YeAPF_TYPE_DATETIME', 'DATETIME');
+define('YeAPF_TYPE_BYTES', 'BYTES');
+define('YeAPF_TYPE_JSON', 'JSON');
 
 // define("YeAPF_TYPE_ARRAY", "array");
 // define("YeAPF_TYPE_OBJECT", "object");
+
+/**
+ * Bulletin internal types
+ */
+
+define('YeAPF_BULLETIN_OUTPUT_TYPE_JSON', 'json');
+define('YeAPF_BULLETIN_OUTPUT_TYPE_XML', 'xml');
+define('YeAPF_BULLETIN_OUTPUT_TYPE_JSONSTRING', 'jsonString');
+define('YeAPF_BULLETIN_OUTPUT_TYPE_JSONFILE', 'jsonFile' );
+define('YeAPF_BULLETIN_OUTPUT_TYPE_BINARYFILE', 'binaryFile' );
 
 /**
  * Exception codes

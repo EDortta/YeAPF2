@@ -44,7 +44,7 @@ class BaseBulletin extends \YeAPF\SanitizedKeyData implements IBulletin
         if (null == $this->__desiredOutputFormat) {
             $this->__desiredOutputFormat = $desiredOutputFormat;
         } else {
-            throw new \YeAPF\Exception('Desired output format already set.');
+            throw new \YeAPF\YeAPFException('Desired output format already set.');
         }
     }
 
@@ -55,7 +55,7 @@ class BaseBulletin extends \YeAPF\SanitizedKeyData implements IBulletin
 
     public function setJsonFile(string $jsonFile)
     {
-        $this->__setDesiredOutputFormat('jsonFile');
+        $this->__setDesiredOutputFormat(YeAPF_BULLETIN_OUTPUT_TYPE_JSONFILE);
         $this->__jsonFile = $jsonFile;
     }
 
@@ -66,18 +66,20 @@ class BaseBulletin extends \YeAPF\SanitizedKeyData implements IBulletin
 
     public function setBinaryFile(string $binaryFile)
     {
+        
         if (!file_exists($binaryFile)) {
-            throw new \YeAPF\Exception("File $binaryFile not found");
+            throw new \YeAPF\YeAPFException("File $binaryFile not found");
         }
-
+        
         if (!is_readable($binaryFile)) {
-            throw new \YeAPF\Exception("File $binaryFile is not readable");
+            throw new \YeAPF\YeAPFException("File $binaryFile is not readable");
         }
 
-        if (!is_file($binaryFile)) {
-            throw new \YeAPF\Exception("File $binaryFile is not a file");
-        }
 
+        // https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types/Common_types
+        // https://www.iana.org/assignments/media-types/media-types.xhtml
+
+        $fileExtension = pathinfo($binaryFile, PATHINFO_EXTENSION);
         $contentType = match ($fileExtension) {
             'aac' => 'audio/aac',
             'abw' => 'application/x-abiword',
@@ -156,7 +158,7 @@ class BaseBulletin extends \YeAPF\SanitizedKeyData implements IBulletin
             default => 'application/octet-stream',
         };
 
-        $this->__setDesiredOutputFormat('binaryFile');
+        $this->__setDesiredOutputFormat(YeAPF_BULLETIN_OUTPUT_TYPE_BINARYFILE);
         $this->__binaryFile = $binaryFile;
 
         $this->setContentType($contentType);
@@ -180,7 +182,7 @@ class BaseBulletin extends \YeAPF\SanitizedKeyData implements IBulletin
 
     public function setJsonString(string $jsonString)
     {
-        $this->__setDesiredOutputFormat('jsonString');
+        $this->__setDesiredOutputFormat(YeAPF_BULLETIN_OUTPUT_TYPE_JSONSTRING);
         $this->__json = $jsonString;
     }
 
@@ -236,15 +238,15 @@ class Http2Bulletin extends \YeAPF\BaseBulletin
         $response->status($return_code, $this->reason ?? '');
 
         switch ($this->getDesiredOutputFormat()) {
-            case 'binaryFile':
+            case YeAPF_BULLETIN_OUTPUT_TYPE_BINARYFILE:
                 $response->header('Content-Disposition', 'attachment; filename="' . $this->getFilename() ?? 'file.bin' . '"');
                 $response->sendfile($this->getBinaryFile());
                 break;
-            case 'jsonFile':
+            case YeAPF_BULLETIN_OUTPUT_TYPE_JSON:
                 $response->header('Content-Disposition', 'attachment; filename="' . $this->getFilename() ?? 'file.json' . '"');
                 $response->sendfile($this->getJsonFile());
                 break;
-            case 'jsonString':
+            case YeAPF_BULLETIN_OUTPUT_TYPE_JSONSTRING:
                 if (is_array($this->getJsonString()))
                     $response->end(json_encode($this->getJsonString()));
                 else
@@ -284,18 +286,18 @@ class WebBulletin extends \YeAPF\BaseBulletin
         header('Response-Code: ' . $return_code);
 
         switch ($this->getDesiredOutputFormat()) {
-            case 'jsonFile':
+            case YeAPF_BULLETIN_OUTPUT_TYPE_JSON:
                 header('Content-Disposition: attachment; filename="' . $this->getFilename() ?? 'file.json' . '"');
                 readfile($this->getJsonFile());
                 break;
-            case 'binaryFile':
+            case YeAPF_BULLETIN_OUTPUT_TYPE_BINARYFILE:
                 header('Content-Disposition: attachment; filename="' . $this
                     ->getFilename() ?? 'file.bin' . '"');
                 header('Content-Length: ' . filesize($this->getBinaryFile()));
                 header('Content-Transfer-Encoding: binary');
                 readfile($this->getBinaryFile());
                 break;
-            case 'jsonString':
+            case YeAPF_BULLETIN_OUTPUT_TYPE_JSONSTRING:
                 if (is_array($this->getJsonString()))
                     echo json_encode($this->getJsonString());
                 else

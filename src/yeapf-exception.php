@@ -2,13 +2,14 @@
 
 namespace YeAPF;
 
-global $__handlingException;
-
+global $__handlingException, $__runningUnderPHPUnit;
 $__handlingException = false;
+$__runningUnderPHPUnit = (YeAPFConsole::isTTY() && strpos($_SERVER['argv'][0], 'phpunit'));
+
 
 function handleException($message, $code, $file, $line, $trace, $isException = true)
 {
-  global $__handlingException;
+  global $__handlingException, $__runningUnderPHPUnit;
 
   if (!$__handlingException) {
     $__handlingException = true;
@@ -48,12 +49,12 @@ function handleException($message, $code, $file, $line, $trace, $isException = t
     }
 
     if ($isException) {
-      _trace($dbgInfo.str_repeat('=', $width));
+      _trace($dbgInfo . str_repeat('=', $width));
     }
 
     $traceFilename = \YeAPF\yLogger::getTraceFilename();
     if ($traceFilename) {
-      $dbgInfo.="TRACE FILE: $traceFilename\n";
+      $dbgInfo .= "TRACE FILE: $traceFilename\n";
     }
     $dbgInfo .= str_repeat('=', $width) . "\n";
 
@@ -61,12 +62,16 @@ function handleException($message, $code, $file, $line, $trace, $isException = t
       $dbgInfo .= '</pre>';
     }
 
-    echo $dbgInfo;
+    if (!$__runningUnderPHPUnit) {
+      echo $dbgInfo;      
+    }
     _log($dbgInfo);
-    if ($isException) {    
-      \YeAPF\yLogger::closeTrace(true);
-      \YeAPF\yLogger::closeLog();
-      exit($ret['code']??0);
+    if ($isException) {
+      if (!$__runningUnderPHPUnit) {
+        \YeAPF\yLogger::closeTrace(true);
+        \YeAPF\yLogger::closeLog();
+        exit($ret['code'] ?? 0);
+      }
     }
     $__handlingException = false;
   }
@@ -101,22 +106,24 @@ class YeAPFException extends \Exception
   }
 }
 
-set_error_handler(function ($errno, $errstr, $errfile, $errline) {
-  $message = "PHP Error: $errstr";
-  $code = $errno;
-  $file = $errfile;
-  $line = $errline;
-  $trace = debug_backtrace();
+if (!$__runningUnderPHPUnit) {
+  set_error_handler(function ($errno, $errstr, $errfile, $errline) {
+    $message = "PHP Error: $errstr";
+    $code = $errno;
+    $file = $errfile;
+    $line = $errline;
+    $trace = debug_backtrace();
 
-  handleException($message, $code, $file, $line, $trace, false);
-});
+    handleException($message, $code, $file, $line, $trace, false);
+  });
 
-set_exception_handler(function ($exception) {
-  $message = $exception->getMessage();
-  $code = $exception->getCode();
-  $file = $exception->getFile();
-  $line = $exception->getLine();
-  $trace = $exception->getTrace();
+  set_exception_handler(function ($exception) {
+    $message = $exception->getMessage();
+    $code = $exception->getCode();
+    $file = $exception->getFile();
+    $line = $exception->getLine();
+    $trace = $exception->getTrace();
 
-  handleException($message, $code, $file, $line, $trace);
-});
+    handleException($message, $code, $file, $line, $trace);
+  });
+}

@@ -6,7 +6,7 @@ namespace YeAPF;
     $myDocumentModel = new \YeAPF\SanitizedKeyData();
 
     $myDocumentModel->setConstraint(
-        keyName: 'STRING',
+        keyName: YeAPF_TYPE_STRING,
         keyType: YeAPF_TYPE_STRING,
         length: 256,
     );
@@ -40,36 +40,40 @@ namespace YeAPF;
     );
 
     $myDocumentModel->setConstraint(
-        keyName: 'FLOAT',
+        keyName: YeAPF_TYPE_FLOAT,
         keyType: YeAPF_TYPE_FLOAT,
         length: 16,
         decimals: 2
     );
 
     $myDocumentModel->setConstraint(
-        keyName: 'DATE',
+        keyName: YeAPF_TYPE_DATE,
         keyType: YeAPF_TYPE_DATE
     );
 
     $myDocumentModel->setConstraint(
-        keyName: 'TIME',
+        keyName: YeAPF_TYPE_TIME,
         keyType: YeAPF_TYPE_TIME
     );
 
     $myDocumentModel->setConstraint(
-        keyName: 'DATETIME',
+        keyName: YeAPF_TYPE_DATETIME,
         keyType: YeAPF_TYPE_DATETIME
     );
 
     $myDocumentModel->setConstraint(
-        keyName: 'JSON',
+        keyName: YeAPF_TYPE_JSON,
         keyType: YeAPF_TYPE_JSON
     );
 
     $myDocumentModel->setConstraint(
-        keyName: 'BOOL',
+        keyName: YeAPF_TYPE_BOOL,
         keyType: YeAPF_TYPE_BOOL
     );
+
+    /**
+     * Specialized types
+     */
 
     $myDocumentModel->setConstraint(
         keyName: 'EMAIL',
@@ -133,6 +137,7 @@ namespace YeAPF;
             file_put_contents(__DIR__ . '/yTypes.php', $code);
         } else {
             _trace('Cannot write to file ' . __DIR__ . '/yTypes.php');
+            throw new \Exception('Cannot write to file ' . __DIR__ . '/yTypes.php');
         }
     } else {
         _trace('Cannot write to folder ' . __DIR__ );

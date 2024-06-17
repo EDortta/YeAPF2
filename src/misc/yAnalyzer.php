@@ -335,7 +335,7 @@ class yAnalyzerClass extends yAnalyzerClassFoundation {
       $cpf = "0$cpf";
     }
 
-    $ret = substr($cpf, 0, 3) . '.' . substr($cpf, 3, 3) . '.' . substr($cpf, 6, 3) . '-' . substr($cpf, 11, 2);
+    $ret = substr($cpf, 0, 3) . '.' . substr($cpf, 3, 3) . '.' . substr($cpf, 6, 3) . '-' . substr($cpf, 9, 2);
     return $ret;
   }
 

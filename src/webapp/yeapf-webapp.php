@@ -404,7 +404,7 @@ class WebApp
                     if (isset($routeHandlerDefinition['parameters'][$pNdx])) {
                         $fnParams[$routeHandlerDefinition['parameters'][$pNdx]['name']] = $splittedURI[$i];
                     } else {
-                        $fnParams["param_$pNdx"] = $splittedURI[$i];
+                        $fnParams["param_".($pNdx+1)] = $splittedURI[$i];
                     }
                     $pNdx++;
                 }

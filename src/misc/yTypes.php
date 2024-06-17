@@ -9,14 +9,14 @@ class BasicTypes {
 	public static function startup() {
 		self::$basicTypes = [
 			'STRING' => [
-				'type' => 'string',
+				'type' => 'STRING',
 				'length' => 256,
 				'regExpression' => '/^[^\p{C}]*$/u',
 				'tag' => ';;',
 			],
 
 			'SHORT' => [
-				'type' => 'integer',
+				'type' => 'INTEGER',
 				'minValue' => -32767,
 				'maxValue' => 32767,
 				'regExpression' => '/^([0-9]+$)/',
@@ -24,14 +24,14 @@ class BasicTypes {
 			],
 
 			'UNSIGNEDSHORT' => [
-				'type' => 'integer',
+				'type' => 'INTEGER',
 				'maxValue' => 65535,
 				'regExpression' => '/^([0-9]+$)/',
 				'tag' => ';;',
 			],
 
 			'LONG' => [
-				'type' => 'integer',
+				'type' => 'INTEGER',
 				'minValue' => -2147483647,
 				'maxValue' => 2147483647,
 				'regExpression' => '/^([0-9]+$)/',
@@ -39,14 +39,14 @@ class BasicTypes {
 			],
 
 			'UNSIGNEDLONG' => [
-				'type' => 'integer',
+				'type' => 'INTEGER',
 				'maxValue' => 4294967295,
 				'regExpression' => '/^([0-9]+$)/',
 				'tag' => ';;',
 			],
 
 			'FLOAT' => [
-				'type' => 'float',
+				'type' => 'FLOAT',
 				'length' => 16,
 				'decimals' => 2,
 				'regExpression' => '/^([0-9]+)\.([0-9]+)$/',
@@ -54,54 +54,54 @@ class BasicTypes {
 			],
 
 			'DATE' => [
-				'type' => 'date',
+				'type' => 'DATE',
 				'length' => 10,
 				'regExpression' => '/^(([12]\d{3})-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01]))/',
 				'tag' => ';;',
 			],
 
 			'TIME' => [
-				'type' => 'time',
+				'type' => 'TIME',
 				'length' => 8,
 				'regExpression' => '/^([0-2]{1}[0-9]{1}):([0-5]{1}[0-9]{1}):([0-5]{1}[0-9]{1})[Z]{0,}$/',
 				'tag' => ';;',
 			],
 
 			'DATETIME' => [
-				'type' => 'datetime',
+				'type' => 'DATETIME',
 				'length' => 19,
 				'regExpression' => '/^(([12]\d{3})-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01]))[ T]{1}([0-2]{1}[0-9]{1}):([0-5]{1}[0-9]{1}):([0-5]{1}[0-9]{1})[Z]{0,}$/',
 				'tag' => ';;',
 			],
 
 			'JSON' => [
-				'type' => 'json',
+				'type' => 'JSON',
 				'regExpression' => '/^[\{\[].*[\}\]]$/',
 				'tag' => ';;',
 			],
 
-			'BOOL' => [
-				'type' => 'boolean',
+			'BOOLEAN' => [
+				'type' => 'BOOLEAN',
 				'regExpression' => '/^(true|false)$/i',
 				'tag' => ';;',
 			],
 
 			'EMAIL' => [
-				'type' => 'string',
+				'type' => 'STRING',
 				'length' => 256,
 				'regExpression' => '/^([a-zA-Z0-9_\-\.]+)@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.)|(([a-zA-Z0-9\-]+\.)+))([a-zA-Z]{2,4}|[0-9]{1,3})(\]?)$/',
 				'tag' => ';;',
 			],
 
 			'ID' => [
-				'type' => 'string',
+				'type' => 'STRING',
 				'length' => 48,
 				'regExpression' => '/^([0-9a-zA-Z_\-\.]+)$/',
 				'tag' => ';;',
 			],
 
 			'CNPJ' => [
-				'type' => 'string',
+				'type' => 'STRING',
 				'length' => 14,
 				'regExpression' => '/^[^\p{C}]*$/u',
 				'sedInputExpression' => '/[^0-9]//',
@@ -110,7 +110,7 @@ class BasicTypes {
 			],
 
 			'CPF' => [
-				'type' => 'string',
+				'type' => 'STRING',
 				'length' => 11,
 				'regExpression' => '/^[^\p{C}]*$/u',
 				'sedOutputExpression' => '/(\d{3})(\d{3})(\d{3})(\d{2})/$1.$2.$3-$4/',

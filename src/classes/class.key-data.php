@@ -311,19 +311,19 @@ class SanitizedKeyData extends KeyData
   public function setConstraint(
     string $keyName,
     string $keyType,
-    bool $acceptNULL = false,
-    int $length = null,
-    int $decimals = null,
-    float $minValue = null,
-    float $maxValue = null,
-    string $regExpression = null,
-    string $sedInputExpression = null,
-    string $sedOutputExpression = null,
-    bool $unique = false,
-    bool $required = false,
-    bool $primary = false,
-    int $protobufOrder = null,
-    string $tag = null,
+    bool|null $acceptNULL = false,
+    int|null $length = null,
+    int|null $decimals = null,
+    float|null $minValue = null,
+    float|null $maxValue = null,
+    string|null $regExpression = null,
+    string|null $sedInputExpression = null,
+    string|null $sedOutputExpression = null,
+    bool|null $unique = false,
+    bool|null $required = false,
+    bool|null $primary = false,
+    int|null $protobufOrder = null,
+    string|null $tag = null,
     $defaultValue = null
   ) {
     $validTypes = [YeAPF_TYPE_STRING, YeAPF_TYPE_INT, YeAPF_TYPE_FLOAT, YeAPF_TYPE_BOOL, YeAPF_TYPE_DATE, YeAPF_TYPE_TIME, YeAPF_TYPE_DATETIME, YeAPF_TYPE_BYTES, YeAPF_TYPE_JSON];
@@ -338,11 +338,9 @@ class SanitizedKeyData extends KeyData
       } else {
         switch ($keyType) {
           case YeAPF_TYPE_STRING:
-            if (null == $regExpression) {
-              // $regExpression = '/[0-9a-zA-Z_.,\-\+\*\/\@\#\!$\%\^\&\[\]\(\){}]*/';
+            if (null == $regExpression) {              
               $regExpression = YeAPF_STRING_REGEX;
             }
-
             break;
 
           case YeAPF_TYPE_INT:
