@@ -7,7 +7,7 @@ use OpenSwoole\Http\Request;
 use OpenSwoole\Http\Response;
 use OpenSwoole\Http\Server;
 
-abstract class HTTP2Service
+abstract class HTTP2Service extends Skeleton
 {
     private $error = '';
 
@@ -23,9 +23,7 @@ abstract class HTTP2Service
 
     private $ready = false;
 
-    private $config = null;
-
-    private $context = null;
+    private $config = null;    
 
     private $handlers = [
         'GET' => [],
@@ -45,8 +43,6 @@ abstract class HTTP2Service
 
     private $mainAccess = null;
 
-    abstract function startup();
-    abstract function shutdown();
     abstract function answerQuery(\YeAPF\IBulletin &$bulletin, string $uri);
 
     public function setHandler(
@@ -438,7 +434,7 @@ abstract class HTTP2Service
         return $ret;
     }
 
-    private function configureAndStartup()
+    public function configureAndStartup()
     {
         if (!$this->initialized) {
             $this->initialized = true;
@@ -462,25 +458,6 @@ abstract class HTTP2Service
                 ]
             );
         }
-    }
-
-    private function openContext()
-    {
-        $this->context = new \YeAPF\Connection\PersistenceContext(
-            new \YeAPF\Connection\DB\RedisConnection(),
-            new \YeAPF\Connection\DB\PDOConnection()
-        );
-    }
-
-    public function getContext()
-    {
-        return $this->context;
-    }
-
-    private function closeContext()
-    {
-        $this->shutdown();
-        $this->context = null;
     }
 
     public function getExternalURL()
