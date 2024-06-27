@@ -122,7 +122,7 @@ class SSEUniqueQueue
         }
     }
 
-    static public function enqueueEvent($target, $event, $data = null, $id = null, $retry = null)
+    static public function enqueueEvent($source, $target, $event, $data = null, $id = null, $retry = null)
     {
         $registeredTargets = self::getRegisteredTargets();
         /** I need to use SSEEvent in order to achieve better security level */
@@ -130,16 +130,31 @@ class SSEUniqueQueue
             $data = json_encode($data);
         }
         if ('*' == $target) {
+            echo "@ Broadcasting for all clients '$event' with data: $data\n";
             $cc = 1;
             foreach ($registeredTargets as $t) {
-                echo "@ Enqueueing event to $t ($cc)\n";
+                echo "@ Enqueueing event from '$source' to '$t' ($cc)\n";
                 $cc++;
-                self::enqueueEvent($t, $event, $data, $id, $retry);
+                self::enqueueEvent($source, $t, $event, $data, $id, $retry);
+            }
+        } else if (strpos($target, '*') !== false) {
+            echo "@ Broadcasting for some clients '$event' with data: $data\n";
+            $cc = 1;
+            foreach ($registeredTargets as $t) {
+                if (fnmatch($target, $t)) {
+                    echo "@ Enqueueing event from '$source' to '$t' ($cc)\n";
+                    $cc++;
+                    self::enqueueEvent($source, $t, $event, $data, $id, $retry);
+                }
+            }
+            if (0==$cc) {
+                echo "@ No target found for $target\n";
             }
         } else {
             if (in_array($target, $registeredTargets)) {
                 $payload = [
                     'event' => $event,
+                    'source' => $source,
                     'data' => $data,
                     'id' => $id,
                     'retry' => $retry
@@ -180,6 +195,7 @@ class SSEUniqueQueue
                 self::$queue->set($target, $row);
 
                 self::enqueueEvent(
+                    'yeapf-sse-service',
                     $target,
                     'heartbeat', [
                         'time' => $now,
@@ -277,10 +293,10 @@ class TaggedServer extends Server
         return $ret;
     }
 
-    public function enqueueEvent(string $event, string|array|object|null $data, string $id = null, int $retry = null)
+    public function enqueueEvent(string $source, string $event, string|array|object|null $data, string $id = null, int $retry = null)
     {
         $this->grantQueue();
-        SSEUniqueQueue::enqueueEvent($this->clientId, $event, $data, $id, $retry);
+        SSEUniqueQueue::enqueueEvent($source, $this->clientId, $event, $data, $id, $retry);
     }
 
     public function dequeueEvent()
@@ -357,11 +373,11 @@ abstract class SSEService extends \YeAPF\YeAPFConfig
         unset($this->runningServers[$fd]);
     }
 
-    public function addEvent(string $target, string $event, string|array|object|null $data, string $id = null)
+    public function addEvent(string $source, string $target, string $event, string|array|object|null $data, string $id = null)
     {
         try {
             $this->lock->lock();
-            SSEUniqueQueue::enqueueEvent($target, $event, $data, $id);
+            SSEUniqueQueue::enqueueEvent($source,$target, $event, $data, $id);
         } finally {
             $this->lock->unlock();
         }
@@ -385,7 +401,7 @@ abstract class SSEService extends \YeAPF\YeAPFConfig
         $factor = 6;
 
         $worker_num = OpenSwoole\Util::getCPUNum() * $factor;
-        $reactor_num = OpenSwoole\Util::getCPUNum() * $factor;
+        $reactor_num = min(16, OpenSwoole\Util::getCPUNum() * $factor);
 
         $this->server->set([
             'open_http2_protocol' => true,
@@ -488,7 +504,7 @@ abstract class SSEService extends \YeAPF\YeAPFConfig
                 'rnd' => rand(10000000, 99999999),
                 'host' => gethostname(),
             ];
-            $this->addEvent('*', 'heartbeat', json_encode($msg));
+            $this->addEvent('yeapf-sse-service','*', 'heartbeat', json_encode($msg));
         });
         $this->server->start();
     }

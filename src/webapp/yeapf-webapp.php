@@ -76,7 +76,7 @@ class WebApp
     {
         if (null == self::$uri) {
             self::$folder = dirname($_SERVER['PHP_SELF']);
-            $uri = $_SERVER['REQUEST_URI'];
+            $uri = $_SERVER['REQUEST_URI']??'';
 
             $uri = substr($uri, strlen(self::$folder));
 

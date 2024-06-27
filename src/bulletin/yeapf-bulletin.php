@@ -24,7 +24,7 @@ interface IBulletin
 class BaseBulletin extends \YeAPF\SanitizedKeyData implements IBulletin
 {
     private $contentType;
-    private $charactetSet;
+    private $characterSet;
     private $__jsonFile;
     private $__binaryFile;
     private $__filename;
@@ -32,11 +32,11 @@ class BaseBulletin extends \YeAPF\SanitizedKeyData implements IBulletin
     private $reason;
     private $__desiredOutputFormat = null;
 
-    public function __construct(string $contentType = 'application/json', $charactetSet = 'UTF-8')
+    public function __construct(string $contentType = 'application/json', $characterSet = 'UTF-8')
     {
         parent::__construct();
         $this->contentType = $contentType;
-        $this->charactetSet = $charactetSet;
+        $this->characterSet = $characterSet;
     }
 
     private function __setDesiredOutputFormat(string $desiredOutputFormat)
@@ -183,6 +183,7 @@ class BaseBulletin extends \YeAPF\SanitizedKeyData implements IBulletin
     public function setJsonString(string $jsonString)
     {
         $this->__setDesiredOutputFormat(YeAPF_BULLETIN_OUTPUT_TYPE_JSONSTRING);
+        $this->setContentType('application/json');
         $this->__json = $jsonString;
     }
 
@@ -198,7 +199,7 @@ class BaseBulletin extends \YeAPF\SanitizedKeyData implements IBulletin
 
     public function setCharset(string $charset)
     {
-        $this->charactetSet = $charset;
+        $this->characterSet = $charset;
     }
 
     public function setReason(string $reason)
@@ -213,7 +214,7 @@ class BaseBulletin extends \YeAPF\SanitizedKeyData implements IBulletin
 
     public function getCharset()
     {
-        return $this->charactetSet;
+        return $this->characterSet;
     }
 
     public function getReason()
@@ -224,9 +225,9 @@ class BaseBulletin extends \YeAPF\SanitizedKeyData implements IBulletin
 
 class Http2Bulletin extends \YeAPF\BaseBulletin
 {
-    public function __construct(string $contentType = 'application/json', $charactetSet = 'UTF-8')
+    public function __construct(string $contentType = 'application/json', $characterSet = 'UTF-8')
     {
-        parent::__construct();
+        parent::__construct($contentType, $characterSet);
     }
 
     public function __invoke(
@@ -234,7 +235,7 @@ class Http2Bulletin extends \YeAPF\BaseBulletin
         \OpenSwoole\Http\Request $request,
         \OpenSwoole\Http\Response $response
     ) {
-        $response->header('Content-Type', $this->contentType . '; charset=' . $this->charactetSet);
+        $response->header('Content-Type', $this->getContentType() . '; charset=' . $this->getCharset());
         $response->status($return_code, $this->reason ?? '');
 
         switch ($this->getDesiredOutputFormat()) {
@@ -274,7 +275,7 @@ class Http2Bulletin extends \YeAPF\BaseBulletin
 
 class WebBulletin extends \YeAPF\BaseBulletin
 {
-    public function __construct(string $contentType = 'application/json', $charactetSet = 'UTF-8')
+    public function __construct(string $contentType = 'application/json', $characterSet = 'UTF-8')
     {
         parent::__construct();
     }
@@ -282,7 +283,7 @@ class WebBulletin extends \YeAPF\BaseBulletin
     public function __invoke(
         int $return_code
     ) {
-        header('Content-Type: ' . $this->contentType . '; charset=' . $this->charactetSet);
+        header('Content-Type: ' . $this->contentType . '; charset=' . $this->characterSet);
         header('Response-Code: ' . $return_code);
 
         switch ($this->getDesiredOutputFormat()) {

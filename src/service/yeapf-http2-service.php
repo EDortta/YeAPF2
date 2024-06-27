@@ -8,7 +8,7 @@ use OpenSwoole\Http\Response;
 use OpenSwoole\Http\Server;
 
 abstract class HTTP2Service extends Skeleton
-{
+{    
     private $error = '';
 
     private $stackTrace = [];
@@ -197,33 +197,33 @@ abstract class HTTP2Service extends Skeleton
     public function APIDetailExists($section, $tag = null)
     {
         if (null != $tag) {
-            return isset($this->APIDetail[$section][$tag]);
+            return isset($this->APIDetails[$section][$tag]);
         } else {
-            return isset($this->APIDetail[$section]);
+            return isset($this->APIDetails[$section]);
         }
     }
 
     public function setAPIDetail($section, $tag, $value = [])
     {
         if (!$this->APIDetailExists($section)) {
-            $this->APIDetail[$section] = [];
+            $this->APIDetails[$section] = [];
         }
         if (is_array($value)) {
-            if (!isset($this->APIDetail[$section][$tag])) {
-                $this->APIDetail[$section][$tag] = $value;
+            if (!isset($this->APIDetails[$section][$tag])) {
+                $this->APIDetails[$section][$tag] = $value;
             } else {
                 foreach ($value as $k => $v) {
-                    $this->APIDetail[$section][$tag][$k] = $v;
+                    $this->APIDetails[$section][$tag][$k] = $v;
                 }
             }
         } else {
-            $this->APIDetail[$section][$tag] = $value;
+            $this->APIDetails[$section][$tag] = $value;
         }
     }
 
     public function getAPIDetail($section, $tag)
     {
-        return $this->APIDetail[$section][$tag] ?? null;
+        return $this->APIDetails[$section][$tag] ?? null;
     }
 
     private function getAsOpenAPIJSON()
@@ -402,24 +402,24 @@ abstract class HTTP2Service extends Skeleton
         return $openApi;
     }
 
-    private function viewOpenAPI(\YeAPF\Bulletin &$bulletin)
+    private function viewOpenAPI(\YeAPF\IBulletin &$bulletin)
     {
         $ret = 200;
 
         $openApi = $this->getAsOpenAPIJSON();
 
-        $bulletin->__json = json_encode($openApi);
+        $bulletin->setJsonString(json_encode($openApi));
         return $ret;
     }
 
-    private function exportOpenAPI(\YeAPF\Bulletin &$bulletin)
+    private function exportOpenAPI(\YeAPF\IBulletin &$bulletin)
     {
         $ret = 200;
 
         $openApi = $this->getAsOpenAPIJSON();
 
-        $bulletin->__jsonFile = json_encode($openApi);
-        $bulletin->__filename = ($this->getAPIDetail('info', 'title') ?? 'API') . '-' . date('YmdHis') . '.json';
+        $bulletin->setJsonFile(json_encode($openApi));
+        $bulletin->setFilename(($this->getAPIDetail('info', 'title') ?? 'API') . '-' . date('YmdHis') . '.json');
         return $ret;
     }
 
