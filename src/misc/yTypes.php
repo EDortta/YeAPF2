@@ -11,7 +11,7 @@ class BasicTypes {
 			'STRING' => [
 				'type' => 'STRING',
 				'length' => 256,
-				'regExpression' => '/^[^\p{C}]*$/u',
+				'regExpression' => '/^[^\p{C}]*$/',
 				'tag' => ';;',
 			],
 
@@ -103,7 +103,7 @@ class BasicTypes {
 			'CNPJ' => [
 				'type' => 'STRING',
 				'length' => 14,
-				'regExpression' => '/^[^\p{C}]*$/u',
+				'regExpression' => '/^[^\p{C}]*$/',
 				'sedInputExpression' => '/[^0-9]//',
 				'sedOutputExpression' => '/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/$1.$2.$3\/$4-$5/',
 				'tag' => ';;',
@@ -112,7 +112,7 @@ class BasicTypes {
 			'CPF' => [
 				'type' => 'STRING',
 				'length' => 11,
-				'regExpression' => '/^[^\p{C}]*$/u',
+				'regExpression' => '/^[^\p{C}]*$/',
 				'sedOutputExpression' => '/(\d{3})(\d{3})(\d{3})(\d{2})/$1.$2.$3-$4/',
 				'tag' => ';;',
 			],

@@ -197,7 +197,7 @@ define('YeAPF_TIME_REGEX', '/^([0-2]{1}[0-9]{1}):([0-5]{1}[0-9]{1}):([0-5]{1}[0-
 define('YeAPF_INT_REGEX', '/^([0-9]+$)/');
 define('YeAPF_FLOAT_REGEX', '/^([0-9]+)\.([0-9]+)$/');
 define('YeAPF_BOOL_REGEX', '/^(true|false)$/i');
-define('YeAPF_STRING_REGEX', '/^[^\p{C}]*$/u'); 
+define('YeAPF_STRING_REGEX', '/^[^\p{C}]*$/'); 
 
 define('YeAPF_URL_REGEX', '/^((https?|ftp|file):\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/');
 define('YeAPF_IP_REGEX', '/^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$/');
