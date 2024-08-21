@@ -61,7 +61,7 @@ class WebApp
             }
         }
         $url .= '://' . $_SERVER['HTTP_HOST'];
-        $url .= dirname($_SERVER['DOCUMENT_URI']);
+        $url .= dirname($_SERVER['DOCUMENT_URI']??'');
         return $url;
     }
 
