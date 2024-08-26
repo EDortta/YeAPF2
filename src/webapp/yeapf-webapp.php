@@ -410,7 +410,8 @@ class WebApp
                 }
             }
 
-            $context['__' . $method] = $fnParams;
+            $context['__' . $method] = array_merge($fnParams, $_POST);
+            $context['__FILES'] = $_FILES;
         }
 
         if (self::clientExpectJSON()) {
@@ -423,7 +424,7 @@ class WebApp
             if ($return_code >= 200 && $return_code < 300) {
                 
             }
-            $aBulletin($return_code);
+            $aBulletin($return_code??500);
         } else {
             if (!empty($context['__json'])) {
                 $content = ($context['__json']);

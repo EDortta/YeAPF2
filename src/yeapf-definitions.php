@@ -63,6 +63,9 @@ define('YeAPF_TYPE_JSON', 'JSON');
 
 define('YeAPF_BULLETIN_OUTPUT_TYPE_JSON', 'json');
 define('YeAPF_BULLETIN_OUTPUT_TYPE_XML', 'xml');
+define('YeAPF_BULLETIN_OUTPUT_TYPE_HTML', 'html');
+define('YeAPF_BULLETIN_OUTPUT_TYPE_CSV', 'csv');
+define('YeAPF_BULLETIN_OUTPUT_TYPE_TXT', 'txt');
 define('YeAPF_BULLETIN_OUTPUT_TYPE_JSONSTRING', 'jsonString');
 define('YeAPF_BULLETIN_OUTPUT_TYPE_JSONFILE', 'jsonFile' );
 define('YeAPF_BULLETIN_OUTPUT_TYPE_BINARYFILE', 'binaryFile' );

@@ -10,6 +10,7 @@ interface IBulletin
     public function setCharset(string $charset);
     public function getContentType();
     public function setContentType(string $contentType);
+    public function setContent(string $content);
     public function getDesiredOutputFormat();
     public function getFilename();
     public function setFilename(string $filename);
@@ -29,6 +30,7 @@ class BaseBulletin extends \YeAPF\SanitizedKeyData implements IBulletin
     private $__binaryFile;
     private $__filename;
     private $__json;
+    private $__content;
     private $reason;
     private $__desiredOutputFormat = null;
 
@@ -70,11 +72,10 @@ class BaseBulletin extends \YeAPF\SanitizedKeyData implements IBulletin
         if (!file_exists($binaryFile)) {
             throw new \YeAPF\YeAPFException("File $binaryFile not found");
         }
-        
+
         if (!is_readable($binaryFile)) {
             throw new \YeAPF\YeAPFException("File $binaryFile is not readable");
         }
-
 
         // https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types/Common_types
         // https://www.iana.org/assignments/media-types/media-types.xhtml
@@ -195,6 +196,11 @@ class BaseBulletin extends \YeAPF\SanitizedKeyData implements IBulletin
     public function setContentType(string $contentType)
     {
         $this->contentType = $contentType;
+    }
+
+    public function setContent(string $content) 
+    {
+        $this->__content = $content;
     }
 
     public function setCharset(string $charset)
