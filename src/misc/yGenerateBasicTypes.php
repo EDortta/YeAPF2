@@ -114,7 +114,7 @@ namespace YeAPF;
     foreach ($myDocumentModel->getConstraints() as $keyName => $keyDefinition) {
         $code .= "\t\t\t'" . mb_strtoupper($keyName) . "' => [\n";
         foreach ($keyDefinition as $key => $value) {
-            if ($value != null) {
+            if ($value !== null) {
                 if (!is_numeric($value))
                     $value = "'$value'";
                 $code .= "\t\t\t\t'$key' => $value,\n";

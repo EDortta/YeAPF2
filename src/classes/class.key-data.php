@@ -311,20 +311,20 @@ class SanitizedKeyData extends KeyData
   public function setConstraint(
     string $keyName,
     string $keyType,
-    bool|null $acceptNULL = false,
-    int|null $length = null,
-    int|null $decimals = null,
-    float|null $minValue = null,
-    float|null $maxValue = null,
-    string|null $regExpression = null,
-    string|null $sedInputExpression = null,
+    bool|null $acceptNULL            = false,
+    int|null $length                 = null,
+    int|null $decimals               = null,
+    float|null $minValue             = null,
+    float|null $maxValue             = null,
+    string|null $regExpression       = null,
+    string|null $sedInputExpression  = null,
     string|null $sedOutputExpression = null,
-    bool|null $unique = false,
-    bool|null $required = false,
-    bool|null $primary = false,
-    int|null $protobufOrder = null,
-    string|null $tag = null,
-    $defaultValue = null
+    bool|null $unique                = false,
+    bool|null $required              = false,
+    bool|null $primary               = false,
+    int|null $protobufOrder          = null,
+    string|null $tag                 = null,
+    $defaultValue                    = null
   ) {
     $validTypes = [YeAPF_TYPE_STRING, YeAPF_TYPE_INT, YeAPF_TYPE_FLOAT, YeAPF_TYPE_BOOL, YeAPF_TYPE_DATE, YeAPF_TYPE_TIME, YeAPF_TYPE_DATETIME, YeAPF_TYPE_BYTES, YeAPF_TYPE_JSON];
     if (!in_array($keyType, $validTypes)) {
@@ -338,7 +338,7 @@ class SanitizedKeyData extends KeyData
       } else {
         switch ($keyType) {
           case YeAPF_TYPE_STRING:
-            if (null == $regExpression) {              
+            if (null == $regExpression) {
               $regExpression = YeAPF_STRING_REGEX;
             }
             break;
@@ -391,28 +391,28 @@ class SanitizedKeyData extends KeyData
           $minValue = null;
           $maxValue = null;
           $decimals = null;
-          $length = null;
+          $length   = null;
         }
 
         if (YeAPF_TYPE_DATE == $keyType) {
           $minValue = null;
           $maxValue = null;
           $decimals = null;
-          $length = 10;
+          $length   = 10;
         }
 
         if (YeAPF_TYPE_TIME == $keyType) {
           $minValue = null;
           $maxValue = null;
           $decimals = null;
-          $length = 8;
+          $length   = 8;
         }
 
         if (YeAPF_TYPE_DATETIME == $keyType) {
           $minValue = null;
           $maxValue = null;
           $decimals = null;
-          $length = 19;
+          $length   = 19;
         }
 
         if (YeAPF_TYPE_FLOAT == $keyType) {
@@ -447,21 +447,21 @@ class SanitizedKeyData extends KeyData
         $tag = preg_replace('/[^a-zA-Z_0-9;]/', '', $tag);
 
         $this->__constraints[$keyName] = [
-          'type' => $keyType,
-          'length' => $length,
-          'decimals' => $decimals,
-          'acceptNULL' => $acceptNULL,
-          'minValue' => $minValue,
-          'maxValue' => $maxValue,
-          'regExpression' => $regExpression,
-          'sedInputExpression' => $sedInputExpression,
+          'type'                => $keyType,
+          'length'              => $length,
+          'decimals'            => $decimals,
+          'acceptNULL'          => $acceptNULL,
+          'minValue'            => $minValue,
+          'maxValue'            => $maxValue,
+          'regExpression'       => $regExpression,
+          'sedInputExpression'  => $sedInputExpression,
           'sedOutputExpression' => $sedOutputExpression,
-          'unique' => $unique,
-          'required' => $required,
-          'primary' => $primary,
-          'protobufOrder' => $protobufOrder,
-          'tag' => ';' . join(';', explode(';', $tag)) . ';',
-          'defaultValue' => $defaultValue
+          'unique'              => $unique,
+          'required'            => $required,
+          'primary'             => $primary,
+          'protobufOrder'       => $protobufOrder,
+          'tag'                 => ';' . join(';', explode(';', $tag)) . ';',
+          'defaultValue'        => $defaultValue
         ];
       }
     }
@@ -536,19 +536,19 @@ class SanitizedKeyData extends KeyData
       $this->__constraints = [];
     foreach ($constraints as $keyName => $constraint) {
       $this->__constraints[$keyName] = [
-        'type' => $constraint['type'],
-        'length' => $constraint['length'] ?? null,
-        'decimals' => $constraint['decimals'] ?? null,
-        'acceptNULL' => $constraint['acceptNULL'] ?? null,
-        'minValue' => $constraint['minValue'] ?? null,
-        'maxValue' => $constraint['maxValue'] ?? null,
-        'regExpression' => $constraint['regExpression'] ?? null,
-        'sedInputExpression' => $constraint['sedInputExpression'] ?? null,
+        'type'                => $constraint['type'],
+        'length'              => $constraint['length'] ?? null,
+        'decimals'            => $constraint['decimals'] ?? null,
+        'acceptNULL'          => $constraint['acceptNULL'] ?? null,
+        'minValue'            => $constraint['minValue'] ?? null,
+        'maxValue'            => $constraint['maxValue'] ?? null,
+        'regExpression'       => $constraint['regExpression'] ?? null,
+        'sedInputExpression'  => $constraint['sedInputExpression'] ?? null,
         'sedOutputExpression' => $constraint['sedOutputExpression'] ?? null,
-        'unique' => $constraint['unique'] ?? false,
-        'required' => $constraint['required'] ?? false,
-        'primary' => $constraint['primary'] ?? false,
-        'tag' => $constraint['tag'] ?? null
+        'unique'              => $constraint['unique'] ?? false,
+        'required'            => $constraint['required'] ?? false,
+        'primary'             => $constraint['primary'] ?? false,
+        'tag'                 => $constraint['tag'] ?? null
       ];
       if (!empty($constraint['protobufOrder'])) {
         $this->__constraints[$keyName]['protobufOrder'] = $constraint['protobufOrder'];
@@ -578,14 +578,15 @@ class SanitizedKeyData extends KeyData
       //   _trace('  constraints: '.print_r($this->__constraints, true));
       // }
       if (isset($this->__constraints[$keyName])) {
-        $type = $this->__constraints[$keyName]['type'];
-        $length = $this->__constraints[$keyName]['length'] ?? 0;
-        $decimals = $this->__constraints[$keyName]['decimals'] ?? 0;
-        $acceptNULL = $this->__constraints[$keyName]['acceptNULL'] ?? false;
-        $minValue = $this->__constraints[$keyName]['minValue'] ?? null;
-        $maxValue = $this->__constraints[$keyName]['maxValue'] ?? null;
-        $regExpression = $this->__constraints[$keyName]['regExpression'] ?? null;
-        $defaultValue = $this->__constraints[$keyName]['defaultValue'] ?? null;
+        $type               = $this->__constraints[$keyName]['type'];
+        $length             = $this->__constraints[$keyName]['length'] ?? 0;
+        $decimals           = $this->__constraints[$keyName]['decimals'] ?? 0;
+        $acceptNULL         = $this->__constraints[$keyName]['acceptNULL'] ?? false;
+        $minValue           = $this->__constraints[$keyName]['minValue'] ?? null;
+        $maxValue           = $this->__constraints[$keyName]['maxValue'] ?? null;
+        $regExpression      = $this->__constraints[$keyName]['regExpression'] ?? null;
+        $defaultValue       = $this->__constraints[$keyName]['defaultValue'] ?? null;
+        $sedInputExpression = $this->__constraints[$keyName]['sedInputExpression'] ?? null;
 
         if (!$acceptNULL && ((empty($value) && !is_numeric($value)) || $value === null)) {
           $value = $defaultValue ?? null;
@@ -605,6 +606,10 @@ class SanitizedKeyData extends KeyData
             if ($debug)
               _trace('Checkpoint#2 at ' . __LINE__);
             $pureValue = $this->unsanitize($value ?? '');
+            if (!empty($sedInputExpression)) {
+              list($pattern, $replacement) = $this->__getPatternAndReplacement($sedInputExpression);
+              $pureValue                   = preg_replace("/$pattern/", $replacement, $pureValue);
+            }
             if ($length > 0 && strlen($pureValue ?? '') > $length) {
               list($message, $error) = ['String value has ' . strlen($pureValue ?? '') . ' chars. Value too long in ' . __CLASS__ . '.' . $keyName . ' It is ' . $length . ' chars long', YeAPF_INVALID_KEY_VALUE];
               if ($debug)
@@ -688,8 +693,8 @@ class SanitizedKeyData extends KeyData
                   $value = false;
                 }
               }
-              $validTrueStrings = ['true', 'yes', '1', 'y', 't', 'enabled', 'on'];
-              $validFalseStrings = ['false', 'no', '0', 'n', 'f', 'disabled', 'off'];
+              $validTrueStrings  = ['true',  'yes', '1', 'y', 't', 'enabled',  'on'];
+              $validFalseStrings = ['false', 'no',  '0', 'n', 'f', 'disabled', 'off'];
               if (is_string($value)) {
                 if (in_array(mb_strtolower(trim($value)), $validTrueStrings)) {
                   $value = true;
@@ -891,6 +896,26 @@ class SanitizedKeyData extends KeyData
     return $value;
   }
 
+  private function __getPatternAndReplacement(string $expression)
+  {
+    $expression                  = trim($expression, "'");
+    $expression                  = str_replace('\/', '#', $expression);
+
+    $parts = preg_split('/\//', $expression, -1);
+    if (count($parts) < 2) {
+      throw new \YeAPF\YeAPFException("Expression must contain both a pattern and a replacement, separated by '/'. You passed: $expression", YeAPF_INCOMPLETE_SED_EXPRESSION);
+    }
+
+    $pattern = $parts[1];
+    $replacement = $parts[2];    
+
+    // list($pattern, $replacement) = preg_split('/\//', $expression, -1, PREG_SPLIT_NO_EMPTY);
+    
+    $pattern                     = str_replace('#', '\/', $pattern);
+    $replacement                 = str_replace('#', '/', $replacement ?? '');
+    return [$pattern, $replacement];
+  }
+
   /**
    * Sets the value of the specified property after sanitizing it and checking
    * constraints.
@@ -910,20 +935,20 @@ class SanitizedKeyData extends KeyData
     $regExpCount = 0;
     if (\YeAPF\YeAPFConfig::allowExpressionsInSanitizedInput()) {
       if (is_string($value)) {
-        $auxValue = $value;
+        $auxValue             = $value;
         $simplifiedExpression = [];
-        $regExpOpened = false;
+        $regExpOpened         = false;
         while (preg_match('/(%(GTE|GT|EQ|NEQ|LT|LTE|BT|GREATERTHANOREQUALSTO|GREATERTHAN|EQUALSTO|NOTEQUALSTO|LESSTHAN|LESSTHANOREQUALTOO|BETWEEN))\(([\'|"]{0,}[0-9\. \t]{0,}[\'|"]{0,})\)/i', $auxValue, $reg_parts)) {
           $regExpOpened = false;
           $regExpCount++;
-          $pos = strpos($auxValue, $reg_parts[0]);
+          $pos                    = strpos($auxValue, $reg_parts[0]);
           $simplifiedExpression[] = substr($auxValue, $pos, strlen($reg_parts[0]));
-          $auxValue = trim(substr($auxValue, $pos + strlen($reg_parts[0])));
+          $auxValue               = trim(substr($auxValue, $pos + strlen($reg_parts[0])));
           if (strlen($auxValue) > 0) {
             if (preg_match('/(and|or)/i', $auxValue, $reg_parts_2)) {
               $simplifiedExpression[] = $reg_parts_2[0];
-              $auxValue = substr($auxValue, strlen($reg_parts_2[0]));
-              $regExpOpened = true;
+              $auxValue               = substr($auxValue, strlen($reg_parts_2[0]));
+              $regExpOpened           = true;
             } else {
               throw new YeAPF\YeAPFException('Invalid expression: logical operator expected', YeAPF_EXPRESSION_NOT_VALID);
             }
@@ -947,18 +972,31 @@ class SanitizedKeyData extends KeyData
         if (null !== $sedInputExpression) {
           if ($debug)
             _trace("Applying sedInputExpression $sedInputExpression\n");
-          $expression = trim($sedInputExpression, "'");
-          $expression = str_replace('\/', '#', $expression);
-          list($pattern, $replacement) = preg_split('/\//', $expression, -1, PREG_SPLIT_NO_EMPTY);
-          $pattern = str_replace('#', '\/', $pattern);
-          $replacement = str_replace('#', '/', $replacement);
+
+          list($pattern, $replacement) = $this->__getPatternAndReplacement($sedInputExpression);
+
+          /*
+           * $expression                  = trim($sedInputExpression, "'");
+           * $expression                  = str_replace('\/', '#', $expression);
+           * list($pattern, $replacement) = preg_split('/\//', $expression, -1, PREG_SPLIT_NO_EMPTY);
+           * $pattern                     = str_replace('#', '\/', $pattern);
+           * $replacement                 = str_replace('#', '/', $replacement);
+           */
+
           $max_length = strlen($value);
           preg_match_all('/{(\d+)}/', $pattern, $matches);
-          if (isset($matches[1])) {
+          if (isset($matches[1]) && count($matches[1])) {
+            /**
+             * No recuerdo muy bien por que estoy haciendo esto aqui
+             * y no en la salida donde hace más sentido
+             * Por ahora (20240829) lo voy a dejar
+             **/            
             $max_length = 0;
             foreach ($matches[1] as $field_len) {
               $max_length += $field_len;
             }
+          } else {
+            $value = preg_replace("/$pattern/", $replacement, $value);
           }
           $value2 = substr($value, 0, $max_length);
 
@@ -988,11 +1026,16 @@ class SanitizedKeyData extends KeyData
     if (null !== $sedOutputExpression) {
       if ($debug)
         _trace("Applying sedOutputExpression $sedOutputExpression\n");
-      $expression = trim($sedOutputExpression, "'");
-      $expression = str_replace('\/', '#', $expression);
-      list($pattern, $replacement) = preg_split('/\//', $expression, -1, PREG_SPLIT_NO_EMPTY);
-      $pattern = str_replace('#', '\/', $pattern);
-      $replacement = str_replace('#', '/', $replacement);
+
+      list($pattern, $replacement) = $this->__getPatternAndReplacement($sedOutputExpression);
+
+      /*
+       * $expression                  = trim($sedOutputExpression, "'");
+       * $expression                  = str_replace('\/', '#', $expression);
+       * list($pattern, $replacement) = preg_split('/\//', $expression, -1, PREG_SPLIT_NO_EMPTY);
+       * $pattern                     = str_replace('#', '\/', $pattern);
+       * $replacement                 = str_replace('#', '/', $replacement);
+       */
       $value2 = $value;
 
       if ($debug)
@@ -1014,7 +1057,7 @@ class SanitizedKeyData extends KeyData
 
 function translateObject($source, $destinationClassName)
 {
-  $sourceReflection = new \ReflectionObject($source);
+  $sourceReflection      = new \ReflectionObject($source);
   $destinationReflection = new \ReflectionClass($destinationClassName);
 
   $destination = $destinationReflection->newInstanceWithoutConstructor();
