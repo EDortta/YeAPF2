@@ -1,22 +1,24 @@
 <?php
 namespace YeAPF;
 
-class xParser {
+class xParser
+{
   var $code, $pos, $first, $line, $commentLevel,
-  $lineStart, $newLine,
-  $toDebug = false,
-  $eof,
-  $html_situation,
-  $rewind_flag = false,
-  $lastGetResult,
-  $lastGetToken,
+    $lineStart, $newLine, $wordStart,
+    $toDebug = false,
+    $eof,
+    $html_situation,
+    $rewind_flag = false,
+    $lastGetResult,
+    $lastGetToken,
     $lastGetType;
 
   /*
    * inicializa las variables internas
    * crea una instancia a partir de un texto dado
    */
-  public function __construct($code_text, $as_html = false) {
+  public function __construct($code_text, $as_html = false)
+  {
     $this->code           = $code_text;
     $this->pos            = 0;
     $this->first          = '';
@@ -26,31 +28,37 @@ class xParser {
     $this->eof            = false;
   }
 
-  function xParser($code_text, $as_html = false) {
+  function xParser($code_text, $as_html = false)
+  {
     self::__construct($code_text, $as_html);
   }
 
-  function reset() {
+  function reset()
+  {
     $this->pos            = 0;
     $this->line           = 1;
     $this->commentLevel   = 0;
     $this->html_situation = 0;
   }
 
-  function eof() {
+  function eof()
+  {
     return $this->eof;
   }
 
-  function line() {
+  function line()
+  {
     return $this->line;
   }
 
-  function col() {
+  function col()
+  {
     return ($this->wordStart) - ($this->lineStart);
     // return ($this->pos - $this->lineStart);
   }
 
-  function isNumber($c) {
+  function isNumber($c)
+  {
     $r = (($c >= '0') && ($c <= '9'));
     if ((!$r) && ($c != $this->first)) {
       if (($this->first >= '0') && ($this->first <= '9')) {
@@ -61,24 +69,29 @@ class xParser {
     return $r;
   }
 
-  function isChar($c) {
+  function isChar($c)
+  {
     $C = strtoupper($c);
     return ((($C >= 'A') && ($C <= 'Z')) || ($this->isNumber($c)) || ($c == '_'));
   }
 
-  function isMacro($c) {
+  function isMacro($c)
+  {
     return (($c == '#') || ($c == '$'));
   }
 
-  function isLiteral($c) {
+  function isLiteral($c)
+  {
     return (($c == '"') || ($c == "'"));
   }
 
-  function isSymbol($c) {
+  function isSymbol($c)
+  {
     return ($c == '>') || ($c == '<') || ($c == '=') || ($c == '!');
   }
 
-  function canBeOperator($token, $c) {
+  function canBeOperator($token, $c)
+  {
     $newOp = $token . $c;
     return (
       $newOp == '++' ||
@@ -92,10 +105,12 @@ class xParser {
       $newOp == '*/' ||
       $newOp == '//' ||
       $newOp == '/=' ||
-      $newOp == '*=');
+      $newOp == '*='
+    );
   }
 
-  function isCommentLine($token) {
+  function isCommentLine($token)
+  {
     return (
       ($token == '#!') ||
       (($token == ';') && ($this->col() == 0)) ||
@@ -104,33 +119,39 @@ class xParser {
     );
   }
 
-  function isCommentBlockStart($token) {
+  function isCommentBlockStart($token)
+  {
     return (
       (substr($token, 0, 2) == '/*') ||
       (substr($token, 0, 2) == '(*')
     );
   }
 
-  function isCommentBlockEnd($token) {
+  function isCommentBlockEnd($token)
+  {
     return (
       (substr($token, -2) == '*/') ||
       (substr($token, -2) == '*)')
     );
   }
 
-  function isOperator($c) {
+  function isOperator($c)
+  {
     return ($c == '-') || ($c == '+') || ($c == '*') || ($c == '/') || ($c == '%') || ($c == '\\') || ($c == '#') || ($c == '!');
   }
 
-  function isPrintableASCII($c) {
+  function isPrintableASCII($c)
+  {
     return (ord($c) >= 32) || ord($c <= 126);
   }
 
-  function isSpecialSymbol($c) {
+  function isSpecialSymbol($c)
+  {
     return ($this->isChar($c) || $this->isMacro($c) || $this->isLiteral($c) || $this->isSymbol($c));
   }
 
-  function getTypeOf($c, $priorC = '') {
+  function getTypeOf($c, $priorC = '')
+  {
     $isSymbol = $this->isSpecialSymbol($c) || ($priorC == '\\');
     if ($this->isNumber($c)) {
       $type = 1;
@@ -149,11 +170,13 @@ class xParser {
     return $type;
   }
 
-  function rewind() {
+  function rewind()
+  {
     $this->rewind_flag = true;
   }
 
-  function addNewLine() {
+  function addNewLine()
+  {
     $this->newLine = true;
     $this->line++;
     $this->lineStart = $this->pos;
@@ -162,8 +185,9 @@ class xParser {
   // agarra el siguiente elemento en cuesti�n
   // devuelve 0 si lleg� al fin del c�digo
   // devuelve 1 si consigui� agarrar alg�n dato
-  function get(&$token, &$type) {
-    //$this->toDebug=false;
+  function get(&$token, &$type)
+  {
+    // $this->toDebug=false;
     if ($this->rewind_flag) {
       // _dumpY(128, 0, "rewinded (" . $this->lastGetToken . ')');
       $this->rewind_flag = false;
@@ -174,7 +198,7 @@ class xParser {
       $r             = 0;
       $relPos        = 0;
       $regexParCount = 0;
-      $token         = "";
+      $token         = '';
       $type          = -1;
       // echo "pos=$this->pos de '$this->code'<br>";
       if ($this->pos < strlen($this->code)) {
@@ -200,7 +224,7 @@ class xParser {
           }
 
           $this->wordStart = $this->pos;
-          $isACommentLine  = $inComment  = $this->isCommentLine($token);
+          $isACommentLine  = $inComment = $this->isCommentLine($token);
           if ($inComment) {
             $type = 7;
           }
@@ -218,9 +242,8 @@ class xParser {
                 $type      = 8;
                 $inComment = false;
                 if ($this->toDebug) {
-                  echo "[ regular expression ]";
+                  echo '[ regular expression ]';
                 }
-
               }
             }
 
@@ -249,7 +272,6 @@ class xParser {
                 } else {
                   $ok = false;
                 }
-
               } else {
                 $ok = false;
               }
@@ -261,11 +283,9 @@ class xParser {
                 if ($isACommentLine) {
                   $ok = false;
                 }
-
               }
 
               if ($ok) {
-
                 if (($type == 4) && ($this->isCommentLine("$token$c"))) {
                   $type           = 7;
                   $isACommentLine = $inComment = true;
@@ -288,7 +308,7 @@ class xParser {
                   }
                   $token .= $c;
                   if ($this->toDebug) {
-                    echo "[" . substr($token, -2) . "]\n";
+                    echo '[' . substr($token, -2) . "]\n";
                   }
                   if ($type != 5) {
                     if ($this->isCommentBlockStart($token)) {
@@ -298,13 +318,11 @@ class xParser {
                         if ($this->toDebug) {
                           echo "\n\t\t-----Comment Start\n";
                         }
-
                       }
                       $inComment = $inComment || $commentStarting || $this->isCommentLine($token);
                       if ($inComment) {
                         $type = 7;
                       }
-
                     }
                     if ($this->isCommentBlockEnd($token)) {
                       $this->commentLevel--;
@@ -313,7 +331,6 @@ class xParser {
                         if ($this->toDebug) {
                           echo "\n\t\t-----Comment Finish\n";
                         }
-
                       }
                     }
                   }
@@ -352,12 +369,10 @@ class xParser {
           if ($this->toDebug) {
             echo "\t = [$token] ($dbgEscapeCause)\n";
           }
-
         }
         if (strlen(trim($token)) == 0) {
           $r = 0;
         }
-
       } else {
         $this->eof = true;
       }
@@ -370,7 +385,8 @@ class xParser {
     return $r;
   }
 
-  function getExpectingType(&$token, $expected_type) {
+  function getExpectingType(&$token, $expected_type)
+  {
     if ($expected_type > 0) {
       $type = 0;
       $this->get($token, $type);
@@ -378,10 +394,10 @@ class xParser {
     } else {
       return false;
     }
-
   }
 
-  function getExpectingTypes(&$token, &$type, $expected_types) {
+  function getExpectingTypes(&$token, &$type, $expected_types)
+  {
     $expected_types = explode(',', $expected_types);
 
     if (count($expected_types) > 0) {
@@ -398,10 +414,10 @@ class xParser {
     } else {
       return false;
     }
-
   }
 
-  function get_html(&$lineData, &$html_type, $intoScript = false) {
+  function get_html(&$lineData, &$html_type, $intoScript = false)
+  {
     if ($this->pos < strlen($this->code)) {
       $lineData = '';
       if ($this->html_situation == 0) {
@@ -412,75 +428,70 @@ class xParser {
         } else {
           $this->html_situation = 1;
         }
-
       }
 
       switch ($this->html_situation) {
-      case 1: // ya sabemos que se trata de html.. pode ser o texto ou um script
-        $html_type = 7;
-        $ok        = true;
-        do {
-          $c = substr($this->code, $this->pos, 1);
-          $this->pos++;
-          if ($c == '<') {
-            if ($intoScript) {
-              $c1 = substr($this->code, $this->pos, 7);
-              if (strtoupper($c1) == '/SCRIPT') {
+        case 1:  // ya sabemos que se trata de html.. pode ser o texto ou um script
+          $html_type = 7;
+          $ok        = true;
+          do {
+            $c = substr($this->code, $this->pos, 1);
+            $this->pos++;
+            if ($c == '<') {
+              if ($intoScript) {
+                $c1 = substr($this->code, $this->pos, 7);
+                if (strtoupper($c1) == '/SCRIPT') {
+                  $this->pos--;
+                  $ok = false;
+                } else {
+                  $lineData .= $c;
+                }
+              } else {
                 $this->pos--;
                 $ok = false;
-              } else {
-                $lineData .= $c;
               }
+            } else if ($c >= ' ') {
+              $lineData .= $c;
+            } else if ($c == chr(10)) {
+              $this->line++;
+              if ($intoScript) {
+                $ok = false;
+              }
+            }
 
+            if ($this->pos >= strlen($this->code)) {
+              $ok = false;
+            }
+          } while ($ok);
+          $this->html_situation = 0;
+          break;
+        case 2:  // ya sabemos que se trata de un TAG html  <...>
+          $html_type = 8;
+          do {
+            $ok = ($this->get($token, $type));
+            if (($type == 6) || ($type == 4)) {
+              $lineData = trim($lineData) . $token;
             } else {
-              $this->pos--;
-              $ok = false;
-            }
-          } else if ($c >= ' ') {
-            $lineData .= $c;
-          } else if ($c == chr(10)) {
-            $this->line++;
-            if ($intoScript) {
-              $ok = false;
+              $lineData .= "$token ";
             }
 
-          }
-
-          if ($this->pos >= strlen($this->code)) {
-            $ok = false;
-          }
-
-        } while ($ok);
-        $this->html_situation = 0;
-        break;
-      case 2: // ya sabemos que se trata de un TAG html  <...>
-        $html_type = 8;
-        do {
-          $ok = ($this->get($token, $type));
-          if (($type == 6) || ($type == 4)) {
-            $lineData = trim($lineData) . $token;
-          } else {
-            $lineData .= "$token ";
-          }
-
-          if ($token == '>') {
-            $ok = false;
-          }
-
-        } while ($ok);
-        $this->html_situation = 0;
-        break;
+            if ($token == '>') {
+              $ok = false;
+            }
+          } while ($ok);
+          $this->html_situation = 0;
+          break;
       }
       return ($this->pos <= strlen($this->code));
     } else {
       return (false);
     }
-
   }
 }
 
-function exemplo_xParser() {
-  $qs  = getenv("QUERY_STRING") . '&';
+function exemplo_xParser()
+{
+  $qs  = getenv('QUERY_STRING') . '&';
   $ret = array();
   parse_str($qs, $ret);
   extract($ret);
@@ -488,30 +499,29 @@ function exemplo_xParser() {
     $f = join('', file($arquivo));
     $p = new xParser($f);
   } else {
-    $p = new xParser("mi cosa de pruebas #campo(nhaca) 2234.12   Poderia ter sido chamado com ?arquivo=nhaca.txt");
+    $p = new xParser('mi cosa de pruebas #campo(nhaca) 2234.12   Poderia ter sido chamado com ?arquivo=nhaca.txt');
   }
 
   /*
-  $f = join('',file('abreydb_conn.php'));
-  $p = new xParser($f);
+   * $f = join('',file('abreydb_conn.php'));
+   * $p = new xParser($f);
    */
   $token = '';
   $type  = 0;
 
-  echo "<p>Por tipo<br>";
+  echo '<p>Por tipo<br>';
   do {
     $ok = $p->get($token, $type);
     if ($ok) {
       echo "<b>$token</b><font size=1>[<i>$type</i>]</font>   ";
     }
-
   } while ($ok);
 
-  echo "<p>Coloridinho<br>";
+  echo '<p>Coloridinho<br>';
 
   $p->reset();
 
-  $cores = array("#000000", "#009900", "#3366CC", "#FF6600", "#CC66CC", "#999999");
+  $cores = array('#000000', '#009900', '#3366CC', '#FF6600', '#CC66CC', '#999999');
   do {
     $ok = $p->get($token, $type);
     if ($ok) {
@@ -521,10 +531,11 @@ function exemplo_xParser() {
   } while ($ok);
 }
 
-function colorize($text) {
+function colorize($text)
+{
   $p     = new xParser($text);
   $res   = '';
-  $cores = array("#000000", "#009900", "#3366CC", "#FF6600", "#CC66CC", "#999999");
+  $cores = array('#000000', '#009900', '#3366CC', '#FF6600', '#CC66CC', '#999999');
   do {
     $ok = $p->get($token, $type);
     if ($ok) {
@@ -532,7 +543,7 @@ function colorize($text) {
         $token = strtoupper($token);
       }
 
-      $c = $cores[$type];
+      $c    = $cores[$type];
       $res .= "<font color='$c'>$token</font> ";
     }
   } while ($ok);

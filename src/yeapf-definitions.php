@@ -44,6 +44,7 @@ define('YeAPF_LOG_TAG_USERAGENT','useragent');
 /**
  * Basic types for YeAPF
  */
+define('YeAPF_TYPE_NULL', 'NULL');
 define('YeAPF_TYPE_STRING', 'STRING');
 define('YeAPF_TYPE_INT', 'INTEGER');
 define('YeAPF_TYPE_FLOAT', 'FLOAT');

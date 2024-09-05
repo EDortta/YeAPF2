@@ -12,6 +12,7 @@ include __DIR__ . '/yAnalyzer.php';
 include __DIR__ . '/yLock.php';
 include __DIR__ . '/yParser.php';
 include __DIR__ . '/yDataFiller.php';
+include __DIR__ . '/yTypeChecker.php';
 
 function _log($message)
 {

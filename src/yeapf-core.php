@@ -147,6 +147,7 @@ if ($__yTypesObsolete) {
   require_once __DIR__ . '/misc/yGenerateBasicTypes.php';
 }
 require_once __DIR__ . '/misc/yTypes.php';
+require_once __DIR__ . '/misc/yTypeChecker.php';
 
 \YeAPF\Plugins\PluginList::loadPlugins(__DIR__ . '/plugins');
 \YeAPF\Plugins\PluginList::loadPlugins('plugins');

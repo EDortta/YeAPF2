@@ -898,6 +898,9 @@ class SanitizedKeyData extends KeyData
 
   private function __getPatternAndReplacement(string $expression)
   {
+    /**
+     * Remember that this is connected with generate_regexp_folder_tests.php
+     */
     $expression                  = trim($expression, "'");
     $expression                  = str_replace('\/', '#', $expression);
 
