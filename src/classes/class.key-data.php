@@ -602,20 +602,56 @@ class SanitizedKeyData extends KeyData
             _trace($message);
           throw new \YeAPF\YeAPFException($message, YeAPF_NULL_NOT_ALLOWED);
         } else {
-          if (YeAPF_TYPE_STRING == $type) {
-            if ($debug)
-              _trace('Checkpoint#2 at ' . __LINE__);
-            $pureValue = $this->unsanitize($value ?? '');
+          $singleTypes = [YeAPF_TYPE_STRING, YeAPF_TYPE_INT, YeAPF_TYPE_FLOAT, YeAPF_TYPE_BOOL, YeAPF_TYPE_DATE, YeAPF_TYPE_DATETIME, YeAPF_TYPE_TIME];
+          if (in_array($type, $singleTypes)) {
+            if (YeAPF_TYPE_STRING == $type) {
+              if ($debug)
+                _trace('Checkpoint#2 at ' . __LINE__);
+              $unsanitizedValue = $this->unsanitize($value ?? '');
+            } else {
+              $unsanitizedValue = $value;
+            }
+
+            /**
+             * All single values can have a sedInputExpression
+             * STRING values can have a different representation in the database
+             * As this representation can need more characters than the original
+             * value, the STRING are treated differently than the others.
+             */
             if (!empty($sedInputExpression)) {
               list($pattern, $replacement) = $this->__getPatternAndReplacement($sedInputExpression);
-              $pureValue                   = preg_replace("/$pattern/", $replacement, $pureValue);
+              $unsanitizedValue            = preg_replace("/$pattern/", $replacement, $unsanitizedValue);
             }
-            if ($length > 0 && strlen($pureValue ?? '') > $length) {
-              list($message, $error) = ['String value has ' . strlen($pureValue ?? '') . ' chars. Value too long in ' . __CLASS__ . '.' . $keyName . ' It is ' . $length . ' chars long', YeAPF_INVALID_KEY_VALUE];
-              if ($debug)
-                _trace($message);
-              throw new \YeAPF\YeAPFException($message, YeAPF_VALUE_TOO_LONG);
+
+            if (YeAPF_TYPE_STRING == $type) {
+              /** First concept: The length of the raw string, need to be less than the length */
+              if ($length > 0 && strlen($unsanitizedValue ?? '') > $length) {
+                list($message, $error) = ['String value has ' . strlen($unsanitizedValue ?? '') . ' chars. Value too long in ' . __CLASS__ . '.' . $keyName . ' It is ' . $length . ' chars long', YeAPF_INVALID_KEY_VALUE];
+                if ($debug)
+                  _trace($message);
+                throw new \YeAPF\YeAPFException($message, YeAPF_VALUE_TOO_LONG);
+              }
+              $value = $this->sanitize($unsanitizedValue ?? '');
+
+              /**
+               * Second concept: The length of the sanitized string, need to be less than the length
+               * In other way, it will not fit in database column
+               */
+              if ($length > 0 && strlen($value ?? '') > $length) {
+                list($message, $error) = ['Sanitized string value has ' . strlen($value ?? '') . ' chars. Value too long in ' . __CLASS__ . '.' . $keyName . ' It is ' . $length . ' chars long', YeAPF_INVALID_KEY_VALUE];
+                if ($debug)
+                  _trace($message);
+                throw new \YeAPF\YeAPFException($message, YeAPF_SANITIZED_VALUE_TOO_LONG);
+              }
+            } else {
+              $value = $unsanitizedValue;
             }
+          }
+
+          if (YeAPF_TYPE_STRING == $type) {
+            /*
+             * All has ben done before
+             */
           } elseif (YeAPF_TYPE_INT == $type) {
             if ($debug)
               _trace('Checkpoint#2 at ' . __LINE__);
@@ -866,8 +902,6 @@ class SanitizedKeyData extends KeyData
       //   \_trace("    sanitizing $value  -> ");
       $value = htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
       //   \_trace("$value\n");
-    } else {
-      $value = $value;
     }
 
     return $value;
@@ -898,24 +932,22 @@ class SanitizedKeyData extends KeyData
 
   private function __getPatternAndReplacement(string $expression)
   {
-    /**
-     * Remember that this is connected with generate_regexp_folder_tests.php
-     */
-    $expression                  = trim($expression, "'");
-    $expression                  = str_replace('\/', '#', $expression);
+    /** Remember that this is connected with generate_regexp_folder_tests.php */
+    $expression = trim($expression, "'");
+    $expression = str_replace('\/', '#', $expression);
 
     $parts = preg_split('/\//', $expression, -1);
     if (count($parts) < 2) {
       throw new \YeAPF\YeAPFException("Expression must contain both a pattern and a replacement, separated by '/'. You passed: $expression", YeAPF_INCOMPLETE_SED_EXPRESSION);
     }
 
-    $pattern = $parts[1];
-    $replacement = $parts[2];    
+    $pattern     = $parts[1];
+    $replacement = $parts[2];
 
     // list($pattern, $replacement) = preg_split('/\//', $expression, -1, PREG_SPLIT_NO_EMPTY);
-    
-    $pattern                     = str_replace('#', '\/', $pattern);
-    $replacement                 = str_replace('#', '/', $replacement ?? '');
+
+    $pattern     = str_replace('#', '\/', $pattern);
+    $replacement = str_replace('#', '/', $replacement ?? '');
     return [$pattern, $replacement];
   }
 
@@ -970,40 +1002,45 @@ class SanitizedKeyData extends KeyData
       $value = $this->checkConstraint($name, $value);
       if ($debug)
         _trace('  :: value = ' . print_r($value, true) . "\n");
-      if (null !== $value) {
-        $sedInputExpression = $this->__constraints[$name]['sedInputExpression'] ?? null;
-        if (null !== $sedInputExpression) {
-          if ($debug)
-            _trace("Applying sedInputExpression $sedInputExpression\n");
+      /**
+       * The next part of is useless as it's being done in checkConstraint()
+       */
+      if (false) {
+        if (null !== $value) {
+          $sedInputExpression = $this->__constraints[$name]['sedInputExpression'] ?? null;
+          if (null !== $sedInputExpression) {
+            if ($debug)
+              _trace("Applying sedInputExpression $sedInputExpression\n");
 
-          list($pattern, $replacement) = $this->__getPatternAndReplacement($sedInputExpression);
+            list($pattern, $replacement) = $this->__getPatternAndReplacement($sedInputExpression);
 
-          /*
-           * $expression                  = trim($sedInputExpression, "'");
-           * $expression                  = str_replace('\/', '#', $expression);
-           * list($pattern, $replacement) = preg_split('/\//', $expression, -1, PREG_SPLIT_NO_EMPTY);
-           * $pattern                     = str_replace('#', '\/', $pattern);
-           * $replacement                 = str_replace('#', '/', $replacement);
-           */
+            /*
+             * $expression                  = trim($sedInputExpression, "'");
+             * $expression                  = str_replace('\/', '#', $expression);
+             * list($pattern, $replacement) = preg_split('/\//', $expression, -1, PREG_SPLIT_NO_EMPTY);
+             * $pattern                     = str_replace('#', '\/', $pattern);
+             * $replacement                 = str_replace('#', '/', $replacement);
+             */
 
-          $max_length = strlen($value);
-          preg_match_all('/{(\d+)}/', $pattern, $matches);
-          if (isset($matches[1]) && count($matches[1])) {
-            /**
-             * No recuerdo muy bien por que estoy haciendo esto aqui
-             * y no en la salida donde hace más sentido
-             * Por ahora (20240829) lo voy a dejar
-             **/            
-            $max_length = 0;
-            foreach ($matches[1] as $field_len) {
-              $max_length += $field_len;
+            $max_length = strlen($value);
+            preg_match_all('/{(\d+)}/', $pattern, $matches);
+            if (isset($matches[1]) && count($matches[1])) {
+              /**
+               * No recuerdo muy bien por que estoy haciendo esto aqui
+               * y no en la salida donde hace más sentido
+               * Por ahora (20240829) lo voy a dejar
+               */
+              $max_length = 0;
+              foreach ($matches[1] as $field_len) {
+                $max_length += $field_len;
+              }
+            } else {
+              $value = preg_replace("/$pattern/", $replacement, $value);
             }
-          } else {
-            $value = preg_replace("/$pattern/", $replacement, $value);
-          }
-          $value2 = substr($value, 0, $max_length);
+            $value2 = substr($value, 0, $max_length);
 
-          $value = preg_replace("/$pattern/", $replacement, $value2);
+            $value = preg_replace("/$pattern/", $replacement, $value2);
+          }
         }
       }
     } else {
