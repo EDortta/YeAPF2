@@ -539,6 +539,8 @@ interface iCollection
         int $cacheExpiration = 0
     );
 
+    public function object2sanitizedRecord(mixed $object);
+
     public function getCollectionName();
 
     public function getCollectionIdName();
@@ -571,6 +573,19 @@ class SharedSanitizedCollection extends \YeAPF\ORM\SharedSanitizedKeyData implem
     private string $collectionName;
     private string $collectionIdName;
     private int $cacheExpiration;
+
+    public function object2sanitizedRecord(mixed $object)
+    {
+        if (!($object instanceof SanitizedKeyData)) {
+            $aux = clone $this->getDocumentModel();
+            foreach($object as $key => $value) {
+                $aux[$key]=$value;
+            }
+        } else {
+            $aux = $object;
+        }    
+        return $aux;    
+    }
 
     public function getCollectionName()
     {
@@ -651,7 +666,8 @@ class SharedSanitizedCollection extends \YeAPF\ORM\SharedSanitizedKeyData implem
 
         if ($this->getRedisConnection()->getConnected()) {
             $data[$this->collectionIdName] = $id;
-            $ret = $this->getRedisConnection()->hset("$this->collectionName:$id", $data, $this->cacheExpiration);
+            $aux = $this->object2sanitizedRecord($data);
+            $ret = $this->getRedisConnection()->hset("$this->collectionName:$id", $aux, $this->cacheExpiration);
         }
         return $ret;
     }
@@ -1244,12 +1260,14 @@ class PersistentCollection extends \YeAPF\ORM\SharedSanitizedCollection implemen
             $id = \YeAPF\generateUniqueId();
         }
 
+        $aux = $this->object2sanitizedRecord($data);
+
         if (YeAPF_SAVE_CACHE_FIRST == $this->cacheMode) {
-            $ret = parent::setDocument($id, $data);
-            $this->saveDocumentInDatabase($id, $data);
+            $ret = parent::setDocument($id, $aux);
+            $this->saveDocumentInDatabase($id, $aux);
         } else {
-            $this->saveDocumentInDatabase($id, $data);
-            $ret = parent::setDocument($id, $data);
+            $this->saveDocumentInDatabase($id, $aux);
+            $ret = parent::setDocument($id, $aux);
         }
         return $ret;
     }
