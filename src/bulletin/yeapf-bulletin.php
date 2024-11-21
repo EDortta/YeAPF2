@@ -26,11 +26,14 @@ class BaseBulletin extends \YeAPF\SanitizedKeyData implements IBulletin
 {
     private $contentType;
     private $characterSet;
+    private $sessionToken;
     private $__jsonFile;
     private $__binaryFile;
     private $__filename;
     private $__json;
     private $__content;
+    private string $__reroutePath = '';
+    private bool $__needsReroute = false;
     private $reason;
     private $__desiredOutputFormat = null;
 
@@ -39,6 +42,7 @@ class BaseBulletin extends \YeAPF\SanitizedKeyData implements IBulletin
         parent::__construct();
         $this->contentType = $contentType;
         $this->characterSet = $characterSet;
+        $this->sessionToken = null;
     }
 
     private function __setDesiredOutputFormat(string $desiredOutputFormat)
@@ -55,6 +59,15 @@ class BaseBulletin extends \YeAPF\SanitizedKeyData implements IBulletin
         return $this->__desiredOutputFormat;
     }
 
+    public function setSessionToken(string $token)
+    {
+        $this->sessionToken = $token;
+    }
+
+    public function getSessionToken() 
+    {
+        return $this->sessionToken;    
+    }
     public function setJsonFile(string $jsonFile)
     {
         $this->__setDesiredOutputFormat(YeAPF_BULLETIN_OUTPUT_TYPE_JSONFILE);
@@ -181,6 +194,18 @@ class BaseBulletin extends \YeAPF\SanitizedKeyData implements IBulletin
         return $this->__filename;
     }
 
+    public function rerouteTo(string $path) : void
+    {
+        $this->__reroutePath = $path;
+        $this->__needsReroute = true;
+        $this->__setDesiredOutputFormat(YeAPF_BULLETIN_REDIRECTION);
+    }
+
+    public function getReroutingPath(): string
+    {
+        return ($this->__needsReroute?$this->__reroutePath:'');
+    }
+
     public function setJsonString(string $jsonString)
     {
         $this->__setDesiredOutputFormat(YeAPF_BULLETIN_OUTPUT_TYPE_JSONSTRING);
@@ -259,6 +284,10 @@ class Http2Bulletin extends \YeAPF\BaseBulletin
                 else
                     $response->end($this->getJsonString());
                 break;
+            case YeAPF_BULLETIN_REDIRECTION:
+                $response->redirect($this->getReroutingPath());
+                break;
+
             default:
                 $response->end(json_encode($this->exportData()));
         }
@@ -289,30 +318,44 @@ class WebBulletin extends \YeAPF\BaseBulletin
     public function __invoke(
         int $return_code
     ) {
-        header('Content-Type: ' . $this->contentType . '; charset=' . $this->characterSet);
-        header('Response-Code: ' . $return_code);
+        if ($this->getDesiredOutputFormat() == YeAPF_BULLETIN_REDIRECTION) {
+            header('Content-Type: ' . $this->contentType . '; charset=' . $this->characterSet);
+            header('Response-Code: ' . $return_code);
+            $sessionToken = $this->getSessionToken();
+            if (null !== $sessionToken) {
+                setcookie('sessionToken', $sessionToken, time() + 3600, '/', '', true, true);
+            }
+            header('Location: '.$this->getReroutingPath(), true, 302);
 
-        switch ($this->getDesiredOutputFormat()) {
-            case YeAPF_BULLETIN_OUTPUT_TYPE_JSON:
-                header('Content-Disposition: attachment; filename="' . $this->getFilename() ?? 'file.json' . '"');
-                readfile($this->getJsonFile());
-                break;
-            case YeAPF_BULLETIN_OUTPUT_TYPE_BINARYFILE:
-                header('Content-Disposition: attachment; filename="' . $this
-                    ->getFilename() ?? 'file.bin' . '"');
-                header('Content-Length: ' . filesize($this->getBinaryFile()));
-                header('Content-Transfer-Encoding: binary');
-                readfile($this->getBinaryFile());
-                break;
-            case YeAPF_BULLETIN_OUTPUT_TYPE_JSONSTRING:
-                if (is_array($this->getJsonString()))
-                    echo json_encode($this->getJsonString());
-                else
-                    echo $this->getJsonString();
-                break;
-            default:
-                echo json_encode($this->exportData());
-                break;
+        } else {
+
+            switch ($this->getDesiredOutputFormat()) {
+                case YeAPF_BULLETIN_OUTPUT_TYPE_JSON:
+                    header('Content-Disposition: attachment; filename="' . $this->getFilename() ?? 'file.json' . '"');
+                    readfile($this->getJsonFile());
+                    break;
+
+                case YeAPF_BULLETIN_OUTPUT_TYPE_BINARYFILE:
+                    header('Content-Disposition: attachment; filename="' . $this
+                        ->getFilename() ?? 'file.bin' . '"');
+                    header('Content-Length: ' . filesize($this->getBinaryFile()));
+                    header('Content-Transfer-Encoding: binary');
+                    readfile($this->getBinaryFile());
+                    break;
+
+                case YeAPF_BULLETIN_OUTPUT_TYPE_JSONSTRING:
+                    if (is_array($this->getJsonString()))
+                        echo json_encode($this->getJsonString());
+                    else
+                        echo $this->getJsonString();
+                    break;
+
+                default:
+                    http_response_code($return_code);
+                    header('Content-Type: application/json; charset=UTF-8');
+                    echo json_encode($this->exportData());
+                    break;
+            }
         }
     }
 }

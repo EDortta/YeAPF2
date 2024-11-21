@@ -179,6 +179,50 @@ class BasicTypes {
 				'tag' => ';;',
 			],
 
+			'URL' => [
+				'type' => 'STRING',
+				'length' => 2048,
+				'acceptNULL' => '',
+				'regExpression' => '\b((https?|ftp):\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|]|[-A-Z0-9+&@#\/%?=~_|!:,.;]+)\b',
+				'unique' => '',
+				'required' => '',
+				'primary' => '',
+				'tag' => ';;',
+			],
+
+			'IPV4' => [
+				'type' => 'STRING',
+				'length' => 15,
+				'acceptNULL' => '',
+				'regExpression' => '\b(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\b',
+				'unique' => '',
+				'required' => '',
+				'primary' => '',
+				'tag' => ';;',
+			],
+
+			'IPV6' => [
+				'type' => 'STRING',
+				'length' => 45,
+				'acceptNULL' => '',
+				'regExpression' => '\b([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}\b',
+				'unique' => '',
+				'required' => '',
+				'primary' => '',
+				'tag' => ';;',
+			],
+
+			'IP' => [
+				'type' => 'STRING',
+				'length' => 45,
+				'acceptNULL' => '',
+				'regExpression' => '\b([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}\b|\b(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\b',
+				'unique' => '',
+				'required' => '',
+				'primary' => '',
+				'tag' => ';;',
+			],
+
 		];
 	}
 	public static function get($keyName) {

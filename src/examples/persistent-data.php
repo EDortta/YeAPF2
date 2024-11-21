@@ -13,7 +13,10 @@ $context = new \YeAPF\Connection\PersistenceContext(
  * will be stored in the persistent collection.
  * @source
  */
-$myDocumentModel = new \YeAPF\SanitizedKeyData();
+$myDocumentModel = new \YeAPF\ORM\DocumentModel(
+    $context,
+    'test_collection'    
+);
 $myDocumentModel->setConstraint(
     keyName: "id",
     keyType: YeAPF_TYPE_STRING,

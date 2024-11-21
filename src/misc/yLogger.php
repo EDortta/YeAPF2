@@ -6,47 +6,31 @@ class yLogger
 {
   use \YeAPF\Assets;
 
-  static private $tag = 'YeAPF';
+  static private $tag          = 'YeAPF';
   static private $syslogOpened = false;
-  static private $serverInfo = [];
+  static private $serverInfo   = [];
 
   // log
-  static private $logFacility = YeAPF_LOG_USING_FILE;
-
-  static private $logFolder = null;
-
+  static private $logFacility        = YeAPF_LOG_USING_FILE;
+  static private $logFolder          = null;
   static private $lastLogSourceUsage = null;
-
-  static private $activeLogAreas = [];
-
-  static private $minLogLevel = YeAPF_LOG_WARNING;
-
-  static private $logFileHandler = null;
-
-  static private $outputStyle = YeAPF_LOG_STYLE_AS_STRINGS;
-
-  static private $logStyle = 0x0100;
+  static private $activeLogAreas     = [];
+  static private $minLogLevel        = YeAPF_LOG_WARNING;
+  static private $logFileHandler     = null;
+  static private $outputStyle        = YeAPF_LOG_STYLE_AS_STRINGS;
+  static private $logStyle           = 0x0100;
 
   // trace
-  static private $traceBuffer = [];
-
-  static private $useTraceBuffer = true;
-
-  static private $traceToLog = false;
-
-  static private $traceStartMicrotime = null;
-
+  static private $traceBuffer          = [];
+  static private $useTraceBuffer       = true;
+  static private $traceToLog           = false;
+  static private $traceStartMicrotime  = null;
   static private $lastTraceSourceUsage = null;
-
-  static private $activeTraceAreas = [];
-
-  static private $minTraceLevel = YeAPF_LOG_WARNING;
-
-  static private $traceFileHandler = null;
-
-  static private $traceFileName = null;
-
-  static private $traceDetails = [];
+  static private $activeTraceAreas     = [];
+  static private $minTraceLevel        = YeAPF_LOG_WARNING;
+  static private $traceFileHandler     = null;
+  static private $traceFileName        = null;
+  static private $traceDetails         = [];
 
   /**
    * Retrieves the path to the assets folder.
@@ -172,10 +156,10 @@ class yLogger
   static public function defineLogFilters(int $logLevel, array $activeLogAreas = [])
   {
     self::$activeLogAreas = $activeLogAreas;
-    self::$minLogLevel = $logLevel;
+    self::$minLogLevel    = $logLevel;
 
     self::$activeTraceAreas = $activeLogAreas;
-    self::$minTraceLevel = $logLevel;
+    self::$minTraceLevel    = $logLevel;
   }
 
   static public function setOutputStyle(int $style)
@@ -215,7 +199,7 @@ class yLogger
   static private function getLogFileHandler()
   {
     if (null == self::$logFileHandler) {
-      $fileName = self::$logFolder . '/' . date('Y-m-d') . '.log';
+      $fileName             = self::$logFolder . '/' . date('Y-m-d') . '.log';
       self::$logFileHandler = fopen($fileName, 'a+');
     }
     return self::$logFileHandler;
@@ -249,17 +233,17 @@ class yLogger
     $structuredMessage = [
       // 'server' => self::getLogTags(YeAPF_LOG_TAG_SERVER),
       // 'service' => self::getLogTags(YeAPF_LOG_TAG_SERVICE),
-      'client' => self::getLogTags(YeAPF_LOG_TAG_CLIENT),
-      'user' => self::getLogTags(YeAPF_LOG_TAG_USER),
-      'userid' => self::getLogTags(YeAPF_LOG_TAG_USERID),
-      'time' => self::getLogTags(YeAPF_LOG_TAG_REQUEST_TIME),
-      'request' => self::getLogTags(YeAPF_LOG_TAG_REQUEST),
-      'result' => self::getLogTags(YeAPF_LOG_TAG_RESULT),
-      'size' => self::getLogTags(YeAPF_LOG_TAG_RESPONSE_SIZE),
-      'referrer' => self::getLogTags(YeAPF_LOG_TAG_REFERRER),
+      'client'    => self::getLogTags(YeAPF_LOG_TAG_CLIENT),
+      'user'      => self::getLogTags(YeAPF_LOG_TAG_USER),
+      'userid'    => self::getLogTags(YeAPF_LOG_TAG_USERID),
+      'time'      => self::getLogTags(YeAPF_LOG_TAG_REQUEST_TIME),
+      'request'   => self::getLogTags(YeAPF_LOG_TAG_REQUEST),
+      'result'    => self::getLogTags(YeAPF_LOG_TAG_RESULT),
+      'size'      => self::getLogTags(YeAPF_LOG_TAG_RESPONSE_SIZE),
+      'referrer'  => self::getLogTags(YeAPF_LOG_TAG_REFERRER),
       'useragent' => self::getLogTags(YeAPF_LOG_TAG_USERAGENT),
-      'wasted' => self::getLogTags(YeAPF_LOG_TAG_RESPONSE_TIME),
-      'message' => $message
+      'wasted'    => self::getLogTags(YeAPF_LOG_TAG_RESPONSE_TIME),
+      'message'   => $message
     ];
 
     switch ($logStyle) {
@@ -356,16 +340,16 @@ class yLogger
       // self::syslog(0, self::$minLogLevel, "minLogLevel: $minLogLevel");
       if ($minLogLevel >= self::$minLogLevel - 99) {
         if (0 === $area || in_array($area, self::$activeLogAreas)) {
-          $dbg = debug_backtrace();
-          $time = date('h:i:s ');
+          $dbg      = debug_backtrace();
+          $time     = date('h:i:s ');
           $preamble = "$time";
-          $dbgNdx = 1;
+          $dbgNdx   = 1;
           if (empty($dbg[$dbgNdx]['file'])) {
             $dbgNdx--;
           }
           if (isset($dbg[$dbgNdx]['file']) && self::$lastLogSourceUsage != $dbg[$dbgNdx]['file']) {
             self::$lastLogSourceUsage = $dbg[$dbgNdx]['file'];
-            $preamble .= '[' . self::$lastLogSourceUsage . "] ------\n$time";
+            $preamble                .= '[' . self::$lastLogSourceUsage . "] ------\n$time";
             // echo json_encode($dbg[$dbgNdx],JSON_PRETTY_PRINT);
           }
           if (isset($dbg[$dbgNdx]['line'])) {
@@ -438,14 +422,14 @@ class yLogger
   {
     if (null == self::$traceStartMicrotime)
       self::markStartupTimestamp();
-    self::$traceDetails['url'] = $uri ?? (self::$traceDetails['url'] ?? null);
-    self::$traceDetails['method'] = $method ?? (self::$traceDetails['method'] ?? null);
-    self::$traceDetails['payload'] = $payload ?? (self::$traceDetails['payload'] ?? null);
-    self::$traceDetails['headers'] = $headers ?? (self::$traceDetails['headers'] ?? null);
+    self::$traceDetails['url']      = $uri ?? (self::$traceDetails['url'] ?? null);
+    self::$traceDetails['method']   = $method ?? (self::$traceDetails['method'] ?? null);
+    self::$traceDetails['payload']  = $payload ?? (self::$traceDetails['payload'] ?? null);
+    self::$traceDetails['headers']  = $headers ?? (self::$traceDetails['headers'] ?? null);
     self::$traceDetails['httpCode'] = $httpCode ?? (self::$traceDetails['httpCode'] ?? null);
-    self::$traceDetails['return'] = $return ?? (self::$traceDetails['return'] ?? null);
-    self::$traceDetails['server'] = $server ?? (self::$traceDetails['server'] ?? null);
-    self::$traceDetails['cookie'] = $cookie ?? (self::$traceDetails['cookie'] ?? null);
+    self::$traceDetails['return']   = $return ?? (self::$traceDetails['return'] ?? null);
+    self::$traceDetails['server']   = $server ?? (self::$traceDetails['server'] ?? null);
+    self::$traceDetails['cookie']   = $cookie ?? (self::$traceDetails['cookie'] ?? null);
   }
 
   static private function _traceDetail($d)
@@ -467,7 +451,7 @@ class yLogger
   static private function _setTraceFilename()
   {
     if (null == self::$traceFileName) {
-      $fileName = self::$logFolder . '/trace/' . date('Y-m-d-H-') . generateShortUniqueId() . '.trace';
+      $fileName            = self::$logFolder . '/trace/' . date('Y-m-d-H-') . generateShortUniqueId() . '.trace';
       self::$traceFileName = $fileName;
     }
     return self::$traceFileName;
@@ -487,7 +471,7 @@ class yLogger
         mkdir(self::$logFolder . '/trace', 0777, true) || throw new \Exception('Trace folder ' . self::$logFolder . '/trace cannot be created', 1);
       }
       if (is_writable(self::$logFolder . '/trace')) {
-        $fileName = self::_setTraceFilename();
+        $fileName               = self::_setTraceFilename();
         self::$traceFileHandler = fopen($fileName, 'a+');
         if (!empty(self::$traceDetails['descriptor'])) {
           fwrite(self::$traceFileHandler, self::$traceDetails['descriptor'] . "\n");
@@ -525,7 +509,7 @@ class yLogger
         fflush($fp);
         fclose($fp);
         self::$traceFileHandler = null;
-        self::$traceFileName = null;
+        self::$traceFileName    = null;
       }
     }
   }
@@ -536,14 +520,14 @@ class yLogger
       if (0 === $area || in_array($area, self::$activeTraceAreas)) {
         self::_setTraceFilename();
 
-        $dbg = debug_backtrace();
-        $time = date('h:i:s ');
+        $dbg      = debug_backtrace();
+        $time     = date('h:i:s ');
         $preamble = "$time";
         if (self::$lastTraceSourceUsage != $dbg[1]['file']) {
           self::$lastTraceSourceUsage = $dbg[1]['file'];
-          $preamble .= '[' . self::$lastTraceSourceUsage . "] ------\n$time";
+          $preamble                  .= '[' . self::$lastTraceSourceUsage . "] ------\n$time";
         }
-        $preamble .= '  ' . str_pad(' ' . $dbg[1]['line'], 5, ' ', STR_PAD_LEFT) . ': ';
+        $preamble        .= '  ' . str_pad(' ' . $dbg[1]['line'], 5, ' ', STR_PAD_LEFT) . ': ';
         $formattedMessage = str_replace("\n", "\n    ", $message);
         if (self::$useTraceBuffer) {
           self::$traceBuffer[] = "$preamble $formattedMessage";

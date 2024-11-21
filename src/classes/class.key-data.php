@@ -265,7 +265,7 @@ class KeyData implements \ArrayAccess, \Iterator
 }
 
 /**
- * This is a PHP class named SanitizedKeyData that extends the KeyData class.
+ * SanitizedKeyData extends the KeyData class.
  * It provides methods for setting and retrieving constraints for keys.
  * It also provides a method for checking constraints and sanitizing input
  * values before setting the value of a specified property.

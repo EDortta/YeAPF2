@@ -4,17 +4,17 @@ namespace YeAPF;
 
 class WebApp
 {
-    static $uri = null;
-    static $folder = null;
-    static $mode = null;
+    static $uri        = null;
+    static $folder     = null;
+    static $mode       = null;
     static $uselessURI = 0;
 
     static private $handlers = [
-        'GET' => [],
-        'POST' => [],
-        'DELETE' => [],
-        'PATCH' => [],
-        'HEAD' => [],
+        'GET'     => [],
+        'POST'    => [],
+        'DELETE'  => [],
+        'PATCH'   => [],
+        'HEAD'    => [],
         'OPTIONS' => [],
     ];
 
@@ -33,6 +33,14 @@ class WebApp
     public static function setUselessURILevel($level)
     {
         self::$uselessURI = $level;
+    }
+
+    static function getMainFolder()
+    {
+        if (isset($_SERVER['SCRIPT_FILENAME']))
+            return dirname($_SERVER['SCRIPT_FILENAME']);
+        else
+            return getcwd();
     }
 
     static function getCurrentURL()
@@ -61,7 +69,7 @@ class WebApp
             }
         }
         $url .= '://' . $_SERVER['HTTP_HOST'];
-        $url .= dirname($_SERVER['DOCUMENT_URI']??'');
+        $url .= dirname($_SERVER['DOCUMENT_URI'] ?? '');
         return $url;
     }
 
@@ -76,7 +84,7 @@ class WebApp
     {
         if (null == self::$uri) {
             self::$folder = dirname($_SERVER['PHP_SELF']);
-            $uri = $_SERVER['REQUEST_URI']??'';
+            $uri          = $_SERVER['REQUEST_URI'] ?? '';
 
             $uri = substr($uri, strlen(self::$folder));
 
@@ -136,21 +144,21 @@ class WebApp
     static function generateRandomVariableName($length = 8): string
     {
         $bytes = random_bytes($length);
-        $name = bin2hex($bytes);
-        $name = preg_replace('/^[0-9]+/', '', $name);
-        $name = substr($name, 0, $length);
-        $name = 'ts_' . $name;
+        $name  = bin2hex($bytes);
+        $name  = preg_replace('/^[0-9]+/', '', $name);
+        $name  = substr($name, 0, $length);
+        $name  = 'ts_' . $name;
         return $name;
     }
 
     static function applyAntiCache($content, $antiCacheParticle)
     {
-        $randId = '';
-        $randNumber = 0;
+        $randId       = '';
+        $randNumber   = 0;
         $antiCacheURI = '';
         if ($antiCacheParticle === true) {
-            $randNumber = mt_rand(1000, 9999);
-            $randId = self::generateRandomVariableName();
+            $randNumber   = mt_rand(1000, 9999);
+            $randId       = self::generateRandomVariableName();
             $antiCacheURI = $randId . 'Z=' . $randNumber;
         } elseif ($antiCacheParticle !== false) {
             $antiCacheURI = $antiCacheParticle;
@@ -160,31 +168,34 @@ class WebApp
 
         $filesHookExpr = '/(\<(script|link)[\n\t ]*[a-zA-Z0-9_\-"\'+\= ]+[\n\t ]*(src|href)=["\']{1,})([^"\']*)(["\']{1,}[^>]*>)/i';
         if (self::$mode != 'devel') {
-            $content = preg_replace_callback($filesHookExpr, function ($matches) use ($randId, $randNumber, $antiCacheURI) {
-                $file = $matches[4];
-                if (strpos($file, '.js') > 0)
-                    $minFile = preg_replace('/\.js$/', '.min.js', $file);
-                else
-                    $minFile = preg_replace('/\.css$/', '.min.css', $file);
+            $content = preg_replace_callback(
+                $filesHookExpr,
+                function ($matches) use ($randId, $randNumber, $antiCacheURI) {
+                    $file = $matches[4];
+                    if (strpos($file, '.js') > 0)
+                        $minFile = preg_replace('/\.js$/', '.min.js', $file);
+                    else
+                        $minFile = preg_replace('/\.css$/', '.min.css', $file);
 
-                _trace("minFile: $minFile");
+                    _trace("minFile: $minFile");
 
-                $minFile = explode('/', $minFile);
-                $folder = '';
-                do {
-                    $particle = array_shift($minFile);
-                    $folder .= $particle . '/';
-                } while ($particle == '');
-                $minFile = implode('/', $minFile);
+                    $minFile = explode('/', $minFile);
+                    $folder  = '';
+                    do {
+                        $particle = array_shift($minFile);
+                        $folder  .= $particle . '/';
+                    } while ($particle == '');
+                    $minFile = implode('/', $minFile);
 
-                // Check if the .min file exists
-                if (file_exists($minFile)) {
-                    return $matches[1] . $folder . $minFile . '?' . $antiCacheURI . $matches[5];
-                } else {
-                    // return $matches[0];
-                    return $matches[1] . $matches[4] . '?' . $antiCacheURI . $matches[5];
-                }
-            }, $content);
+                    // Check if the .min file exists
+                    if (file_exists($minFile)) {
+                        return $matches[1] . $folder . $minFile . '?' . $antiCacheURI . $matches[5];
+                    } else {
+                        // return $matches[0];
+                        return $matches[1] . $matches[4] . '?' . $antiCacheURI . $matches[5];
+                    }
+                }, $content
+            );
         } else {
             if (is_array($content) || is_string($content))
                 $content = preg_replace($filesHookExpr, '$1$4?' . $antiCacheURI . '$5', $content ?? '');
@@ -201,7 +212,7 @@ class WebApp
             // $path = ltrim($path, '/');
             // $path = ltrim($path, '\/');
 
-            $pSlash = strrpos($path, '/');
+            $pSlash        = strrpos($path, '/');
             $pEscapedSlash = strrpos($path, '\/');
             if ($pSlash != $pEscapedSlash + 1) {
                 $path = preg_quote($path, '/');
@@ -216,14 +227,14 @@ class WebApp
             $typedParameterExpression = '/\{\{([\w]+)::([\w]+)\}\}/';
             if (preg_match_all($typedParameterExpression, $path, $matches)) {
                 $tmpHandlerParams = [];
-                $p0 = 0;
-                $regexpPath = '';
+                $p0               = 0;
+                $regexpPath       = '';
                 foreach ($matches[1] as $index => $paramName) {
                     $paramType = $matches[2][$index];
 
                     $paramDeclaration = '{{' . $paramName . '::' . $paramType . '}}';
-                    $p1 = strpos($path, $paramDeclaration, $p0);
-                    $p2 = strpos($path, $paramDeclaration, $p1 + strlen($paramDeclaration));
+                    $p1               = strpos($path, $paramDeclaration, $p0);
+                    $p2               = strpos($path, $paramDeclaration, $p1 + strlen($paramDeclaration));
                     if ($p2 !== false) {
                         throw new \YeAPF\YeAPFException("Parameter '$paramName' already declared in path $path");
                     }
@@ -242,7 +253,7 @@ class WebApp
                     }
 
                     $regexpPath .= substr($path, $p0, $p1 - $p0) . $auxRegExpression;
-                    $p0 = $p1 + strlen($paramDeclaration);
+                    $p0          = $p1 + strlen($paramDeclaration);
 
                     $tmpHandlerParams[] = [
                         'name' => $paramName,
@@ -256,8 +267,8 @@ class WebApp
                     throw new \YeAPF\YeAPFException("Path $path already exists");
                 } else {
                     self::$handlers[$method][$regexpPath] = [
-                        'handler' => $handler,
-                        'fnAlias' => $fnPath,
+                        'handler'    => $handler,
+                        'fnAlias'    => $fnPath,
                         'parameters' => []
                     ];
                     self::$handlers[$method][$regexpPath]['parameters'] = $tmpHandlerParams;
@@ -269,8 +280,8 @@ class WebApp
                     $fnPath = preg_replace('/\((.*)\)/', '*', $path);
                     $fnPath = str_replace('\/', '/', $fnPath);
                     self::$handlers[$method][$path] = [
-                        'handler' => $handler,
-                        'fnAlias' => $fnPath,
+                        'handler'    => $handler,
+                        'fnAlias'    => $fnPath,
                         'parameters' => []
                     ];
                 }
@@ -280,15 +291,21 @@ class WebApp
 
     static function getRouteHandlerDefinition($path, $method)
     {
+        $debug=false;
+
         $ret = null;
 
         if (substr($path, 0, 1) != '/') {
             $path = '/' . $path;
         }
+        
+
+        if($debug) {echo "<pre>$path\n" . str_repeat('-', 80) . "\n";}
 
         $matches = [];
         foreach (self::$handlers[$method] as $pattern => $pathDefinition) {
-            if (preg_match('/' . $pattern . '/', $path, $match)) {
+            if ($debug) { echo "pattern=$pattern\n"; }
+            if (preg_match('/' . $pattern . '/i', $path, $match)) {
                 $matches[$pattern] = $pathDefinition;
             }
         }
@@ -297,9 +314,21 @@ class WebApp
         reset($matches);
         $ret = current($matches);
 
-        if (count(explode('/', $path)) != count(explode('/', key($matches) ?? ''))) {
+        if($debug) {var_dump(explode('\/', key($matches) ?? ''));}
+
+        $c1 = count(explode('/', $path));
+        $c2 = count(explode('\/', key($matches) ?? ''));
+        if($debug) {echo "c1=$c1\nc2=$c2\n";}
+
+        if ($c1 > $c2) {
             $ret = null;
         }
+
+        if($debug) {var_dump($matches);}
+        if($debug) {echo 'ret=';}
+        if($debug) {var_dump($ret);}
+        if($debug) {die();}
+
         return $ret;
     }
 
@@ -310,8 +339,8 @@ class WebApp
         global $yAnalyzer;
 
         $entrance = '';
-        $uri = explode('/', $uri);
-        $c = self::$uselessURI;
+        $uri      = explode('/', $uri);
+        $c        = self::$uselessURI;
         while ($c > 0) {
             $entrance = array_shift($uri) . '/';
             $c--;
@@ -352,7 +381,7 @@ class WebApp
             }
             $context['page_content'] = $yAnalyzer->do($page_content, $context);
         } else {
-            $places = ["pages/$uri.html", "pages/$uri/$uri.html", "$uri.html", "$uri/$uri.html"];
+            $places    = ["pages/$uri.html", "pages/$uri/$uri.html", "$uri.html", "$uri/$uri.html"];
             $pageFound = false;
             foreach ($places as $place) {
                 if (file_exists($place)) {
@@ -384,34 +413,49 @@ class WebApp
             $uri = substr($uri, 0, strpos($uri, '?'));
         }
 
-        $method = $_SERVER['REQUEST_METHOD'];
-        $routeHandler = null;
+        $method                 = $_SERVER['REQUEST_METHOD'];
+        $routeHandler           = null;
         $routeHandlerDefinition = self::getRouteHandlerDefinition($uri, $method);
         if ($routeHandlerDefinition) {
-            $routeHandler = $routeHandlerDefinition['handler'];
+            $routeHandler              = $routeHandlerDefinition['handler'];
             $context['__routeHandler'] = $routeHandlerDefinition;
 
-            $splittedURI = explode('/', $uri);
+            $splittedURI    = explode('/', $uri);
             $splittedFnPath = explode('/', $routeHandlerDefinition['fnAlias']);
             if (empty($splittedFnPath[0])) {
                 array_shift($splittedFnPath);
             }
 
             $fnParams = [];
-            $pNdx = 0;
+            $pNdx     = 0;
             foreach ($splittedFnPath as $i => $fnPart) {
                 if (substr($fnPart, 0, 1) == '*') {
                     if (isset($routeHandlerDefinition['parameters'][$pNdx])) {
                         $fnParams[$routeHandlerDefinition['parameters'][$pNdx]['name']] = $splittedURI[$i];
                     } else {
-                        $fnParams["param_".($pNdx+1)] = $splittedURI[$i];
+                        $fnParams['param_' . ($pNdx + 1)] = $splittedURI[$i];
                     }
                     $pNdx++;
                 }
             }
 
-            $context['__' . $method] = array_merge($fnParams, $_POST);
-            $context['__FILES'] = $_FILES;
+            $tmp_input = json_decode(file_get_contents('php://input') ?? '{}', true) ?? [];
+            _log($tmp_input);
+            $mtd                     = strtoupper("_$method");
+            $context['__' . $method] = array_merge($fnParams, $GLOBALS[$mtd], $tmp_input );
+
+           _log(json_encode($context['__' . $method]));
+
+            
+            // echo "<pre>\n";
+            // print_r($context);
+            // die();
+            
+
+            $context['__FILES']      = $_FILES;
+
+            $urlArr = parse_url(self::getURI());
+            parse_str($urlArr['query'] ?? '', $context['__URI']);
         }
 
         if (self::clientExpectJSON()) {
@@ -419,12 +463,11 @@ class WebApp
         }
 
         if ($routeHandler) {
-            $aBulletin = new \YeAPF\WebBulletin();
+            $aBulletin   = new \YeAPF\WebBulletin();
             $return_code = $routeHandler($aBulletin, $uri, $context, ...$fnParams);
             if ($return_code >= 200 && $return_code < 300) {
-                
             }
-            $aBulletin($return_code??500);
+            $aBulletin($return_code ?? 500);
         } else {
             if (!empty($context['__json'])) {
                 $content = ($context['__json']);
@@ -436,12 +479,12 @@ class WebApp
                 $content = json_encode($content);
 
             // echo "<pre>";
-            $headers = headers_list();
+            $headers           = headers_list();
             $actualContentType = null;
             foreach ($headers as $header) {
                 // echo "$header\n";
                 if (strpos(strtolower($header), 'content-type:') === 0) {
-                    $header = substr($header, 14);
+                    $header            = substr($header, 14);
                     $actualContentType = explode(';', $header)[0];
                 }
             }

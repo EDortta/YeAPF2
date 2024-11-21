@@ -14,36 +14,34 @@ define('YeAPF_LOG_CRITICAL', 599);
 define('YeAPF_LOG_ALERT', 699);
 define('YeAPF_LOG_EMERG', 799);
 
-define('YeAPF_LOG_USING_FILE', 0x00000001);
-define('YeAPF_LOG_USING_DB', 0x00000002);
-define('YeAPF_LOG_USING_CONSOLE', 0x00000004);
-define('YeAPF_LOG_USING_SYSLOG', 0x00000008);
+define('YeAPF_LOG_USING_FILE', 0x01);
+define('YeAPF_LOG_USING_DB', 0x02);
+define('YeAPF_LOG_USING_CONSOLE', 0x04);
+define('YeAPF_LOG_USING_SYSLOG', 0x08);
 
-define('YeAPF_LOG_STYLE_AS_STRINGS', 0x000000100);
-define('YeAPF_LOG_STYLE_AS_JSON', 0x000000200);
-define('YeAPF_LOG_STYLE_AS_XML', 0x000000400);
-define('YeAPF_LOG_STYLE_AS_ONE_STRING', 0x000000800);
+define('YeAPF_LOG_STYLE_AS_STRINGS', 0x0100);
+define('YeAPF_LOG_STYLE_AS_JSON', 0x0200);
+define('YeAPF_LOG_STYLE_AS_XML', 0x0400);
+define('YeAPF_LOG_STYLE_AS_ONE_STRING', 0x0800);
 
-define('YeAPF_LOG_TAG_SERVER', 'server');   // usually hostname and/or IP
-define('YeAPF_LOG_TAG_SERVICE', 'service'); // service name
-define('YeAPF_LOG_TAG_CLIENT', 'client');   // client IP
-define('YeAPF_LOG_TAG_USER', 'user');       // RFC1413
-define('YeAPF_LOG_TAG_USERID', 'userid');   // .htaccess login
+define('YeAPF_LOG_TAG_SERVER', 'server');                // usually hostname and/or IP
+define('YeAPF_LOG_TAG_SERVICE', 'service');              // service name
+define('YeAPF_LOG_TAG_CLIENT', 'client');                // client IP
+define('YeAPF_LOG_TAG_USER', 'user');                    // RFC1413
+define('YeAPF_LOG_TAG_USERID', 'userid');                // .htaccess login
 define('YeAPF_LOG_TAG_REQUEST_TIME', 'request_time');
-define('YeAPF_LOG_TAG_REQUEST','request');  // GET /list/all ...
-define('YeAPF_LOG_TAG_RESULT','result');    // 200
-define('YeAPF_LOG_TAG_RESPONSE_SIZE','response_size'); // bytes
-define('YeAPF_LOG_TAG_RESPONSE_TIME','response_time'); // ms
-define('YeAPF_LOG_TAG_RESPONSE_ERROR','response_error');
-define('YeAPF_LOG_TAG_REFERRER','referer');
-define('YeAPF_LOG_TAG_USERAGENT','useragent');
+define('YeAPF_LOG_TAG_REQUEST', 'request');              // GET /list/all ...
+define('YeAPF_LOG_TAG_RESULT', 'result');                // 200
+define('YeAPF_LOG_TAG_RESPONSE_SIZE', 'response_size');  // bytes
+define('YeAPF_LOG_TAG_RESPONSE_TIME', 'response_time');  // ms
+define('YeAPF_LOG_TAG_RESPONSE_ERROR', 'response_error');
+define('YeAPF_LOG_TAG_REFERRER', 'referer');
+define('YeAPF_LOG_TAG_USERAGENT', 'useragent');
 
 /*****************************************/
 /* KEY-DATA */
 
-/**
- * Basic types for YeAPF
- */
+/** Basic types for YeAPF */
 define('YeAPF_TYPE_NULL', 'NULL');
 define('YeAPF_TYPE_STRING', 'STRING');
 define('YeAPF_TYPE_INT', 'INTEGER');
@@ -58,34 +56,30 @@ define('YeAPF_TYPE_JSON', 'JSON');
 // define("YeAPF_TYPE_ARRAY", "array");
 // define("YeAPF_TYPE_OBJECT", "object");
 
-/**
- * Bulletin internal types
- */
-
+/** Bulletin internal types */
 define('YeAPF_BULLETIN_OUTPUT_TYPE_JSON', 'json');
 define('YeAPF_BULLETIN_OUTPUT_TYPE_XML', 'xml');
 define('YeAPF_BULLETIN_OUTPUT_TYPE_HTML', 'html');
 define('YeAPF_BULLETIN_OUTPUT_TYPE_CSV', 'csv');
 define('YeAPF_BULLETIN_OUTPUT_TYPE_TXT', 'txt');
 define('YeAPF_BULLETIN_OUTPUT_TYPE_JSONSTRING', 'jsonString');
-define('YeAPF_BULLETIN_OUTPUT_TYPE_JSONFILE', 'jsonFile' );
-define('YeAPF_BULLETIN_OUTPUT_TYPE_BINARYFILE', 'binaryFile' );
+define('YeAPF_BULLETIN_OUTPUT_TYPE_JSONFILE', 'jsonFile');
+define('YeAPF_BULLETIN_OUTPUT_TYPE_BINARYFILE', 'binaryFile');
+define('YeAPF_BULLETIN_REDIRECTION', 'redirection');
 
-/**
- * Exception codes
- */
-define('YeAPF_UNDEFINED_EXCEPTION', 0x00000000);
-define('YeAPF_INVALID_SPACE_NAME', 0x00000001);
-define('YeAPF_METHOD_NOT_IMPLEMENTED', 0x00000002);
+/** Exception codes */
+define('YeAPF_UNDEFINED_EXCEPTION', 0x00);
+define('YeAPF_INVALID_SPACE_NAME', 0x01);
+define('YeAPF_METHOD_NOT_IMPLEMENTED', 0x02);
 
-define('YeAPF_DATA_EXCEPTION_BASE', 0x00000100);
-define('YeAPF_CONNECTION_BASE', 0x00000200);
-define('YeAPF_COLLECTION_BASE', 0x00000300);
-define('YeAPF_EYESHOT_BASE', 0x00000400);
-define('YeAPF_SERVICE_BASE', 0x00000500);
-define('YeAPF_SECURITY_BASE', 0x00000600);
-define('YeAPF_EXPRESSION_BASE', 0x00000700);
-define('YeAPF_PLUGIN_BASE', 0x00000800);
+define('YeAPF_DATA_EXCEPTION_BASE', 0x0100);
+define('YeAPF_CONNECTION_BASE', 0x0200);
+define('YeAPF_COLLECTION_BASE', 0x0300);
+define('YeAPF_EYESHOT_BASE', 0x0400);
+define('YeAPF_SERVICE_BASE', 0x0500);
+define('YeAPF_SECURITY_BASE', 0x0600);
+define('YeAPF_EXPRESSION_BASE', 0x0700);
+define('YeAPF_PLUGIN_BASE', 0x0800);
 
 define('YeAPF_INVALID_KEY_TYPE', YeAPF_DATA_EXCEPTION_BASE + 1);
 define('YeAPF_INVALID_KEY_VALUE', YeAPF_DATA_EXCEPTION_BASE + 2);
@@ -98,15 +92,15 @@ define('YeAPF_VALUE_TOO_LONG', YeAPF_DATA_EXCEPTION_BASE + 8);
 define('YeAPF_SANITIZED_VALUE_TOO_LONG', YeAPF_DATA_EXCEPTION_BASE + 9);
 define('YeAPF_LENGTH_IS_REQUIRED', YeAPF_DATA_EXCEPTION_BASE + 10);
 define('YeAPF_PROTOBUF_ORDER_IS_NOT_UNIQUE', YeAPF_DATA_EXCEPTION_BASE + 11);
-define('YeAPF_UNIMPLEMENTED_KEY_TYPE', YeAPF_DATA_EXCEPTION_BASE + 12); 
+define('YeAPF_UNIMPLEMENTED_KEY_TYPE', YeAPF_DATA_EXCEPTION_BASE + 12);
 define('YeAPF_VALUE_DOES_NOT_SATISFY_REGEXP', YeAPF_DATA_EXCEPTION_BASE + 13);
 define('YeAPF_INVALID_FLOAT_VALUE', YeAPF_DATA_EXCEPTION_BASE + 14);
 define('YeAPF_INVALID_DATETIME_VALUE', YeAPF_DATA_EXCEPTION_BASE + 15);
-define('YeAPF_INVALID_TIME_TYPE', YeAPF_DATA_EXCEPTION_BASE + 16); 
+define('YeAPF_INVALID_TIME_TYPE', YeAPF_DATA_EXCEPTION_BASE + 16);
 define('YeAPF_INVALID_TIME_VALUE', YeAPF_DATA_EXCEPTION_BASE + 17);
-define('YeAPF_INVALID_JSON_TYPE', YeAPF_DATA_EXCEPTION_BASE + 18); 
+define('YeAPF_INVALID_JSON_TYPE', YeAPF_DATA_EXCEPTION_BASE + 18);
 define('YeAPF_INVALID_JSON_VALUE', YeAPF_DATA_EXCEPTION_BASE + 19);
- 
+
 /**************************/
 /* CONNECTION */
 define('YeAPF_PDO_CONNECTION', YeAPF_CONNECTION_BASE + 1);
@@ -190,7 +184,6 @@ define('YeAPF_INCOMPLETE_SED_EXPRESSION', YeAPF_EXPRESSION_BASE + 5);
 /* PLUGINS */
 define('YeAPF_PLUGIN_ERROR', YeAPF_PLUGIN_BASE + 1);
 
-
 /**
  * Common regular expressions
  * These expressions are used to validate data when they are passed
@@ -203,7 +196,7 @@ define('YeAPF_TIME_REGEX', '/^([0-2]{1}[0-9]{1}):([0-5]{1}[0-9]{1}):([0-5]{1}[0-
 define('YeAPF_INT_REGEX', '/^([0-9]+$)/');
 define('YeAPF_FLOAT_REGEX', '/^([0-9]+)\.([0-9]+)$/');
 define('YeAPF_BOOL_REGEX', '/^(true|false)$/i');
-define('YeAPF_STRING_REGEX', '/^[^\p{C}]*$/'); 
+define('YeAPF_STRING_REGEX', '/^[^\p{C}]*$/');
 
 define('YeAPF_URL_REGEX', '/^((https?|ftp|file):\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/');
 define('YeAPF_IP_REGEX', '/^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$/');
@@ -218,25 +211,13 @@ define('YeAPF_UUID_REGEX', '/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/');
  * Common sed expressions
  * See README.md at regexp folder for more information
  */
-
-
 (
-    function() {
+    function () {
         $regexpFolder = __DIR__ . '/regexp';
-        $regexpFiles = glob($regexpFolder . '/*.php');
+        $regexpFiles  = glob($regexpFolder . '/*.php');
 
         foreach ($regexpFiles as $file) {
             require_once $file;
         }
     }
 )();
-
-
-
-
-
-
-
-
-
-

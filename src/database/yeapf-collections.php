@@ -49,9 +49,9 @@ class DocumentModel extends \YeAPF\SanitizedKeyData
         \YeAPF\Connection\PersistenceContext $context,
         string $collectionName
     ) {
-        $this->context = $context;
+        $this->context        = $context;
         $this->collectionName = $collectionName;
-        $this->pskData = new \YeAPF\ORM\PersistentSanitizedKeyData($context);
+        $this->pskData        = new \YeAPF\ORM\PersistentSanitizedKeyData($context);
         parent::__construct();
     }
 
@@ -64,26 +64,26 @@ class DocumentModel extends \YeAPF\SanitizedKeyData
     {
         // echo "[SQLColumnDefinition2Constraint]";
         // echo "\tAnalyzed info: ".json_encode($columnDefinition, JSON_PRETTY_PRINT);
-        $constraint = [];
+        $constraint            = [];
         $constraint['keyName'] = $columnDefinition['column_name'];
         $constraint['default'] = $columnDefinition['column_default'];
 
         $constraint['acceptNULL'] = ($columnDefinition['is_nullable'] == 'YES') ? true : false;
-        $constraint['primary'] = ($columnDefinition['is_primary'] == 1) ? true : false;
-        $constraint['unique'] = ($columnDefinition['is_unique'] == 1) ? true : false;
-        $constraint['required'] = ($columnDefinition['is_required'] == 1) ? true : false;
+        $constraint['primary']    = ($columnDefinition['is_primary'] == 1) ? true : false;
+        $constraint['unique']     = ($columnDefinition['is_unique'] == 1) ? true : false;
+        $constraint['required']   = ($columnDefinition['is_required'] == 1) ? true : false;
 
         if ($columnDefinition['character_maximum_length'] !== null) {
             $constraint['keyType'] = YeAPF_TYPE_STRING;
-            $constraint['length'] = $columnDefinition['character_maximum_length'];
+            $constraint['length']  = $columnDefinition['character_maximum_length'];
         } else {
             if ('character varying' == $columnDefinition['data_type']) {
                 $constraint['keyType'] = YeAPF_TYPE_STRING;
             } else {
                 if ('numeric' == substr($columnDefinition['data_type'], 0, 7)) {
-                    $constraint['keyType'] = YeAPF_TYPE_FLOAT;
+                    $constraint['keyType']  = YeAPF_TYPE_FLOAT;
                     $constraint['decimals'] = $columnDefinition['numeric_precision'];
-                    $constraint['length'] = $columnDefinition['numeric_scale'];
+                    $constraint['length']   = $columnDefinition['numeric_scale'];
                 } else {
                     switch ($columnDefinition['data_type']) {
                         case 'boolean':
@@ -93,7 +93,7 @@ class DocumentModel extends \YeAPF\SanitizedKeyData
                         case 'int':
                         case 'integer':
                             $constraint['keyType'] = YeAPF_TYPE_INT;
-                            $constraint['length'] = $columnDefinition['numeric_precision'];
+                            $constraint['length']  = $columnDefinition['numeric_precision'];
                             break;
 
                         case 'date':
@@ -188,7 +188,7 @@ class DocumentModel extends \YeAPF\SanitizedKeyData
                 break;
 
             case YeAPF_PROTOBUF_FORMAT:
-                $fields = $this->getDocumentModelConstraints(true);
+                $fields      = $this->getDocumentModelConstraints(true);
                 $orderedList = [];
                 foreach ($fields as $key => $constraint) {
                     if (null !== $constraint['protobufOrder']) {
@@ -196,8 +196,8 @@ class DocumentModel extends \YeAPF\SanitizedKeyData
                     }
                 }
                 uasort($orderedList, function ($a, $b) {
-                    return $a['protobufOrder'] - $b['protobufOrder'];
-                });
+                                         return $a['protobufOrder'] - $b['protobufOrder'];
+                                     });
 
                 $ret = 'message ' . $this->getCollectionName() . " {\n";
                 foreach ($orderedList as $key => $constraint) {
@@ -330,7 +330,7 @@ class DocumentModel extends \YeAPF\SanitizedKeyData
 class SharedSanitizedKeyData extends \YeAPF\SanitizedKeyData
 {
     private static $virtualRedis = null;
-    private static $context = null;
+    private static $context      = null;
 
     /**
      * Constructor for the SharedSanitizedKeyData.
@@ -343,7 +343,7 @@ class SharedSanitizedKeyData extends \YeAPF\SanitizedKeyData
     {
         parent::__construct();
         self::$virtualRedis = new VirtualRedis();
-        self::$context = $context;
+        self::$context      = $context;
     }
 
     /**
@@ -534,9 +534,9 @@ interface iCollection
     public function __construct(
         \YeAPF\Connection\PersistenceContext $context,
         string $collectionName,
-        string $collectionIdName = 'id',
+        string $collectionIdName                = 'id',
         \YeAPF\ORM\DocumentModel $documentModel = null,
-        int $cacheExpiration = 0
+        int $cacheExpiration                    = 0
     );
 
     public function object2sanitizedRecord(mixed $object);
@@ -578,13 +578,15 @@ class SharedSanitizedCollection extends \YeAPF\ORM\SharedSanitizedKeyData implem
     {
         if (!($object instanceof SanitizedKeyData)) {
             $aux = clone $this->getDocumentModel();
-            foreach($object as $key => $value) {
-                $aux[$key]=$value;
+            foreach ($object as $key => $value) {
+                if (is_string($key)) {
+                    $aux[$key] = $value;
+                }
             }
         } else {
             $aux = $object;
-        }    
-        return $aux;    
+        }
+        return $aux;
     }
 
     public function getCollectionName()
@@ -600,15 +602,15 @@ class SharedSanitizedCollection extends \YeAPF\ORM\SharedSanitizedKeyData implem
     public function __construct(
         \YeAPF\Connection\PersistenceContext $context,
         string $collectionName,
-        string $collectionIdName = 'id',
+        string $collectionIdName                = 'id',
         \YeAPF\ORM\DocumentModel $documentModel = null,
-        int $cacheExpiration = 0
+        int $cacheExpiration                    = 0
     ) {
         parent::__construct($context);
-        $this->collectionName = $collectionName;
+        $this->collectionName   = $collectionName;
         $this->collectionIdName = $collectionIdName;
-        $this->documentModel = $documentModel;
-        $this->cacheExpiration = $cacheExpiration;
+        $this->documentModel    = $documentModel;
+        $this->cacheExpiration  = $cacheExpiration;
     }
 
     public function getDocumentModel()
@@ -666,8 +668,8 @@ class SharedSanitizedCollection extends \YeAPF\ORM\SharedSanitizedKeyData implem
 
         if ($this->getRedisConnection()->getConnected()) {
             $data[$this->collectionIdName] = $id;
-            $aux = $this->object2sanitizedRecord($data);
-            $ret = $this->getRedisConnection()->hset("$this->collectionName:$id", $aux, $this->cacheExpiration);
+            $aux                           = $this->object2sanitizedRecord($data);
+            $ret                           = $this->getRedisConnection()->hset("$this->collectionName:$id", $aux, $this->cacheExpiration);
         }
         return $ret;
     }
@@ -731,9 +733,9 @@ class SharedSanitizedCollection extends \YeAPF\ORM\SharedSanitizedKeyData implem
                 foreach ($example as $fieldName => $sampleValue) {
                     $auxValue = $this->getRedisConnection()->hget("$this->collectionName:$id", $fieldName);
                     if (\YeAPF\YeAPFConfig::allowExpressionsInSanitizedInput() && is_array($sampleValue)) {
-                        $ndx = 0;
+                        $ndx              = 0;
                         $expressionResult = false;
-                        $lastOp = 'or';
+                        $lastOp           = 'or';
                         while ($ndx < count($sampleValue)) {
                             preg_match('/%([A-Za-z]*)\((.*)\)/i', $sampleValue[$ndx], $token);
                             switch (trim(mb_strtoupper($token[1]))) {
@@ -869,16 +871,16 @@ class PersistentCollection extends \YeAPF\ORM\SharedSanitizedCollection implemen
     public function __construct(
         \YeAPF\Connection\PersistenceContext $context,
         string $collectionName,
-        string $collectionIdName = 'id',
+        string $collectionIdName                = 'id',
         \YeAPF\ORM\DocumentModel $documentModel = null,
-        int $cacheExpiration = 0,
-        int $cacheMode = YeAPF_SAVE_CACHE_FIRST
+        int $cacheExpiration                    = 0,
+        int $cacheMode                          = YeAPF_SAVE_CACHE_FIRST
     ) {
         $cachedEnabledModes = [YeAPF_SAVE_CACHE_FIRST, YeAPF_SAVE_CACHE_LAST];
 
         if (in_array($cacheMode, $cachedEnabledModes)) {
             $this->cacheMode = $cacheMode;
-            $this->pskData = new \YeAPF\ORM\PersistentSanitizedKeyData($context);
+            $this->pskData   = new \YeAPF\ORM\PersistentSanitizedKeyData($context);
             parent::__construct($context, $collectionName, $collectionIdName, $documentModel, $cacheExpiration);
             $this->grantCollection();
             _trace(' * ' . __LINE__ . '');
@@ -933,7 +935,7 @@ class PersistentCollection extends \YeAPF\ORM\SharedSanitizedCollection implemen
                     }
                 } else {
                     $internalColDef = $this->constraint2SQLColumnDefinition($key, $constraint);
-                    $diff = array_diff($internalColDef, $colDef);
+                    $diff           = array_diff($internalColDef, $colDef);
 
                     if (!empty($diff)) {
                         $debug = true;
@@ -1053,21 +1055,21 @@ class PersistentCollection extends \YeAPF\ORM\SharedSanitizedCollection implemen
 
     private function constraint2SQLColumnDefinition($name, $constraint)
     {
-        $ret = [];
-        $name = strtolower($name);
-        $ret['column_name'] = $name;
+        $ret                   = [];
+        $name                  = strtolower($name);
+        $ret['column_name']    = $name;
         $ret['column_default'] = $constraint['default'] ?? null;
-        $ret['is_nullable'] = ($constraint['acceptNULL'] ?? false) ? 'YES' : 'NO';
-        $ret['data_type'] = trim(explode('(', $this->internalType2SQLType($constraint))[0]);
+        $ret['is_nullable']    = ($constraint['acceptNULL'] ?? false) ? 'YES' : 'NO';
+        $ret['data_type']      = trim(explode('(', $this->internalType2SQLType($constraint))[0]);
 
         $ret['character_maximum_length'] = null;
-        $ret['numeric_precision'] = null;
-        $ret['numeric_scale'] = null;
+        $ret['numeric_precision']        = null;
+        $ret['numeric_scale']            = null;
         if (strpos($ret['data_type'], 'char') == false) {
             if ($ret['data_type'] != 'date') {
                 // _trace($name." ".$ret['data_type']." ".strpos($ret['data_type'], 'date')." | ".strpos($ret['data_type'], 'time'));
                 $ret['numeric_precision'] = $constraint['decimals'] ?? null;
-                $ret['numeric_scale'] = $constraint['length'] ?? null;
+                $ret['numeric_scale']     = $constraint['length'] ?? null;
             }
         } else {
             $ret['character_maximum_length'] = $constraint['length'] ?? null;
@@ -1083,7 +1085,7 @@ class PersistentCollection extends \YeAPF\ORM\SharedSanitizedCollection implemen
             throw new \YeAPF\YeAPFException('Document model not set', YeAPF_DOCUMENT_MODEL_NOT_SET);
         } else {
             if (YeAPF_SQL_FORMAT == $format) {
-                $c = 0;
+                $c   = 0;
                 $ret = 'create table if not exists ' . $this->getCollectionName() . " (\n  ";
                 foreach ($this->getDocumentModel()->getConstraints() as $key => $constraint) {
                     // $constraint = $this->documentModel->getConstraint($key);
@@ -1115,17 +1117,17 @@ class PersistentCollection extends \YeAPF\ORM\SharedSanitizedCollection implemen
 
     private function hasDocumentInDatabase($id)
     {
-        $ret = null;
-        $sql = 'select exists(select 1 from ' . $this->getCollectionName() . ' where id=:id)';
+        $ret    = null;
+        $sql    = 'select exists(select 1 from ' . $this->getCollectionName() . ' where id=:id)';
         $params = [$this->getCollectionIdName() => $id];
         $this->pskData->do(function ($persistentData) use ($sql, $params, &$ret) {
-            $auxRet = $persistentData->queryAndFetch($sql, $params);
-            $ret = (is_array($auxRet) && $auxRet['exists'] ?? false);
-            // \_trace("IS ARRAY?".(is_array($auxRet)?"true":"false"));
-            // \_trace("exists? ".$auxRet['exists']);
-            // \_trace(print_r($auxRet, true));
-            // \_trace("ret = ".($ret?"true":"false"));
-        });
+                               $auxRet = $persistentData->queryAndFetch($sql, $params);
+                               $ret    = (is_array($auxRet) && $auxRet['exists'] ?? false);
+                               // \_trace("IS ARRAY?".(is_array($auxRet)?"true":"false"));
+                               // \_trace("exists? ".$auxRet['exists']);
+                               // \_trace(print_r($auxRet, true));
+                               // \_trace("ret = ".($ret?"true":"false"));
+                           });
         _trace("HasDocumentInDatabase $id in " . $this->getCollectionName() . '? ' . ($ret ? 'true' : 'false'));
         return $ret;
     }
@@ -1135,7 +1137,7 @@ class PersistentCollection extends \YeAPF\ORM\SharedSanitizedCollection implemen
         $data[$this->getCollectionIdName()] = $id;
         if ($this->hasDocumentInDatabase($id)) {
             $sql = sprintf('update %s set ', $this->getCollectionName());
-            $c = 0;
+            $c   = 0;
             foreach ($data as $key => $value) {
                 if (is_object($value)) {
                     continue;
@@ -1147,9 +1149,9 @@ class PersistentCollection extends \YeAPF\ORM\SharedSanitizedCollection implemen
             }
             $sql .= sprintf('where %1s = :%1s', $this->getCollectionIdName(), $this->getCollectionIdName());
         } else {
-            $sql = sprintf('insert into %s ', $this->getCollectionName(), $this->getCollectionIdName());
+            $sql  = sprintf('insert into %s ', $this->getCollectionName(), $this->getCollectionIdName());
             $sql .= '(';
-            $c = 0;
+            $c    = 0;
             foreach ($data as $key => $value) {
                 if (is_object($value)) {
                     continue;
@@ -1160,7 +1162,7 @@ class PersistentCollection extends \YeAPF\ORM\SharedSanitizedCollection implemen
                 $sql .= sprintf('%s', $key);
             }
             $sql .= ') values (';
-            $c = 0;
+            $c    = 0;
             foreach ($data as $key => $value) {
                 if (is_object($value)) {
                     continue;
@@ -1204,12 +1206,12 @@ class PersistentCollection extends \YeAPF\ORM\SharedSanitizedCollection implemen
 
     public function getDocument(string $id)
     {
-        $ret = null;
+        $ret      = null;
         $useCache = parent::hasDocument($id);
         if ($useCache) {
             \_trace('Using cached data for ' . $this->getCollectionName() . ".$id");
             //
-            $ret = clone $this->getDocumentModel();
+            $ret  = clone $this->getDocumentModel();
             $data = parent::getDocument($id);
             if ($data)
                 $ret->importData($data);
@@ -1218,7 +1220,7 @@ class PersistentCollection extends \YeAPF\ORM\SharedSanitizedCollection implemen
         }
 
         if (!$useCache) {
-            $sql = 'select * from ' . $this->getCollectionName() . ' where ' . $this->getCollectionIdName() . '=:id';
+            $sql    = 'select * from ' . $this->getCollectionName() . ' where ' . $this->getCollectionIdName() . '=:id';
             $params = [$this->getCollectionIdName() => $id];
             // $ret = $this->pskData->getPDOConnection()->queryAndFetch($sql, $params);
 
@@ -1274,7 +1276,7 @@ class PersistentCollection extends \YeAPF\ORM\SharedSanitizedCollection implemen
 
     public function deleteDocument(string $id)
     {
-        $sql = 'delete from ' . $this->getCollectionName() . ' where id=:id';
+        $sql    = 'delete from ' . $this->getCollectionName() . ' where id=:id';
         $params = [$this->getCollectionIdName() => $id];
         $this->pskData->do(
             function ($conn) use ($sql, $params) {
@@ -1292,8 +1294,8 @@ class PersistentCollection extends \YeAPF\ORM\SharedSanitizedCollection implemen
      */
     public function listDocuments()
     {
-        $ret = [];
-        $sql = 'select ' . $this->getCollectionIdName() . ' from ' . $this->getCollectionName();
+        $ret    = [];
+        $sql    = 'select ' . $this->getCollectionIdName() . ' from ' . $this->getCollectionName();
         $params = [];
         $this->pskData->do(
             function ($conn) use ($sql, $params, &$ret) {
@@ -1311,7 +1313,7 @@ class PersistentCollection extends \YeAPF\ORM\SharedSanitizedCollection implemen
     public function findByExample($example)
     {
         $data = $this->subsetByExample($example, 1)[0] ?? false;
-        $ret = new \YeAPF\SanitizedKeyData();
+        $ret  = new \YeAPF\SanitizedKeyData();
         if (is_array($data)) {
             $ret->importData($data);
         } else {
@@ -1324,17 +1326,17 @@ class PersistentCollection extends \YeAPF\ORM\SharedSanitizedCollection implemen
 
     public function subsetByExample($example, $count, $start = 0)
     {
-        $cachedRet = parent::subsetByExample($example, $count, $start);
+        $cachedRet          = parent::subsetByExample($example, $count, $start);
         $cachedQuotedIdList = array_map(function ($data) {
-            return "'" . $data[$this->getCollectionIdName()] . "'";
-        }, $cachedRet);
+                                            return "'" . $data[$this->getCollectionIdName()] . "'";
+                                        }, $cachedRet);
         $cachedIdList = array_map(function ($data) {
-            return $data[$this->getCollectionIdName()];
-        }, $cachedRet);
+                                      return $data[$this->getCollectionIdName()];
+                                  }, $cachedRet);
 
-        $sql = 'select ' . $this->getCollectionIdName() . ' from ' . $this->getCollectionName() . ' where ';
-        $c = 0;
-        $exceptionList = [];
+        $sql             = 'select ' . $this->getCollectionIdName() . ' from ' . $this->getCollectionName() . ' where ';
+        $c               = 0;
+        $exceptionList   = [];
         $usingExpression = false;
         foreach ($example as $fieldName => $value) {
             if ($c++ > 0) {
@@ -1378,7 +1380,7 @@ class PersistentCollection extends \YeAPF\ORM\SharedSanitizedCollection implemen
 
                         case 'BT':
                         case 'BETWEEN':
-                            $aux = explode(',', $token[2]);
+                            $aux  = explode(',', $token[2]);
                             $sql .= sprintf('(%s>=%s and %s<=%s) ', $fieldName, $aux[0], $fieldName, $aux[1]);
                             break;
 
@@ -1420,7 +1422,7 @@ class PersistentCollection extends \YeAPF\ORM\SharedSanitizedCollection implemen
             $sql .= "offset $start";
         } else {
             $count -= count($cachedIdList);
-            $sql .= "limit $count offset $start";
+            $sql   .= "limit $count offset $start";
         }
 
         $sql = 'select * from ' . $this->getCollectionName() . ' where ' . $this->getCollectionIdName() . ' in (' . $sql . ') ';
@@ -1438,9 +1440,9 @@ class PersistentCollection extends \YeAPF\ORM\SharedSanitizedCollection implemen
         _trace('CACHED ID:   ' . json_encode($cachedIdList));
         // _trace('CACHED DATA: '.print_r($cachedRet, true));
         $ret = array_map(function ($row) {
-            _trace(json_encode($row->exportData()));
-            return $row->exportData();
-        }, $cachedRet);
+                             _trace(json_encode($row->exportData()));
+                             return $row->exportData();
+                         }, $cachedRet);
         $this->pskData->do(
             function ($conn) use ($sql, &$ret, $params, $usingExpression) {
                 if (!$usingExpression && empty($params)) {
