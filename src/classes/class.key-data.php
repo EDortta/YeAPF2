@@ -204,7 +204,7 @@ class KeyData implements \ArrayAccess, \Iterator
    *
    * @return void
    */
-  public function __get(string $name)
+  public function __get(string|int $name)
   {
     return $this->__data[$name] ?? null;
   }
@@ -1050,7 +1050,7 @@ class SanitizedKeyData extends KeyData
     parent::__set($name, $value);
   }
 
-  public function __get(string $name)
+  public function __get(string|int $name)
   {
     $debug = false;
     if ($debug)

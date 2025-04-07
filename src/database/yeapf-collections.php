@@ -449,7 +449,7 @@ class SharedSanitizedRecord extends \YeAPF\ORM\SharedSanitizedKeyData
         self::getRedisConnection()->set($name, $value);
     }
 
-    public function __get(string $name)
+    public function __get(string|int $name)
     {
         $ret = null;
         if (self::getRedisConnection()->getConnected()) {
