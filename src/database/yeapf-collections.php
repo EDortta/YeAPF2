@@ -973,7 +973,7 @@ class PersistentCollection extends \YeAPF\ORM\SharedSanitizedCollection implemen
                                 case 'numeric_scale':
                                     $typeDef = $this->internalType2SQLType($constraint);
                                     // $typeDef = substr($typeDef, strpos(" ",$typeDef));
-                                    $sql .= " alter $key TYPE $typeDef";
+                                    $sql    .= " alter $key TYPE $typeDef";
                                     break;
 
                                 default:
@@ -1179,14 +1179,23 @@ class PersistentCollection extends \YeAPF\ORM\SharedSanitizedCollection implemen
         } else {
             $params = $data;
         }
-        $auxRet = null;
+        $success = false;
         $this->pskData->do(
-            function ($conn) use ($sql, &$ret, $params) {
-                $auxRet = $conn->query($sql, $params);
+            function ($conn) use ($sql, &$success, $params) {
+                try {
+                    \_trace('Executing SQL: ' . $sql);
+                    \_trace('With params: ' . json_encode($params));
+                    $result  = $conn->query($sql, $params);
+                    $success = ($result !== false);
+                    \_trace('SQL execution result: ' . ($success ? 'success' : 'failure'));
+                } catch (\Exception $e) {
+                    \_trace('SQL execution error: ' . $e->getMessage());
+                    $success = false;
+                }
             }
         );
 
-        return $auxRet;
+        return $success;
     }
 
     public function hasDocument(string $id)
@@ -1265,12 +1274,22 @@ class PersistentCollection extends \YeAPF\ORM\SharedSanitizedCollection implemen
         $aux = $this->object2sanitizedRecord($data);
 
         if (YeAPF_SAVE_CACHE_FIRST == $this->cacheMode) {
-            $ret = parent::setDocument($id, $aux);
-            $this->saveDocumentInDatabase($id, $aux);
+            $cacheResult = parent::setDocument($id, $aux);
+            $dbResult    = $this->saveDocumentInDatabase($id, $aux);
+
+            if (!$dbResult && $cacheResult) {
+                parent::deleteDocument($id);
+                \_trace("Document save failed in database, removed from cache: $id");
+            }
+
+            $ret = $dbResult;
         } else {
-            $this->saveDocumentInDatabase($id, $aux);
-            $ret = parent::setDocument($id, $aux);
+            $dbResult = $this->saveDocumentInDatabase($id, $aux);
+            if ($dbResult) {
+                $ret = parent::setDocument($id, $aux);
+            }
         }
+        \_trace("Document save result for $id: " . ($ret ? 'success' : 'failure'));
         return $ret;
     }
 
@@ -1330,9 +1349,9 @@ class PersistentCollection extends \YeAPF\ORM\SharedSanitizedCollection implemen
         $cachedQuotedIdList = array_map(function ($data) {
                                             return "'" . $data[$this->getCollectionIdName()] . "'";
                                         }, $cachedRet);
-        $cachedIdList = array_map(function ($data) {
-                                      return $data[$this->getCollectionIdName()];
-                                  }, $cachedRet);
+        $cachedIdList       = array_map(function ($data) {
+                                            return $data[$this->getCollectionIdName()];
+                                        }, $cachedRet);
 
         $sql             = 'select ' . $this->getCollectionIdName() . ' from ' . $this->getCollectionName() . ' where ';
         $c               = 0;
