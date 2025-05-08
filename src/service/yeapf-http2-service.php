@@ -61,7 +61,7 @@ abstract class HTTP2Service extends Skeleton
             throw new \YeAPF\YeAPFException('Invalid attendant [' . $path . '@' . __LINE__ . ']');
         }
 
-        $fnPath          = preg_replace('/(\{\{\w+\}\})/', '*', $path);
+        $fnPath = preg_replace('/(\{\{\w+\}\})/', '*', $path);
         preg_match_all('/\{\{(\w+)\}\}/', $path, $inlineParams);
 
         $absentParameter = [];
@@ -814,8 +814,15 @@ abstract class HTTP2Service extends Skeleton
                                                } catch (\Exception $e) {
                                                    $this->error = $e->getMessage();
                                                    _trace($e->getMessage());
+                                                   $this->stackTrace  = [
+                                                       'code'    => $e->getCode(),
+                                                       'file'    => $e->getFile(),
+                                                       'line'    => $e->getLine(),
+                                                       'message' => $e->getMessage(),
+                                                       'trace'   => $e->getTrace()
+                                                   ];
                                                    $aBulletin->reason = $e->getMessage();
-                                                   $ret_code          = 500;
+                                                   $ret_code          = 406;
                                                }
                                            } else {
                                                $ret_code = $this->answerQuery($aBulletin, $uri, $params) ?? 204;
@@ -856,7 +863,7 @@ abstract class HTTP2Service extends Skeleton
                                            $ret_code          = 552;
                                        } finally {
                                            if (!$cleanCode) {
-                                               if ($ret_code < 500) {
+                                               if ($ret_code < 300) {
                                                    $ret_code = 500;
                                                }
                                                _trace("NOT CLEAN CODE: $ret_code");

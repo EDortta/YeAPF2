@@ -580,7 +580,14 @@ class SharedSanitizedCollection extends \YeAPF\ORM\SharedSanitizedKeyData implem
             $aux = clone $this->getDocumentModel();
             foreach ($object as $key => $value) {
                 if (is_string($key)) {
-                    $aux[$key] = $value;
+                    try {
+                        $aux[$key] = $value;
+                    } catch (\Exception $e) {
+                        $valueExplained = $value ?? 'null';
+                        $message = "Value '$valueExplained' is not valid for key '$key' in " . __CLASS__ . '.' . __FUNCTION__. "() at ".(__LINE__-3);
+                        _trace($message);
+                        throw new \YeAPF\YeAPFException($message, YeAPF_VALUE_OUT_OF_RANGE);
+                    }
                 }
             }
         } else {
@@ -929,6 +936,11 @@ class PersistentCollection extends \YeAPF\ORM\SharedSanitizedCollection implemen
                 if (empty($colDef)) {
                     $sql = 'alter table ' . self::getCollectionName() . ' add column ' . $columnDefinition;
 
+                    /******
+                     * TODO: When a column already has value and is redeclared as 
+                     * NOT NULL, the command fails. The task is to prevent such 
+                     * kind of situations and void the exception
+                     */
                     $retAlter = $pdo->query($sql);
                     if (!$retAlter) {
                         throw new \YeAPF\YeAPFException("Error adding column $key", YeAPF_ERROR_ADDING_COLUMN);

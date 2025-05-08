@@ -274,16 +274,19 @@ class Http2Bulletin extends \YeAPF\BaseBulletin
                 $response->header('Content-Disposition', 'attachment; filename="' . $this->getFilename() ?? 'file.bin' . '"');
                 $response->sendfile($this->getBinaryFile());
                 break;
+                
             case YeAPF_BULLETIN_OUTPUT_TYPE_JSON:
                 $response->header('Content-Disposition', 'attachment; filename="' . $this->getFilename() ?? 'file.json' . '"');
                 $response->sendfile($this->getJsonFile());
                 break;
+
             case YeAPF_BULLETIN_OUTPUT_TYPE_JSONSTRING:
                 if (is_array($this->getJsonString()))
                     $response->end(json_encode($this->getJsonString()));
                 else
                     $response->end($this->getJsonString());
                 break;
+
             case YeAPF_BULLETIN_REDIRECTION:
                 $response->redirect($this->getReroutingPath());
                 break;
