@@ -18,25 +18,25 @@ require_once __DIR__ . '/yeapf-config.php';
 (
   function () {
     $logLevelMap = [
-      'DEBUG' => YeAPF_LOG_DEBUG,
-      'INFO' => YeAPF_LOG_INFO,
-      'NOTICE' => YeAPF_LOG_NOTICE,
-      'WARNING' => YeAPF_LOG_WARNING,
-      'ERROR' => YeAPF_LOG_ERROR,
+      'DEBUG'    => YeAPF_LOG_DEBUG,
+      'INFO'     => YeAPF_LOG_INFO,
+      'NOTICE'   => YeAPF_LOG_NOTICE,
+      'WARNING'  => YeAPF_LOG_WARNING,
+      'ERROR'    => YeAPF_LOG_ERROR,
       'CRITICAL' => YeAPF_LOG_CRITICAL,
-      'ALERT' => YeAPF_LOG_ALERT,
-      'EMERG' => YeAPF_LOG_EMERG,
+      'ALERT'    => YeAPF_LOG_ALERT,
+      'EMERG'    => YeAPF_LOG_EMERG,
     ];
 
     $logFacilityMap = [
-      'FILE' => YeAPF_LOG_USING_FILE,
-      'DB' => YeAPF_LOG_USING_DB,
+      'FILE'    => YeAPF_LOG_USING_FILE,
+      'DB'      => YeAPF_LOG_USING_DB,
       'CONSOLE' => YeAPF_LOG_USING_CONSOLE,
-      'SYSLOG' => YeAPF_LOG_USING_SYSLOG
+      'SYSLOG'  => YeAPF_LOG_USING_SYSLOG
     ];
 
     $debugConfig = \YeAPF\YeAPFConfig::getSection('mode')->debug ?? json_decode("{'enabled': false,'level': 'WARNING'}", false);
-    $logEnabled = $debugConfig->enabled ?? false;
+    $logEnabled  = $debugConfig->enabled ?? false;
     $logLevelStr = $debugConfig->level ?? 'WARNING';
     if (!$logEnabled) {
       $logLevel = YeAPF_LOG_EMERG + 100;
@@ -48,23 +48,22 @@ require_once __DIR__ . '/yeapf-config.php';
       }
     }
 
-    $logFacilities = \YeAPF\YeAPFConfig::getSection('mode')->debug->facility ?? [];
+    $logFacilities    = \YeAPF\YeAPFConfig::getSection('mode')->debug->facility ?? [];
     $intLogFacilities = 0;
     foreach ($logFacilities as $k) {
-      $intLogFacilities |= ($logFacilityMap[$k]??0);
+      $intLogFacilities |= ($logFacilityMap[$k] ?? 0);
     }
     \YeAPF\yLogger::setLogFacility($intLogFacilities);
 
-
-    $debugAreas = \YeAPF\YeAPFConfig::getSection('mode')->debug->areas ?? [];
+    $debugAreas    = \YeAPF\YeAPFConfig::getSection('mode')->debug->areas ?? [];
     $intDebugAreas = [];
     foreach ($debugAreas as $k) {
-      $intDebugAreas[] = DebugLabels::get($k)??$k;
+      $intDebugAreas[] = DebugLabels::get($k) ?? $k;
     }
     \YeAPF\yLogger::defineLogFilters($logLevel, $intDebugAreas);
 
-    $traceConfig = \YeAPF\YeAPFConfig::getSection('mode')->trace ?? json_decode("{'enabled': false,'level': 'EMERG'}", false);
-    $traceEnabled = $traceConfig->enabled ?? false;
+    $traceConfig   = \YeAPF\YeAPFConfig::getSection('mode')->trace ?? json_decode("{'enabled': false,'level': 'EMERG'}", false);
+    $traceEnabled  = $traceConfig->enabled ?? false;
     $traceLevelStr = $traceConfig->level ?? 'EMERG';
     if (!$traceEnabled) {
       $traceLevel = YeAPF_LOG_EMERG + 100;
@@ -75,13 +74,13 @@ require_once __DIR__ . '/yeapf-config.php';
         $traceLevel = $logLevelMap[$traceLevelStr] ?? YeAPF_LOG_EMERG;
       }
     }
-    $traceAreas = \YeAPF\YeAPFConfig::getSection('mode')->trace->areas ?? [];
+    $traceAreas    = \YeAPF\YeAPFConfig::getSection('mode')->trace->areas ?? [];
     $intTraceAreas = [];
     foreach ($traceAreas as $k) {
-      $intTraceAreas[] = DebugLabels::get($k)??$k;
+      $intTraceAreas[] = DebugLabels::get($k) ?? $k;
     }
     \YeAPF\yLogger::defineTraceFilters(
-      traceLevel: $traceLevel, 
+      traceLevel: $traceLevel,
       activeTraceAreas: $intTraceAreas,
       bufferedOutput: true,
       traceToLog: false
@@ -128,16 +127,15 @@ require_once __DIR__ . '/yeapf-config.php';
 
 \_log('YeAPF Basic Types');
 
-
-$__yTypesObsolete=(function () {
+$__yTypesObsolete = (function () {
   global $__yTypesObsolete;
-  clearstatcache();  
+  clearstatcache();
   if (!file_exists(__DIR__ . '/misc/yTypes.php')) {
-    $__yTypesObsolete=true;   
+    $__yTypesObsolete = true;
   } else {
-    $t1 = filemtime(__DIR__ . '/misc/yTypes.php');
-    $t2 = filemtime(__DIR__ . '/yeapf-definitions.php');
-    $t3 = filemtime(__DIR__ . '/misc/yGenerateBasicTypes.php');
+    $t1               = filemtime(__DIR__ . '/misc/yTypes.php');
+    $t2               = filemtime(__DIR__ . '/yeapf-definitions.php');
+    $t3               = filemtime(__DIR__ . '/misc/yGenerateBasicTypes.php');
     $__yTypesObsolete = ($t1 < $t2) || ($t1 < $t3);
   }
   return $__yTypesObsolete;

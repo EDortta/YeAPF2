@@ -748,12 +748,14 @@ class yDom {
                                 attributes = aLineSpec.rows[r].outerHTML.match(/([a-z0-9A-Z_\-]+)="([^"]*)"/g);
                                 if (xDataItem['active'])
                                     entry.classList.add("active");
-                                attributes.forEach((attribute) => {
-                                    const [name, value] = attribute.split('=');
-                                    const attributeName = name.trim();
-                                    const attributeValue = yAnalise(value.replace(/"/g, '').trim(), xDataItem);
-                                    entry.setAttribute(attributeName, attributeValue);
-                                });
+                                if (attributes) {
+                                    attributes.forEach((attribute) => {
+                                        const [name, value] = attribute.split('=');
+                                        const attributeName = name.trim();
+                                        const attributeValue = yAnalise(value.replace(/"/g, '').trim(), xDataItem);
+                                        entry.setAttribute(attributeName, attributeValue);
+                                    });
+                                }
                             }
                             asHTML = true;
                         } else if (typeof aLineSpec.html === 'string') {

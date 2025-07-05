@@ -1,19 +1,22 @@
 <?php
 namespace YeAPF;
+
 class DebugLabels
 {
     static private $labels = [];
 
-    static public function set($label, $value=null, $file=null) {
-        if (null===$value) {
+    static public function set($label, $value = null, $file = null)
+    {
+        if (null === $value) {
             $value = (
-            function (): int {
-                return max(array_column(self::$labels, 'value')) * 2;
-            })();
+                function (): int {
+                    return max(array_column(self::$labels, 'value')) * 2;
+                }
+            )();
         }
         self::$labels[$label] = [
             'value' => $value,
-            'file' => $file
+            'file'  => $file
         ];
     }
 
@@ -26,7 +29,7 @@ class DebugLabels
         }
     }
 
-    static public function getFileFromLabel($label): string 
+    static public function getFileFromLabel($label): string
     {
         if (!isset(self::$labels[$label])) {
             return null;
@@ -35,7 +38,6 @@ class DebugLabels
         }
     }
 }
-
 
 DebugLabels::set('YTYPES', YTYPES, 'yTypes');
 DebugLabels::set('YPARS', YPARS, 'yParser');
