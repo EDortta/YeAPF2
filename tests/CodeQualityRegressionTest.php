@@ -52,10 +52,11 @@ final class CodeQualityRegressionTest extends TestCase
     {
         $content = $this->readSource('src/plugins/i18n.php');
 
-        $this->assertMatchesRegularExpression(
-            '/public function translate\\s*\\(.*?\\)\\s*\\{.*?\\$debug\\s*=\\s*false\\s*;/s',
+        $this->assertDoesNotMatchRegularExpression(
+            '/public function translate\\s*\\(.*?\\)\\s*\\{.*?\\$debug\\s*=\\s*true\\s*;/s',
             $content
         );
+        $this->assertStringNotContainsString('_trace(', $content);
     }
 
     public function testPdoConnectionNoLongerUsesGlobalAnalyzerOrMainConnectionGlobal(): void

@@ -1,5 +1,7 @@
 # CHANGELOG — code-quality-refactor
 
+2026-04-17 — CQR-007 moved to PR; branch `issue/code-quality-refactor/cqr-007-i18n-translate-refactor` pushed and PR #7 opened
+2026-04-17 — CQR-007 moved to on-work; branch `issue/code-quality-refactor/cqr-007-i18n-translate-refactor` started
 2026-04-17 — Removed stale `CQR-004-[PR]` file after closure to keep one issue file per issue
 2026-04-17 — CQR-004 merged via PR #6 and moved to closed; remote issue branch deleted
 2026-04-17 — CQR-004 moved to reviewed after merge validation
