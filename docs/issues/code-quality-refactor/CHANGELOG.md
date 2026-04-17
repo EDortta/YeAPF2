@@ -1,5 +1,6 @@
 # CHANGELOG — code-quality-refactor
 
+2026-04-17 — CQR-009 moved to on-work; branch `issue/code-quality-refactor/cqr-009-yparser-get-method` started
 2026-04-17 — Removed stale `CQR-006-[PR]` file after closure to keep one issue file per issue
 2026-04-17 — CQR-006 merged via PR #10 and moved to closed; remote issue branch deleted
 2026-04-17 — CQR-006 moved to reviewed after merge validation
