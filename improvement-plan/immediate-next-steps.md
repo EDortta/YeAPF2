@@ -23,7 +23,7 @@ Issues are drawn from docs/issues/. Priority order: security first, then product
 ### HIGH — production noise / architectural violations
 
 3. **CQR-001** `yeapf-collections.php` — 51 debug trace calls in production paths
-   → `docs/issues/code-quality-refactor/CQR-001-collections-debug-noise-[opened].md`
+   → `docs/issues/code-quality-refactor/CQR-001-collections-debug-noise-[on-work].md`
 
 4. **CQR-004** `yeapf-pdo-connection.php` — PostgreSQL SQL hardcoded in shared class (AGENTS.md violation) + `global $yAnalyzer` inside method
    → `docs/issues/code-quality-refactor/CQR-004-pdo-global-and-postgres-sql-[opened].md`
