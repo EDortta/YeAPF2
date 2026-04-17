@@ -17,7 +17,7 @@ One issue per file. Each issue targets the specific problems found in that file.
 
 ## Issues
 - [CQR-001-collections-debug-noise.md](./CQR-001-collections-debug-noise-[closed].md)
-- [CQR-002-collections-exportdocumentmodel.md](./CQR-002-collections-exportdocumentmodel-[on-work].md)
+- [CQR-002-collections-exportdocumentmodel.md](./CQR-002-collections-exportdocumentmodel-[PR].md)
 - [CQR-003-pdo-connect-split.md](./CQR-003-pdo-connect-split-[closed].md)
 - [CQR-004-pdo-global-and-postgres-sql.md](./CQR-004-pdo-global-and-postgres-sql-[closed].md)
 - [CQR-005-webapp-globals-and-debug.md](./CQR-005-webapp-globals-and-debug-[closed].md)
