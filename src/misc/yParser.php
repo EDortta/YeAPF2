@@ -182,6 +182,205 @@ class xParser
     $this->lineStart = $this->pos;
   }
 
+  private function readTokenFromFirstChar($firstChar, $initialType, $forceCommentLine = false)
+  {
+    $priorC      = '';
+    $token       = $firstChar;
+    $this->first = $firstChar;
+    $ok          = $this->isSpecialSymbol($firstChar) || $this->isOperator($firstChar);
+    $type        = $initialType;
+
+    if ($this->toDebug) {
+      echo "\n\t\t$token type: $type\t";
+    }
+
+    $this->wordStart = $this->pos;
+    $isACommentLine  = $inComment = $forceCommentLine || $this->isCommentLine($token);
+    if ($inComment) {
+      $type = 7;
+    }
+
+    $dbgEscapeCause = 'none';
+    $relPos         = 0;
+    $regexParCount  = 0;
+
+    while ($ok) {
+      $priorC = $firstChar;
+      $firstChar = substr($this->code, $this->pos, 1);
+
+      $relPos++;
+      if ($relPos == 1) {
+        if (($this->first == '/') && ($firstChar != '*') && ($firstChar != '/')) {
+          $type      = 8;
+          $inComment = false;
+          if ($this->toDebug) {
+            echo '[ regular expression ]';
+          }
+        }
+      }
+
+      if ($type == 8) {
+        if ($this->toDebug) {
+          echo " $firstChar=" . $this->getTypeOf($firstChar, $priorC);
+        }
+
+        if ($firstChar == '(') {
+          $regexParCount++;
+        }
+
+        if ($firstChar == ')') {
+          $regexParCount++;
+        }
+
+        if ($this->getTypeOf($firstChar, $priorC) == 3) {
+          $ok = true;
+        } else if ($this->getTypeOf($firstChar, $priorC) == 4) {
+          if (!(($firstChar == ';') || ($firstChar == ','))) {
+            if ($regexParCount > 0) {
+              $ok = true;
+            } else {
+              $ok = ($firstChar != ')');
+            }
+          } else {
+            $ok = false;
+          }
+        } else {
+          $ok = false;
+        }
+      }
+
+      if (($firstChar >= ' ') || ($type == 5) || ($type == 7)) {
+        if ($firstChar == chr(10)) {
+          $this->addNewLine();
+          if ($isACommentLine) {
+            $ok = false;
+          }
+        }
+
+        if ($ok) {
+          if (($type == 4) && ($this->isCommentLine("$token$firstChar"))) {
+            $type           = 7;
+            $isACommentLine = $inComment = true;
+          }
+
+          if (
+            (($type == 3) && ($this->isChar($firstChar))) ||
+            (($type == 2) && ($this->isChar($firstChar))) ||
+            (($type == 1) && ($this->isNumber($firstChar))) ||
+            (($this->isOperator($token)) && (($this->isSymbol($firstChar)) ||
+              ($this->isOperator($firstChar)))) ||
+            (($type == 6) && ($firstChar == '=')) ||
+            (($type == 5) || ($inComment)) ||
+            (($type == 8) && (!(($firstChar == ',') || ($firstChar == ';'))))
+          ) {
+            if ($this->toDebug) {
+              echo "\n\t\t\tc:$firstChar oe" . intval($this->isOperator($token));
+              echo ':s' . intval($this->isSymbol($firstChar));
+              echo ':oo' . intval($this->isOperator($firstChar)) . ':c' . intval($inComment) . '/' . $this->commentLevel . ':t' . $type;
+            }
+            $token .= $firstChar;
+            if ($this->toDebug) {
+              echo '[' . substr($token, -2) . "]\n";
+            }
+            if ($type != 5) {
+              if ($this->isCommentBlockStart($token)) {
+                $commentStarting = strlen($token) == 2;
+                if ($commentStarting) {
+                  $this->commentLevel++;
+                  if ($this->toDebug) {
+                    echo "\n\t\t-----Comment Start\n";
+                  }
+                }
+                $inComment = $inComment || $commentStarting || $this->isCommentLine($token);
+                if ($inComment) {
+                  $type = 7;
+                }
+              }
+              if ($this->isCommentBlockEnd($token)) {
+                $this->commentLevel--;
+                if ($this->commentLevel <= 0) {
+                  $ok = $inComment = false;
+                  if ($this->toDebug) {
+                    echo "\n\t\t-----Comment Finish\n";
+                  }
+                }
+              }
+            }
+            if ($this->toDebug) {
+              echo "\t\t\t:cl" . intval($this->commentLevel);
+            }
+
+            $this->pos++;
+            $ok = ($this->pos < strlen($this->code));
+            if (!$ok) {
+              $dbgEscapeCause = 'pos>code';
+            }
+
+            if (($ok) && ($type == 5)) {
+              if ($priorC == '\\') {
+                $firstChar = '';
+              } else {
+                if ($firstChar == $this->first) {
+                  $ok             = false;
+                  $dbgEscapeCause = 'c==first';
+                }
+              }
+            } else {
+              $dbgEscapeCause = 'type!=5';
+            }
+          } else {
+            $ok             = false;
+            $dbgEscapeCause = "end-of-type $type at char $firstChar $inComment";
+          }
+        }
+      } else {
+        $ok             = false;
+        $dbgEscapeCause = 'invalid char or type!=5';
+      }
+    }
+
+    if ($this->toDebug) {
+      echo "\t = [$token] ($dbgEscapeCause)\n";
+    }
+
+    return ['token' => $token, 'type' => $type];
+  }
+
+  private function readNumber($c)
+  {
+    return $this->readTokenFromFirstChar($c, 1);
+  }
+
+  private function readString($delimiter)
+  {
+    return $this->readTokenFromFirstChar($delimiter, 5);
+  }
+
+  private function readLineComment($c)
+  {
+    return $this->readTokenFromFirstChar($c, 7, true);
+  }
+
+  private function readBlockComment($c)
+  {
+    return $this->readTokenFromFirstChar($c, $this->getTypeOf($c));
+  }
+
+  private function readOperator($c)
+  {
+    return $this->readTokenFromFirstChar($c, $this->getTypeOf($c));
+  }
+
+  private function readMacro($c)
+  {
+    return $this->readTokenFromFirstChar($c, 2);
+  }
+
+  private function readGeneralToken($c)
+  {
+    return $this->readTokenFromFirstChar($c, $this->getTypeOf($c));
+  }
+
   // agarra el siguiente elemento en cuesti�n
   // devuelve 0 si lleg� al fin del c�digo
   // devuelve 1 si consigui� agarrar alg�n dato
@@ -196,8 +395,6 @@ class xParser
       $type              = $this->lastGetType;
     } else {
       $r             = 0;
-      $relPos        = 0;
-      $regexParCount = 0;
       $token         = '';
       $type          = -1;
       // echo "pos=$this->pos de '$this->code'<br>";
@@ -212,163 +409,28 @@ class xParser
         // echo "$c...";
 
         if ($this->pos <= strlen($this->code)) {
-          $r           = 1;
-          $priorC      = '';
-          $token       = $c;
-          $this->first = $c;
-          $ok          = $this->isSpecialSymbol($c) || $this->isOperator($c);
-          $type        = $this->getTypeOf($c, $priorC);
+          $r = 1;
+          $next = substr($this->code, $this->pos, 1);
 
-          if ($this->toDebug) {
-            echo "\n\t\t$token type: $type\t";
+          if ($this->isCommentLine($c)) {
+            $tokenData = $this->readLineComment($c);
+          } else if ($this->isNumber($c)) {
+            $tokenData = $this->readNumber($c);
+          } else if ($this->isLiteral($c)) {
+            $tokenData = $this->readString($c);
+          } else if (($c == '/') && ($next == '/')) {
+            $tokenData = $this->readLineComment($c);
+          } else if ((($c == '/') && ($next == '*')) || (($c == '(') && ($next == '*'))) {
+            $tokenData = $this->readBlockComment($c);
+          } else if ($this->isMacro($c)) {
+            $tokenData = $this->readMacro($c);
+          } else if ($this->isOperator($c) || $this->isSymbol($c)) {
+            $tokenData = $this->readOperator($c);
+          } else {
+            $tokenData = $this->readGeneralToken($c);
           }
-
-          $this->wordStart = $this->pos;
-          $isACommentLine  = $inComment = $this->isCommentLine($token);
-          if ($inComment) {
-            $type = 7;
-          }
-
-          $dbgEscapeCause = 'none';
-
-          while ($ok) {
-            $priorC = $c;
-            $c      = substr($this->code, $this->pos, 1);
-            $C      = strtoupper($c);
-
-            $relPos++;
-            if ($relPos == 1) {
-              if (($this->first == '/') && ($c != '*') && ($c != '/')) {
-                $type      = 8;
-                $inComment = false;
-                if ($this->toDebug) {
-                  echo '[ regular expression ]';
-                }
-              }
-            }
-
-            if ($type == 8) {
-              if ($this->toDebug) {
-                echo " $c=" . $this->getTypeOf($c, $priorC);
-              }
-
-              if ($c == '(') {
-                $regexParCount++;
-              }
-
-              if ($c == ')') {
-                $regexParCount++;
-              }
-
-              if ($this->getTypeOf($c, $priorC) == 3) {
-                $ok = true;
-              } else if ($this->getTypeOf($c, $priorC) == 4) {
-                if (!(($c == ';') || ($c == ','))) {
-                  if ($regexParCount > 0) {
-                    $ok = true;
-                  } else {
-                    $ok = ($c != ')');
-                  }
-                } else {
-                  $ok = false;
-                }
-              } else {
-                $ok = false;
-              }
-            }
-
-            if (($c >= ' ') || ($type == 5) || ($type == 7)) {
-              if ($c == chr(10)) {
-                $this->addNewLine();
-                if ($isACommentLine) {
-                  $ok = false;
-                }
-              }
-
-              if ($ok) {
-                if (($type == 4) && ($this->isCommentLine("$token$c"))) {
-                  $type           = 7;
-                  $isACommentLine = $inComment = true;
-                }
-
-                if (
-                  (($type == 3) && ($this->isChar($c))) ||
-                  (($type == 2) && ($this->isChar($c))) ||
-                  (($type == 1) && ($this->isNumber($c))) ||
-                  (($this->isOperator($token)) && (($this->isSymbol($c)) ||
-                    ($this->isOperator($c)))) ||
-                  (($type == 6) && ($c == '=')) ||
-                  (($type == 5) || ($inComment)) ||
-                  (($type == 8) && (!(($c == ',') || ($c == ';'))))
-                ) {
-                  if ($this->toDebug) {
-                    echo "\n\t\t\tc:$c oe" . intval($this->isOperator($token));
-                    echo ':s' . intval($this->isSymbol($c));
-                    echo ':oo' . intval($this->isOperator($c)) . ':c' . intval($inComment) . '/' . $this->commentLevel . ':t' . $type;
-                  }
-                  $token .= $c;
-                  if ($this->toDebug) {
-                    echo '[' . substr($token, -2) . "]\n";
-                  }
-                  if ($type != 5) {
-                    if ($this->isCommentBlockStart($token)) {
-                      $commentStarting = strlen($token) == 2;
-                      if ($commentStarting) {
-                        $this->commentLevel++;
-                        if ($this->toDebug) {
-                          echo "\n\t\t-----Comment Start\n";
-                        }
-                      }
-                      $inComment = $inComment || $commentStarting || $this->isCommentLine($token);
-                      if ($inComment) {
-                        $type = 7;
-                      }
-                    }
-                    if ($this->isCommentBlockEnd($token)) {
-                      $this->commentLevel--;
-                      if ($this->commentLevel <= 0) {
-                        $ok = $inComment = false;
-                        if ($this->toDebug) {
-                          echo "\n\t\t-----Comment Finish\n";
-                        }
-                      }
-                    }
-                  }
-                  if ($this->toDebug) {
-                    echo "\t\t\t:cl" . intval($this->commentLevel);
-                  }
-
-                  $this->pos++;
-                  $ok = ($this->pos < strlen($this->code));
-                  if (!$ok) {
-                    $dbgEscapeCause = 'pos>code';
-                  }
-
-                  if (($ok) && ($type == 5)) {
-                    if ($priorC == '\\') {
-                      $c = '';
-                    } else {
-                      if ($c == $this->first) {
-                        $ok             = false;
-                        $dbgEscapeCause = 'c==first';
-                      }
-                    }
-                  } else {
-                    $dbgEscapeCause = 'type!=5';
-                  }
-                } else {
-                  $ok             = false;
-                  $dbgEscapeCause = "end-of-type $type at char $c $inComment";
-                }
-              }
-            } else {
-              $ok             = false;
-              $dbgEscapeCause = 'invalid char or type!=5';
-            }
-          }
-          if ($this->toDebug) {
-            echo "\t = [$token] ($dbgEscapeCause)\n";
-          }
+          $token = $tokenData['token'];
+          $type  = $tokenData['type'];
         }
         if (strlen(trim($token)) == 0) {
           $r = 0;
@@ -383,6 +445,33 @@ class xParser
     }
     // _dumpY(128, 5, $token, $type);
     return $r;
+  }
+
+  private function readHtmlScriptToken(&$lineData)
+  {
+    $ok = true;
+    do {
+      $c = substr($this->code, $this->pos, 1);
+      $this->pos++;
+      if ($c == '<') {
+        $c1 = substr($this->code, $this->pos, 7);
+        if (strtoupper($c1) == '/SCRIPT') {
+          $this->pos--;
+          $ok = false;
+        } else {
+          $lineData .= $c;
+        }
+      } else if ($c >= ' ') {
+        $lineData .= $c;
+      } else if ($c == chr(10)) {
+        $this->line++;
+        $ok = false;
+      }
+
+      if ($this->pos >= strlen($this->code)) {
+        $ok = false;
+      }
+    } while ($ok);
   }
 
   function getExpectingType(&$token, $expected_type)
@@ -433,36 +522,27 @@ class xParser
       switch ($this->html_situation) {
         case 1:  // ya sabemos que se trata de html.. pode ser o texto ou um script
           $html_type = 7;
-          $ok        = true;
-          do {
-            $c = substr($this->code, $this->pos, 1);
-            $this->pos++;
-            if ($c == '<') {
-              if ($intoScript) {
-                $c1 = substr($this->code, $this->pos, 7);
-                if (strtoupper($c1) == '/SCRIPT') {
-                  $this->pos--;
-                  $ok = false;
-                } else {
-                  $lineData .= $c;
-                }
-              } else {
+          if ($intoScript) {
+            $this->readHtmlScriptToken($lineData);
+          } else {
+            $ok = true;
+            do {
+              $c = substr($this->code, $this->pos, 1);
+              $this->pos++;
+              if ($c == '<') {
                 $this->pos--;
                 $ok = false;
+              } else if ($c >= ' ') {
+                $lineData .= $c;
+              } else if ($c == chr(10)) {
+                $this->line++;
               }
-            } else if ($c >= ' ') {
-              $lineData .= $c;
-            } else if ($c == chr(10)) {
-              $this->line++;
-              if ($intoScript) {
+
+              if ($this->pos >= strlen($this->code)) {
                 $ok = false;
               }
-            }
-
-            if ($this->pos >= strlen($this->code)) {
-              $ok = false;
-            }
-          } while ($ok);
+            } while ($ok);
+          }
           $this->html_situation = 0;
           break;
         case 2:  // ya sabemos que se trata de un TAG html  <...>

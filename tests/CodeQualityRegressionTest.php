@@ -112,4 +112,17 @@ final class CodeQualityRegressionTest extends TestCase
         $this->assertStringContainsString('private function runClientEventLoop(', $content);
         $this->assertStringContainsString('private function registerServerCallbacks(', $content);
     }
+
+    public function testYParserGetUsesDedicatedReadersAndHtmlScriptHelper(): void
+    {
+        $content = $this->readSource('src/misc/yParser.php');
+
+        $this->assertStringContainsString('private function readNumber(', $content);
+        $this->assertStringContainsString('private function readString(', $content);
+        $this->assertStringContainsString('private function readLineComment(', $content);
+        $this->assertStringContainsString('private function readBlockComment(', $content);
+        $this->assertStringContainsString('private function readOperator(', $content);
+        $this->assertStringContainsString('private function readMacro(', $content);
+        $this->assertStringContainsString('private function readHtmlScriptToken(', $content);
+    }
 }
