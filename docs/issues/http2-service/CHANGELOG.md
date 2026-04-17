@@ -1,5 +1,8 @@
 # CHANGELOG — http2-service
 
+2026-04-17 — Removed stale `H2S-002-[PR]` file after closure to keep one issue file per issue
+2026-04-17 — H2S-002 merged via PR #14 and moved to closed; remote issue branch deleted
+2026-04-17 — H2S-002 moved to reviewed after merge validation
 2026-04-17 — H2S-002 moved to PR; branch `issue/http2-service/h2s-002-refactor-request-callback` pushed and PR #14 opened
 2026-04-17 — H2S-002 moved to on-work; branch `issue/http2-service/h2s-002-refactor-request-callback` started
 2026-04-17 — Removed stale `H2S-001-[PR]` file after closure to keep one issue file per issue

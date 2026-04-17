@@ -46,7 +46,7 @@ Issues are drawn from docs/issues/. Priority order: security first, then product
    → `docs/issues/http2-service/H2S-001-refactor-get-as-openapi-json-[closed].md`
 
 10. **H2S-002** `yeapf-http2-service.php` — `'Request'` callback: IIFE inside closure, `global $currentURI`, commented debug blocks
-    → `docs/issues/http2-service/H2S-002-refactor-request-callback-[PR].md`
+    → `docs/issues/http2-service/H2S-002-refactor-request-callback-[closed].md`
 
 11. **CQR-009** `yParser.php` — `get()` is 199 lines; extract one reader method per token type
     → `docs/issues/code-quality-refactor/CQR-009-yparser-get-method-[closed].md`
