@@ -138,4 +138,15 @@ final class CodeQualityRegressionTest extends TestCase
         $this->assertStringContainsString('return $this->exportAsSql();', $content);
         $this->assertStringContainsString('return $this->exportAsProtobuf();', $content);
     }
+
+    public function testHttp2OpenApiBuilderIsSplitIntoFocusedHelpers(): void
+    {
+        $content = $this->readSource('src/service/yeapf-http2-service.php');
+
+        $this->assertStringContainsString('private function appendOpenApiPaths(', $content);
+        $this->assertStringContainsString('private function appendOpenApiSecuritySchemes(', $content);
+        $this->assertStringContainsString('private function appendOpenApiTags(', $content);
+        $this->assertStringContainsString('private function buildOpenApiOperation(', $content);
+        $this->assertStringNotContainsString("_trace('CONSTRAINTS:", $content);
+    }
 }
