@@ -49,7 +49,7 @@ Issues are drawn from docs/issues/. Priority order: security first, then product
     → `docs/issues/http2-service/H2S-002-refactor-request-callback-[opened].md`
 
 11. **CQR-009** `yParser.php` — `get()` is 199 lines; extract one reader method per token type
-    → `docs/issues/code-quality-refactor/CQR-009-yparser-get-method-[on-work].md`
+    → `docs/issues/code-quality-refactor/CQR-009-yparser-get-method-[PR].md`
 
 12. **CQR-002** `yeapf-collections.php` — `exportDocumentModel()` handles JSON+SQL+Protobuf in one method
     → `docs/issues/code-quality-refactor/CQR-002-collections-exportdocumentmodel-[opened].md`
