@@ -125,4 +125,17 @@ final class CodeQualityRegressionTest extends TestCase
         $this->assertStringContainsString('private function readMacro(', $content);
         $this->assertStringContainsString('private function readHtmlScriptToken(', $content);
     }
+
+    public function testCollectionsExportDocumentModelIsSplitByOutputFormat(): void
+    {
+        $content = $this->readSource('src/database/yeapf-collections.php');
+
+        $this->assertStringContainsString('private function exportAsJson(', $content);
+        $this->assertStringContainsString('private function exportAsSql(', $content);
+        $this->assertStringContainsString('private function exportAsProtobuf(', $content);
+        $this->assertStringContainsString('private function yeapfTypeToProtobufType(', $content);
+        $this->assertStringContainsString('return $this->exportAsJson();', $content);
+        $this->assertStringContainsString('return $this->exportAsSql();', $content);
+        $this->assertStringContainsString('return $this->exportAsProtobuf();', $content);
+    }
 }
