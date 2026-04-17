@@ -175,75 +175,77 @@ class DocumentModel extends \YeAPF\SanitizedKeyData
 
     public function exportDocumentModel(int $format)
     {
-        $ret = null;
-
         switch ($format) {
             case YeAPF_JSON_FORMAT:
-                $ret = $this->getDocumentModelConstraints(true);
-                $ret = json_encode($ret, JSON_PRETTY_PRINT);
-                break;
+                return $this->exportAsJson();
 
             case YeAPF_SQL_FORMAT:
-                break;
+                return $this->exportAsSql();
 
             case YeAPF_PROTOBUF_FORMAT:
-                $fields      = $this->getDocumentModelConstraints(true);
-                $orderedList = [];
-                foreach ($fields as $key => $constraint) {
-                    if (null !== $constraint['protobufOrder']) {
-                        $orderedList[$key] = $constraint;
-                    }
-                }
-                uasort($orderedList, function ($a, $b) {
-                                         return $a['protobufOrder'] - $b['protobufOrder'];
-                                     });
-
-                $ret = 'message ' . $this->getCollectionName() . " {\n";
-                foreach ($orderedList as $key => $constraint) {
-                    $type = $constraint['type'];
-                    switch ($type) {
-                        case YeAPF_TYPE_BOOL:
-                            $type = 'bool';
-                            break;
-                        case YeAPF_TYPE_INT:
-                            $type = 'int32';
-                            break;
-                        case YeAPF_TYPE_FLOAT:
-                            $type = 'float';
-                            break;
-                        case YeAPF_TYPE_DATE:
-                            $type = 'string';
-                            break;
-                        case YeAPF_TYPE_TIME:
-                            $type = 'string';
-                            break;
-                        case YeAPF_TYPE_DATETIME:
-                            $type = 'string';
-                            break;
-                        case YeAPF_TYPE_STRING:
-                            $type = 'string';
-                            break;
-                        case YeAPF_TYPE_BYTES:
-                            $type = 'bytes';
-                            break;
-                        case YeAPF_TYPE_JSON:
-                            $type = 'json';
-                            break;
-                        default:
-                            throw new \YeAPF\YeAPFException('Unsupported type', YeAPF_UNSUPPORTED_TYPE);
-                    }
-                    $ret .= "\t" . $type . " $key = " . $constraint['protobufOrder'] . ";\n";
-                }
-
-                $ret .= "}\n";
-
-                break;
+                return $this->exportAsProtobuf();
 
             default:
                 throw new \YeAPF\YeAPFException("Unknown document model: '$format'", YeAPF_UNKNOWN_EXPORTABLE_FORMAT);
         }
+    }
 
+    private function exportAsJson()
+    {
+        return json_encode($this->getDocumentModelConstraints(true), JSON_PRETTY_PRINT);
+    }
+
+    private function exportAsSql()
+    {
+        return '';
+    }
+
+    private function exportAsProtobuf()
+    {
+        $fields      = $this->getDocumentModelConstraints(true);
+        $orderedList = [];
+        foreach ($fields as $key => $constraint) {
+            if (null !== $constraint['protobufOrder']) {
+                $orderedList[$key] = $constraint;
+            }
+        }
+        uasort($orderedList, function ($a, $b) {
+            return $a['protobufOrder'] - $b['protobufOrder'];
+        });
+
+        $ret = 'message ' . $this->getCollectionName() . " {\n";
+        foreach ($orderedList as $key => $constraint) {
+            $type = $this->yeapfTypeToProtobufType($constraint['type']);
+            $ret .= "\t" . $type . " $key = " . $constraint['protobufOrder'] . ";\n";
+        }
+        $ret .= "}\n";
         return $ret;
+    }
+
+    private function yeapfTypeToProtobufType(string $type): string
+    {
+        switch ($type) {
+            case YeAPF_TYPE_BOOL:
+                return 'bool';
+            case YeAPF_TYPE_INT:
+                return 'int32';
+            case YeAPF_TYPE_FLOAT:
+                return 'float';
+            case YeAPF_TYPE_DATE:
+                return 'string';
+            case YeAPF_TYPE_TIME:
+                return 'string';
+            case YeAPF_TYPE_DATETIME:
+                return 'string';
+            case YeAPF_TYPE_STRING:
+                return 'string';
+            case YeAPF_TYPE_BYTES:
+                return 'bytes';
+            case YeAPF_TYPE_JSON:
+                return 'json';
+            default:
+                throw new \YeAPF\YeAPFException('Unsupported type', YeAPF_UNSUPPORTED_TYPE);
+        }
     }
 
     private function getModelsAssetsFolder()

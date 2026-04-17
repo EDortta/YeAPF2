@@ -52,7 +52,7 @@ Issues are drawn from docs/issues/. Priority order: security first, then product
     → `docs/issues/code-quality-refactor/CQR-009-yparser-get-method-[closed].md`
 
 12. **CQR-002** `yeapf-collections.php` — `exportDocumentModel()` handles JSON+SQL+Protobuf in one method
-    → `docs/issues/code-quality-refactor/CQR-002-collections-exportdocumentmodel-[opened].md`
+    → `docs/issues/code-quality-refactor/CQR-002-collections-exportdocumentmodel-[on-work].md`
 
 ### FOUNDATION — DB architecture (must precede driver and schema work)
 
