@@ -34,7 +34,7 @@ Issues are drawn from docs/issues/. Priority order: security first, then product
 ### MEDIUM — structural refactors (readability and maintainability)
 
 6. **CQR-003** `yeapf-pdo-connection.php` — `connect()` does two unrelated things; commented-out lock blocks
-   → `docs/issues/code-quality-refactor/CQR-003-pdo-connect-split-[opened].md`
+   → `docs/issues/code-quality-refactor/CQR-003-pdo-connect-split-[PR].md`
 
 7. **CQR-005** `yeapf-webapp.php` — `global $yAnalyzer` in two static methods; live `var_dump` + `die()` behind `$debug=false`; `setRouteHandler()` is 83 lines
    → `docs/issues/code-quality-refactor/CQR-005-webapp-globals-and-debug-[opened].md`
