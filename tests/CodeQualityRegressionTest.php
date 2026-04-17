@@ -97,4 +97,19 @@ final class CodeQualityRegressionTest extends TestCase
         $this->assertStringContainsString('private static function registerSimpleRoute(', $content);
         $this->assertStringContainsString('private static function normalizeRoutePath(', $content);
     }
+
+    public function testSseServiceHasNoEchoInProductionPaths(): void
+    {
+        $content = $this->readSource('src/service/yeapf-sse-service.php');
+        $this->assertDoesNotMatchRegularExpression('/^[ \t]*echo\\b/m', $content);
+    }
+
+    public function testSseServiceRequestFlowIsExtractedIntoNamedMethods(): void
+    {
+        $content = $this->readSource('src/service/yeapf-sse-service.php');
+
+        $this->assertStringContainsString('private function handleRequest(', $content);
+        $this->assertStringContainsString('private function runClientEventLoop(', $content);
+        $this->assertStringContainsString('private function registerServerCallbacks(', $content);
+    }
 }
