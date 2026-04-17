@@ -23,6 +23,6 @@ One issue per file. Each issue targets the specific problems found in that file.
 - [CQR-005-webapp-globals-and-debug.md](./CQR-005-webapp-globals-and-debug-[opened].md)
 - [CQR-006-sse-callbacks-and-echo.md](./CQR-006-sse-callbacks-and-echo-[opened].md)
 - [CQR-007-i18n-translate-refactor.md](./CQR-007-i18n-translate-refactor-[opened].md)
-- [CQR-008-jwt-secret-in-logs.md](./CQR-008-jwt-secret-in-logs-[PR].md)
+- [CQR-008-jwt-secret-in-logs.md](./CQR-008-jwt-secret-in-logs-[closed].md)
 - [CQR-009-yparser-get-method.md](./CQR-009-yparser-get-method-[opened].md)
 - [CQR-010-keydata-checkconstraint.md](./CQR-010-keydata-checkconstraint-[closed].md)

@@ -15,7 +15,7 @@ Issues are drawn from docs/issues/. Priority order: security first, then product
 ### CRITICAL — fix before any other work
 
 1. **CQR-008** `yeapf-jwt.php` — JWT secret key written to trace log unconditionally
-   → `docs/issues/code-quality-refactor/CQR-008-jwt-secret-in-logs-[PR].md`
+   → `docs/issues/code-quality-refactor/CQR-008-jwt-secret-in-logs-[closed].md`
 
 2. **CQR-010** `class.key-data.php` — `$debug = true` hardcoded in `checkConstraint()` and `__set()`; fires on every ORM property set in production
    → `docs/issues/code-quality-refactor/CQR-010-keydata-checkconstraint-[closed].md`
