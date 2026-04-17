@@ -170,7 +170,6 @@ class DocumentModel extends \YeAPF\SanitizedKeyData
                 }
             }
         }
-        \_trace('DocumentModel constraints: ' . json_encode($ret));
         return $ret;
     }
 
@@ -270,7 +269,6 @@ class DocumentModel extends \YeAPF\SanitizedKeyData
         }
         $json = $this->exportDocumentModel(YeAPF_JSON_FORMAT);
         // echo "\nDIE at ".__FILE__.':'.__LINE__."\n";
-        // die(print_r($json));
         return file_put_contents($folder . $this->getCollectionName() . '.json', $json);
     }
 
@@ -294,7 +292,6 @@ class DocumentModel extends \YeAPF\SanitizedKeyData
                 if (is_string($model)) {
                     $aux = json_decode($model, true);
                     foreach ($aux as $constraintName => $constraintDefinition) {
-                        \_trace("$constraintName = " . json_encode($constraintDefinition));
                         $this->setConstraint(
                             keyName: $constraintName,
                             // keyType: $constraintDefinition['type'],
@@ -390,7 +387,6 @@ class PersistentSanitizedKeyData extends \YeAPF\ORM\SharedSanitizedKeyData
     {
         global $yeapfPDOConnection;
 
-        _trace('[ getPDOConnection ]');
 
         throw new \YeAPF\YeAPFException('OBSOLETE function getPDOConnection()', YeAPF_OBSOLETE_FUNCTION);
 
@@ -585,7 +581,6 @@ class SharedSanitizedCollection extends \YeAPF\ORM\SharedSanitizedKeyData implem
                     } catch (\Exception $e) {
                         $valueExplained = $value ?? 'null';
                         $message = "Value '$valueExplained' is not valid for key '$key' in " . __CLASS__ . '.' . __FUNCTION__. "() at ".(__LINE__-3);
-                        _trace($message);
                         throw new \YeAPF\YeAPFException($message, YeAPF_VALUE_OUT_OF_RANGE);
                     }
                 }
@@ -622,9 +617,7 @@ class SharedSanitizedCollection extends \YeAPF\ORM\SharedSanitizedKeyData implem
 
     public function getDocumentModel()
     {
-        _trace("Getting Document Model on '" . $this->collectionName . "' @" . __CLASS__);
         $ret = $this->documentModel;
-        _trace('Returning Document Model' . (is_null($ret) ? ' (null)' : json_encode($ret->getDocumentModelConstraints())));
         return $ret;
     }
 
@@ -657,9 +650,7 @@ class SharedSanitizedCollection extends \YeAPF\ORM\SharedSanitizedKeyData implem
     {
         $ret = false;
         if ($this->getRedisConnection()->getConnected()) {
-            _trace("Getting document $id from REDIS '$this->collectionName'");
             $ret = $this->getRedisConnection()->hgetall("$this->collectionName:$id");
-            _trace('Returning document ' . json_encode($ret));
             if (empty($ret))
                 $ret = false;
         }
@@ -732,7 +723,6 @@ class SharedSanitizedCollection extends \YeAPF\ORM\SharedSanitizedKeyData implem
     public function subsetByExample($example, $count, $start = 0)
     {
         $ret = [];
-        // print_r('Searching for: ' . print_r($example->exportData(), true));
         if ($this->getRedisConnection()->getConnected()) {
             $pos = 0;
             foreach ($this->listDocuments() as $id) {
@@ -890,7 +880,6 @@ class PersistentCollection extends \YeAPF\ORM\SharedSanitizedCollection implemen
             $this->pskData   = new \YeAPF\ORM\PersistentSanitizedKeyData($context);
             parent::__construct($context, $collectionName, $collectionIdName, $documentModel, $cacheExpiration);
             $this->grantCollection();
-            _trace(' * ' . __LINE__ . '');
         } else {
             throw new \YeAPF\YeAPFException('Invalid cache mode', YeAPF_INVALID_CACHE_MODE);
         }
@@ -898,27 +887,15 @@ class PersistentCollection extends \YeAPF\ORM\SharedSanitizedCollection implemen
 
     public function grantCollection()
     {
-        $debug = false;
-        if ($debug)
-            _trace('>>> Asking for connection');
         $pdo = null;
         $this->pskData->gainPDOConnection($pdo);
-        if ($debug)
-            _trace('>>> Ready to work');
-        // print_r($pdo);
         try {
-            if ($debug)
-                _trace(' * ' . __LINE__ . '');
             if (!$pdo->tableExists(self::getCollectionName())) {
                 $sql = self::exportDocumentModel(YeAPF_SQL_FORMAT);
                 $ret = $pdo->query($sql);
             }
-            if ($debug)
-                _trace(' * ' . __LINE__ . '');
 
             foreach ($this->getDocumentModel()->getConstraints() as $key => $constraint) {
-                if ($debug)
-                    _trace('  * ' . __LINE__ . " $key " . json_encode($constraint));
                 $columnDefinition = $key . ' ' . self::internalType2SQLType($constraint);
 
                 if (false == $constraint['acceptNULL']) {
@@ -950,13 +927,6 @@ class PersistentCollection extends \YeAPF\ORM\SharedSanitizedCollection implemen
                     $diff           = array_diff($internalColDef, $colDef);
 
                     if (!empty($diff)) {
-                        $debug = true;
-                        if ($debug)
-                            _trace('Database Column Definition:' . print_r($colDef, true));
-                        if ($debug)
-                            _trace('Internal Column Definition:' . print_r($internalColDef, true));
-                        if ($debug)
-                            _trace('Differences:' . print_r($diff, true));
                         foreach ($diff as $colDefKey => $colDefValue) {
                             $sql = 'alter table ' . self::getCollectionName();
                             switch ($colDefKey) {
@@ -989,7 +959,6 @@ class PersistentCollection extends \YeAPF\ORM\SharedSanitizedCollection implemen
                                     break;
 
                                 default:
-                                    _trace(' **** ' . __LINE__ . " $colDefKey: " . print_r($colDefValue, true));
                                     throw new \YeAPF\YeAPFException("I don't know what to do with '$colDefKey' = '$colDefValue' on '$key' ... !", YeAPF_UNIMPLEMENTED_KEY_TYPE);
                                     break;
                             }
@@ -999,8 +968,6 @@ class PersistentCollection extends \YeAPF\ORM\SharedSanitizedCollection implemen
                     }
                 }
             }
-            if ($debug)
-                _trace(' * ' . __LINE__ . '');
         } finally {
             $this->pskData->giveBackPDOConnection($pdo);
         }
@@ -1079,7 +1046,6 @@ class PersistentCollection extends \YeAPF\ORM\SharedSanitizedCollection implemen
         $ret['numeric_scale']            = null;
         if (strpos($ret['data_type'], 'char') == false) {
             if ($ret['data_type'] != 'date') {
-                // _trace($name." ".$ret['data_type']." ".strpos($ret['data_type'], 'date')." | ".strpos($ret['data_type'], 'time'));
                 $ret['numeric_precision'] = $constraint['decimals'] ?? null;
                 $ret['numeric_scale']     = $constraint['length'] ?? null;
             }
@@ -1120,7 +1086,6 @@ class PersistentCollection extends \YeAPF\ORM\SharedSanitizedCollection implemen
             } else {
                 // echo "  ( parent )\n";
                 $ret = parent::exportDocumentModel($format);
-                // echo "   ret = ".print_r($ret, true)."\n";
             }
         }
 
@@ -1135,12 +1100,7 @@ class PersistentCollection extends \YeAPF\ORM\SharedSanitizedCollection implemen
         $this->pskData->do(function ($persistentData) use ($sql, $params, &$ret) {
                                $auxRet = $persistentData->queryAndFetch($sql, $params);
                                $ret    = (is_array($auxRet) && $auxRet['exists'] ?? false);
-                               // \_trace("IS ARRAY?".(is_array($auxRet)?"true":"false"));
-                               // \_trace("exists? ".$auxRet['exists']);
-                               // \_trace(print_r($auxRet, true));
-                               // \_trace("ret = ".($ret?"true":"false"));
                            });
-        _trace("HasDocumentInDatabase $id in " . $this->getCollectionName() . '? ' . ($ret ? 'true' : 'false'));
         return $ret;
     }
 
@@ -1195,13 +1155,9 @@ class PersistentCollection extends \YeAPF\ORM\SharedSanitizedCollection implemen
         $this->pskData->do(
             function ($conn) use ($sql, &$success, $params) {
                 try {
-                    \_trace('Executing SQL: ' . $sql);
-                    \_trace('With params: ' . json_encode($params));
                     $result  = $conn->query($sql, $params);
                     $success = ($result !== false);
-                    \_trace('SQL execution result: ' . ($success ? 'success' : 'failure'));
                 } catch (\Exception $e) {
-                    \_trace('SQL execution error: ' . $e->getMessage());
                     $success = false;
                 }
             }
@@ -1221,7 +1177,6 @@ class PersistentCollection extends \YeAPF\ORM\SharedSanitizedCollection implemen
         } else {
             $ret = false;
         }
-        \_trace("HasDocument $id in " . $this->getCollectionName() . '? ' . ($ret ? 'true' : 'false'));
         return $ret;
     }
 
@@ -1230,7 +1185,6 @@ class PersistentCollection extends \YeAPF\ORM\SharedSanitizedCollection implemen
         $ret      = null;
         $useCache = parent::hasDocument($id);
         if ($useCache) {
-            \_trace('Using cached data for ' . $this->getCollectionName() . ".$id");
             //
             $ret  = clone $this->getDocumentModel();
             $data = parent::getDocument($id);
@@ -1250,7 +1204,6 @@ class PersistentCollection extends \YeAPF\ORM\SharedSanitizedCollection implemen
             $this->pskData->do(
                 function ($conn) use ($id, $sql, &$ret, $params) {
                     $data = $conn->queryAndFetch($sql, $params);
-                    \_trace('DATA: ' . print_r($data, true));
                     if ($data) {
                         parent::setDocument($id, $data);
                         $ret->importData(parent::getDocument($id));
@@ -1258,7 +1211,6 @@ class PersistentCollection extends \YeAPF\ORM\SharedSanitizedCollection implemen
                 }
             );
         }
-        \_trace('RET: ' . print_r($ret->exportData(), true));
         return $ret;
     }
 
@@ -1291,7 +1243,6 @@ class PersistentCollection extends \YeAPF\ORM\SharedSanitizedCollection implemen
 
             if (!$dbResult && $cacheResult) {
                 parent::deleteDocument($id);
-                \_trace("Document save failed in database, removed from cache: $id");
             }
 
             $ret = $dbResult;
@@ -1301,7 +1252,6 @@ class PersistentCollection extends \YeAPF\ORM\SharedSanitizedCollection implemen
                 $ret = parent::setDocument($id, $aux);
             }
         }
-        \_trace("Document save result for $id: " . ($ret ? 'success' : 'failure'));
         return $ret;
     }
 
@@ -1330,12 +1280,10 @@ class PersistentCollection extends \YeAPF\ORM\SharedSanitizedCollection implemen
         $params = [];
         $this->pskData->do(
             function ($conn) use ($sql, $params, &$ret) {
-                \_trace('SQL: ' . $sql);
                 $stmt = $conn->query($sql, $params);
                 while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
                     $ret[] = $row[$this->getCollectionIdName()];
                 }
-                \_trace('RET: ' . print_r('Returning ' . count($ret) . ' records', true));
             }
         );
         return $ret;
@@ -1466,20 +1414,13 @@ class PersistentCollection extends \YeAPF\ORM\SharedSanitizedCollection implemen
             $params = $example;
         }
 
-        _trace("SQL:         $sql");
-        _trace('PARAMS:      ' . json_encode($params));
-        _trace('CACHED ID:   ' . json_encode($cachedIdList));
-        // _trace('CACHED DATA: '.print_r($cachedRet, true));
         $ret = array_map(function ($row) {
-                             _trace(json_encode($row->exportData()));
                              return $row->exportData();
                          }, $cachedRet);
         $this->pskData->do(
             function ($conn) use ($sql, &$ret, $params, $usingExpression) {
                 if (!$usingExpression && empty($params)) {
-                    _trace('WARNING: NO PARAMS');
                 } else {
-                    _trace('CONN: ' . json_encode($conn));
                     $stmt = $conn->query($sql, $params);
                     while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
                         $ret[] = $row;
@@ -1488,7 +1429,6 @@ class PersistentCollection extends \YeAPF\ORM\SharedSanitizedCollection implemen
                 }
             }
         );
-        _trace('RET: ' . json_encode($ret));
 
         return $ret;
     }
