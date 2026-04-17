@@ -16,7 +16,7 @@ One issue per file. Each issue targets the specific problems found in that file.
 `code-quality-agent` → `psr-compliance-agent` for style conformance after structural refactor → `quality-gates-agent` to verify tests pass
 
 ## Issues
-- [CQR-001-collections-debug-noise.md](./CQR-001-collections-debug-noise-[PR].md)
+- [CQR-001-collections-debug-noise.md](./CQR-001-collections-debug-noise-[closed].md)
 - [CQR-002-collections-exportdocumentmodel.md](./CQR-002-collections-exportdocumentmodel-[opened].md)
 - [CQR-003-pdo-connect-split.md](./CQR-003-pdo-connect-split-[opened].md)
 - [CQR-004-pdo-global-and-postgres-sql.md](./CQR-004-pdo-global-and-postgres-sql-[opened].md)

@@ -1,5 +1,7 @@
 # CHANGELOG — code-quality-refactor
 
+2026-04-17 — CQR-001 merged via PR #5 and moved to closed; remote issue branch deleted
+2026-04-17 — CQR-001 moved to reviewed after merge validation
 2026-04-17 — CQR-001 moved to PR; branch `issue/code-quality-refactor/cqr-001-collections-debug-noise` pushed and PR #5 opened
 2026-04-17 — CQR-001 moved to on-work; branch `issue/code-quality-refactor/cqr-001-collections-debug-noise` started
 2026-04-17 — Removed stale `CQR-010-[PR]` file after closure to keep one issue file per issue
