@@ -107,6 +107,7 @@ require_once __DIR__ . '/yeapf-config.php';
     'request/yeapf-request.php',
     'database/yeapf-connection.php',
     'database/yeapf-redis-connection.php',
+    'database/yeapf-pgsql-schema-inspector.php',
     'database/yeapf-pdo-connection.php',
     'database/yeapf-persistence-interface.php',
     'database/yeapf-collections.php',
