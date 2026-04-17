@@ -1,5 +1,6 @@
 # CHANGELOG — code-quality-refactor
 
+2026-04-17 — CQR-008 PR branch rebuilt from updated master with focused JWT trace-removal changes; regression tests passing
 2026-04-17 — CQR-010 merged via PR #3 and moved to closed; remote issue branch deleted
 2026-04-17 — CQR-010 moved to reviewed after merge validation
 2026-04-17 — CQR-010 moved to PR; `checkConstraint()` refactored into per-type validators (`validateString/int/float/bool/date/datetime/time/json`); regression tests passing

@@ -98,14 +98,12 @@ class yJWT extends \YeAPF\SanitizedKeyData
     {
         $folder = self::getAssetsFolder();
         if (is_dir($folder)) {
-            \_trace("Cleaning $folder");
             $weekAgo = strtotime('-1 week');
             foreach (scandir($folder) as $file) {
                 if (strpos($file, '.jwt') !== false) {
                     $filePath = $folder . '/' . $file;
                     if (filemtime($filePath) < $weekAgo) {
                         unlink($filePath);
-                        \_trace("Deleted $file");
                     }
                 }
             }
@@ -114,7 +112,6 @@ class yJWT extends \YeAPF\SanitizedKeyData
 
     public function sendToBin($token = null)
     {
-        \_trace("Discarding $token");
         if (null == $token || strlen($token) == 0) {
             $token = $this->jwtToken ?? '';
         }
@@ -122,14 +119,9 @@ class yJWT extends \YeAPF\SanitizedKeyData
         if (strlen($token) > 0) {
             $folder = self::getAssetsFolder();
             if (is_dir($folder)) {
-                \_trace("Sending $token to $folder");
                 $filePath = $folder . '/' . md5($token) . '.jwt';
                 file_put_contents($filePath, $token);
-            } else {
-                \_trace("Cannot send $token to $folder");
             }
-        } else {
-            \_trace("Cannot send '$token' to $folder. It's empty.");
         }
     }
 
@@ -145,7 +137,6 @@ class yJWT extends \YeAPF\SanitizedKeyData
             $filePath = $folder . '/' . md5($token) . '.jwt';
             $ret = file_exists($filePath);
         }
-        \_trace('Token in bin: ' . ($ret ? 'yes' : 'no'));
         return $ret;
     }
 
@@ -156,21 +147,14 @@ class yJWT extends \YeAPF\SanitizedKeyData
         [$header, $payload, $signature] = explode('.', $aToken);
         $decodedPayload = base64_decode($payload);
         $payloadArray = json_decode($decodedPayload, true);
-        \_trace('Token payload: ' . print_r($payloadArray, true));
 
         $this->exp = $payloadArray['exp'];
         $currentTime = time();
-        \_trace(" exp: $this->exp");
-        \_trace('time: ' . $currentTime);
-        \_trace('diff: ' . ($this->exp - $currentTime));
 
         if (!$this->tokenInBin($aToken)) {
             $this->importResult = false;
             if ($this->exp >= $currentTime) {
                 $algo = $this->algorithm;
-                \_trace("TOKEN: $aToken");
-                \_trace("ALGORITHM: $algo");
-                \_trace("SECRET KEY: $this->secretKey");
                 try {
                     $decoded = JWT::decode($aToken, new \Firebase\JWT\Key($this->secretKey, $algo));
                     foreach ($this->registeredClaimNames as $claimName) {
@@ -180,19 +164,15 @@ class yJWT extends \YeAPF\SanitizedKeyData
                     $this->importResult = YeAPF_JWT_SIGNATURE_VERIFICATION_OK;
                     $this->jwtToken = $aToken;
                 } catch (\Exception $e) {
-                    \_trace('Exception: ' . $e->getMessage());
                     $this->importResult = YeAPF_JWT_SIGNATURE_VERIFICATION_FAILED;
                     $this->sendToBin($aToken);
                 }
             } else {
-                \_trace('Token expired');
                 $this->importResult = YeAPF_JWT_EXPIRED;
             }
         } else {
-            \_trace('Token already in bin');
             $this->importResult = YeAPF_JWT_ALREADY_IN_BIN;
         }
-        \_trace('Import Result: ('. json_encode($this->importResult) . ') ' . $this->explainImportResult());
         return $this->importResult;
     }
 
