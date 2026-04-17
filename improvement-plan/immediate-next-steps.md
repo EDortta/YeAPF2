@@ -43,7 +43,7 @@ Issues are drawn from docs/issues/. Priority order: security first, then product
    → `docs/issues/code-quality-refactor/CQR-006-sse-callbacks-and-echo-[closed].md`
 
 9. **H2S-001** `yeapf-http2-service.php` — `getAsOpenAPIJSON()` is 175 lines; split into per-section builders
-   → `docs/issues/http2-service/H2S-001-refactor-get-as-openapi-json-[on-work].md`
+   → `docs/issues/http2-service/H2S-001-refactor-get-as-openapi-json-[PR].md`
 
 10. **H2S-002** `yeapf-http2-service.php` — `'Request'` callback: IIFE inside closure, `global $currentURI`, commented debug blocks
     → `docs/issues/http2-service/H2S-002-refactor-request-callback-[opened].md`
