@@ -235,7 +235,17 @@ abstract class HTTP2Service extends Skeleton
 
     private function getAsOpenAPIJSON()
     {
-        $openApi = [
+        $openApi = $this->buildOpenApiBase();
+        $this->appendOpenApiServers($openApi);
+        $this->appendOpenApiSecuritySchemes($openApi);
+        $this->appendOpenApiPaths($openApi);
+        $this->appendOpenApiTags($openApi);
+        return $openApi;
+    }
+
+    private function buildOpenApiBase(): array
+    {
+        return [
             'openapi' => '3.0.0',
             'info'    => [
                 'title'       => $this->getAPIDetail('info', 'title') ?? 'API Documentation',
@@ -243,8 +253,13 @@ abstract class HTTP2Service extends Skeleton
                 'description' => $this->getAPIDetail('info', 'description') ?? 'API Documentation',
                 'version'     => $this->getAPIDetail('info', 'version') ?? '1.0.0'
             ],
+            'paths'   => [],
+            'tags'    => [],
         ];
+    }
 
+    private function appendOpenApiServers(array &$openApi): void
+    {
         if ($this->APIDetailExists('servers')) {
             $openApi['servers'] = [
                 [
@@ -253,160 +268,194 @@ abstract class HTTP2Service extends Skeleton
                 ]
             ];
         }
+    }
 
-        if ($this->APIDetailExists('components', 'securitySchemes')) {
-            $openApi['components']['securitySchemes'] = [];
-            $declaredSchemes                          = $this->getAPIDetail('components', 'securitySchemes') ?? [];
-            foreach ($this->usedSecuritySchemes as $scheme) {
-                $openApi['components']['securitySchemes'][$scheme] = $declaredSchemes[$scheme];
-            }
+    private function appendOpenApiSecuritySchemes(array &$openApi): void
+    {
+        if (!$this->APIDetailExists('components', 'securitySchemes')) {
+            return;
         }
 
-        $openApi['paths'] = [];
+        $openApi['components']['securitySchemes'] = [];
+        $declaredSchemes                          = $this->getAPIDetail('components', 'securitySchemes') ?? [];
+        foreach ($this->usedSecuritySchemes as $scheme) {
+            $openApi['components']['securitySchemes'][$scheme] = $declaredSchemes[$scheme];
+        }
+    }
 
-        $removeCurlyBrakets = function ($str) {
-            $str = trim($str);
-            $str = str_replace('{{', '{', $str);
-            $str = str_replace('}}', '}', $str);
-            return $str;
-        };
-
-        $openApi['tags'] = [];
-        $auxTags         = [];
-
+    private function appendOpenApiPaths(array &$openApi): void
+    {
         foreach ($this->handlers as $method => $endpoints) {
             $method = strtolower($method);
             foreach ($endpoints as $endpoint => $details) {
-                if (!$details['privatePath']) {
-                    $path = '/' . trim($endpoint);
-                    $path = str_replace('//', '/', $path);
-                    foreach ($details['inlineParams'] as $placeholder => $paramName) {
-                        $pos = strpos($path, '*');
-                        if ($pos !== false)
-                            $path = substr_replace($path, $removeCurlyBrakets($placeholder), $pos, strlen('1'));
-                    }
-                    $responses = [];
-                    foreach ($details['responses'] ?? [] as $ret_code => $desc) {
-                        $responses[$ret_code] = [
-                            'description' => $desc
-                        ];
-                    }
-                    if (empty($responses)) {
-                        $responses[200] = [
-                            'description' => 'Success'
-                        ];
-                    }
-                    $openApi['paths'][$path][$method] = [
-                        'summary'   => $details['attendant'][1],
-                        'responses' => $responses
-                    ];
+                if ($details['privatePath']) {
+                    continue;
+                }
 
-                    if (!empty($details['tags'])) {
-                        $openApi['paths'][$path][$method]['tags'] = $details['tags'];
-                        foreach ($details['tags'] as $tag) {
-                            if (!in_array($tag, $auxTags)) {
-                                $auxTags[] = $tag;
-                            }
-                        }
-                    }
+                $path                    = $this->normalizeOpenApiPath((string) $endpoint, $details['inlineParams'] ?? []);
+                $operation               = $this->buildOpenApiOperation($method, $path, $details, $openApi);
+                $openApi['paths'][$path][$method] = $operation;
+            }
+        }
+    }
 
-                    if (null != $details['description']) {
-                        $openApi['paths'][$path][$method]['description'] = $details['description'];
-                    }
+    private function normalizeOpenApiPath(string $endpoint, array $inlineParams): string
+    {
+        $path = '/' . trim($endpoint);
+        $path = str_replace('//', '/', $path);
+        foreach ($inlineParams as $placeholder => $paramName) {
+            $pos = strpos($path, '*');
+            if ($pos !== false) {
+                $path = substr_replace($path, $this->removeCurlyBrackets((string) $placeholder), $pos, strlen('1'));
+            }
+        }
+        return $path;
+    }
 
-                    if (null != $details['operationId'])
-                        $openApi['paths'][$path][$method]['operationId'] = $details['operationId'];
+    private function removeCurlyBrackets(string $value): string
+    {
+        $value = trim($value);
+        $value = str_replace('{{', '{', $value);
+        return str_replace('}}', '}', $value);
+    }
 
-                    if (!empty($details['security'])) {
-                        foreach ($details['security'] as $secRequired) {
-                            $openApi['paths'][$path][$method]['security'][] = [$secRequired => []];
-                        }
-                    }
+    private function buildOpenApiOperation(string $method, string $path, array $details, array &$openApi): array
+    {
+        $operation = [
+            'summary'   => $details['attendant'][1],
+            'responses' => $this->buildOpenApiResponses($details),
+        ];
 
-                    // Add inline parameters if available
-                    if (isset($details['inlineParams']) && is_array($details['inlineParams'])) {
-                        foreach ($details['inlineParams'] as $param => $paramName) {
-                            if (isset($details['constraints'][$paramName])) {
-                                $paramType = $details['constraints'][$paramName]['type'];
-                            } else {
-                                $paramType = 'string';
-                            }
-                            $openApi['paths'][$path][$method]['parameters'][] = [
-                                'in'       => 'path',
-                                'required' => true,
-                                'name'     => $paramName,
-                                'schema'   => [
-                                    'type' => $paramType,
-                                ]
-                            ];
-                        }
-                    }
+        if (!empty($details['tags'])) {
+            $operation['tags'] = $details['tags'];
+        }
 
-                    // Add request body for POST operation
-                    if ($method === 'post' && !empty($details['constraints'])) {
-                        $properties = [];
-                        $required   = [];
-                        _trace('CONSTRAINTS: ' . json_encode($details['constraints']));
-                        foreach ($details['constraints'] as $fieldName => $constraint) {
-                            if ('datetime' == $constraint['type']) {
-                                $auxType = 'string';
-                            } else {
-                                $auxType = $constraint['type'];
-                            }
-                            $properties[$fieldName] = [
-                                'type' => $auxType,
-                            ];
-                            if ($constraint['length']) {
-                                $properties[$fieldName]['maxLength'] = $constraint['length'];
-                            }
+        if (null != ($details['description'] ?? null)) {
+            $operation['description'] = $details['description'];
+        }
 
-                            if ($constraint['required']) {
-                                $properties[$fieldName]['minimum'] = 1;
-                                $required[]                        = $fieldName;
-                            }
-                        }
+        if (null != ($details['operationId'] ?? null)) {
+            $operation['operationId'] = $details['operationId'];
+        }
 
-                        $cleanPath = ucfirst(preg_replace('/[^a-zA-Z_0-9]/', '', $path)) . 'RequestBody';
+        if (!empty($details['security'])) {
+            foreach ($details['security'] as $secRequired) {
+                $operation['security'][] = [$secRequired => []];
+            }
+        }
 
-                        $openApi['components']['requestBodies'][$cleanPath] = [
-                            'content' => [
-                                'application/json'    => [
-                                    'schema' => [
-                                        'type'       => 'object',
-                                        'properties' => $properties
-                                    ]
-                                ],
-                                'multipart/form-data' => [
-                                    'schema' => [
-                                        'type'       => 'object',
-                                        'properties' => $properties
-                                    ]
-                                ]
-                            ]
-                        ];
+        $parameters = $this->buildOpenApiPathParameters($details);
+        if (!empty($parameters)) {
+            $operation['parameters'] = $parameters;
+        }
 
-                        // application/json
-                        // multipart/form-data
-                        $openApi['paths'][$path][$method]['requestBody'] = [
-                            '$ref' => '#/components/requestBodies/' . $cleanPath
-                        ];
+        if ($method === 'post' && !empty($details['constraints'])) {
+            $requestBodyRef          = $this->appendOpenApiRequestBodyComponent($openApi, $path, $details['constraints']);
+            $operation['requestBody'] = [
+                '$ref' => '#/components/requestBodies/' . $requestBodyRef
+            ];
+        }
 
-                        if (!empty($required)) {
-                            $openApi['components']['requestBodies'][$cleanPath]['content']['application/json']['schema']['required']    = $required;
-                            $openApi['components']['requestBodies'][$cleanPath]['content']['multipart/form-data']['schema']['required'] = $required;
-                        }
+        return $operation;
+    }
+
+    private function buildOpenApiResponses(array $details): array
+    {
+        $responses = [];
+        foreach ($details['responses'] ?? [] as $retCode => $description) {
+            $responses[$retCode] = ['description' => $description];
+        }
+        if (empty($responses)) {
+            $responses[200] = ['description' => 'Success'];
+        }
+        return $responses;
+    }
+
+    private function buildOpenApiPathParameters(array $details): array
+    {
+        $parameters = [];
+        if (!isset($details['inlineParams']) || !is_array($details['inlineParams'])) {
+            return $parameters;
+        }
+
+        foreach ($details['inlineParams'] as $param => $paramName) {
+            if (isset($details['constraints'][$paramName])) {
+                $paramType = $details['constraints'][$paramName]['type'];
+            } else {
+                $paramType = 'string';
+            }
+            $parameters[] = [
+                'in'       => 'path',
+                'required' => true,
+                'name'     => $paramName,
+                'schema'   => [
+                    'type' => $paramType,
+                ]
+            ];
+        }
+
+        return $parameters;
+    }
+
+    private function appendOpenApiRequestBodyComponent(array &$openApi, string $path, array $constraints): string
+    {
+        $properties = [];
+        $required   = [];
+        foreach ($constraints as $fieldName => $constraint) {
+            $type = ('datetime' == $constraint['type']) ? 'string' : $constraint['type'];
+            $properties[$fieldName] = ['type' => $type];
+            if (!empty($constraint['length'])) {
+                $properties[$fieldName]['maxLength'] = $constraint['length'];
+            }
+            if (!empty($constraint['required'])) {
+                $properties[$fieldName]['minimum'] = 1;
+                $required[] = $fieldName;
+            }
+        }
+
+        $cleanPath = ucfirst(preg_replace('/[^a-zA-Z_0-9]/', '', $path)) . 'RequestBody';
+        $openApi['components']['requestBodies'][$cleanPath] = [
+            'content' => [
+                'application/json'    => [
+                    'schema' => [
+                        'type'       => 'object',
+                        'properties' => $properties
+                    ]
+                ],
+                'multipart/form-data' => [
+                    'schema' => [
+                        'type'       => 'object',
+                        'properties' => $properties
+                    ]
+                ]
+            ]
+        ];
+
+        if (!empty($required)) {
+            $openApi['components']['requestBodies'][$cleanPath]['content']['application/json']['schema']['required'] = $required;
+            $openApi['components']['requestBodies'][$cleanPath]['content']['multipart/form-data']['schema']['required'] = $required;
+        }
+
+        return $cleanPath;
+    }
+
+    private function appendOpenApiTags(array &$openApi): void
+    {
+        $tags = [];
+        foreach ($openApi['paths'] as $pathOperations) {
+            foreach ($pathOperations as $operation) {
+                foreach ($operation['tags'] ?? [] as $tag) {
+                    if (!in_array($tag, $tags, true)) {
+                        $tags[] = $tag;
                     }
                 }
             }
         }
 
-        asort($auxTags);
-        foreach ($auxTags as $k => $tag) {
-            $openApi['tags'][] = [
-                'name' => $tag
-            ];
+        asort($tags);
+        foreach ($tags as $tag) {
+            $openApi['tags'][] = ['name' => $tag];
         }
-        return $openApi;
     }
 
     private function viewOpenAPI(\YeAPF\IBulletin &$bulletin)
