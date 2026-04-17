@@ -17,7 +17,7 @@ Current HTTP2 service definitions are more complex than they need to be. Middlew
 `http2-service-agent` → `code-quality-agent` for readability review → `psr-compliance-agent` for style conformance
 
 ## Issues
-- [H2S-001-refactor-get-as-openapi-json.md](./H2S-001-refactor-get-as-openapi-json-[PR].md)
+- [H2S-001-refactor-get-as-openapi-json.md](./H2S-001-refactor-get-as-openapi-json-[closed].md)
 - [H2S-002-refactor-request-callback.md](./H2S-002-refactor-request-callback-[opened].md)
 - [H2S-003-middleware-pipeline.md](./H2S-003-middleware-pipeline-[opened].md)
 - [H2S-004-openapi-auto-generation.md](./H2S-004-openapi-auto-generation-[opened].md)
