@@ -40,7 +40,7 @@ Issues are drawn from docs/issues/. Priority order: security first, then product
    → `docs/issues/code-quality-refactor/CQR-005-webapp-globals-and-debug-[closed].md`
 
 8. **CQR-006** `yeapf-sse-service.php` — `echo` instead of logger; `start()` 125 lines; nested coroutine inside callback
-   → `docs/issues/code-quality-refactor/CQR-006-sse-callbacks-and-echo-[on-work].md`
+   → `docs/issues/code-quality-refactor/CQR-006-sse-callbacks-and-echo-[PR].md`
 
 9. **H2S-001** `yeapf-http2-service.php` — `getAsOpenAPIJSON()` is 175 lines; split into per-section builders
    → `docs/issues/http2-service/H2S-001-refactor-get-as-openapi-json-[opened].md`
