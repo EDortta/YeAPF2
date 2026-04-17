@@ -62,11 +62,21 @@ class PDOConnection extends \YeAPF\Connection\DBConnection
     private static $connectionString;
     private static $pool = [];
     private static $poolId = null;
+    private static $mainConnection = null;
+    private ?PostgreSQLSchemaInspector $postgreSQLSchemaInspector = null;
+
+    private function buildConnectionString(\stdClass $auxConfig): string
+    {
+        $driver = $auxConfig->driver ?? 'pgsql';
+        $server = $auxConfig->server ?? '127.0.0.1';
+        $port = $auxConfig->port ?? 5432;
+        $dbname = $auxConfig->dbname ?? '';
+
+        return sprintf('%s:host=%s;port=%s;dbname=%s', $driver, $server, $port, $dbname);
+    }
 
     private function connect()
     {
-        global $yAnalyzer;
-
         $auxConfig = self::$config->pdo ?? new \stdClass();
 
         if (self::$trulyConnected) {
@@ -74,7 +84,7 @@ class PDOConnection extends \YeAPF\Connection\DBConnection
             \_trace('CONNECTING TO DATABASE SERVER (PDO)');
             do {
                 try {
-                    self::$connectionString = $yAnalyzer->do('#(driver):host=#(server);port=#(port);dbname=#(dbname)', json_decode(json_encode($auxConfig), true));
+                    self::$connectionString = $this->buildConnectionString($auxConfig);
                     \_trace("connectionString: '" . self::$connectionString . "'");
                     self::$db = new \PDO(self::$connectionString, $auxConfig->user ?? 'VoidUserName', $auxConfig->password ?? 'VoidPassword');
                     self::$db->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_WARNING);
@@ -219,120 +229,69 @@ class PDOConnection extends \YeAPF\Connection\DBConnection
 
     public function tableExists($tablename, $schemaname = null)
     {
-        if (null == $schemaname || '' == trim($schemaname)) {
-            $schemaname = self::$config->pdo->schema;
-        }
-
-        $sql = 'select exists(select 1 from pg_tables where tablename=:tablename and schemaname=:schemaname)';
-        $params = [
-            'schemaname' => $schemaname,
-            'tablename' => $tablename
-        ];
-        $ret = self::queryAndFetch($sql, $params);
-        return (is_array($ret) && $ret['exists'] ?? false);
+        return $this->getPostgreSQLSchemaInspector()->tableExists((string) $tablename, $schemaname);
     }
 
     public function columnDefinition($tablename, $columnname, $schemaname = null)
     {
-        if (null == $schemaname || '' == trim($schemaname)) {
-            $schemaname = self::$config->pdo->schema;
-        }
-        $tablename = strtolower($tablename);
-        $schemaname = strtolower($schemaname);
-        $columnname = strtolower($columnname);
-
-        $sql = 'select column_name, column_default, is_nullable, data_type, character_maximum_length, numeric_precision, numeric_scale from information_schema.columns where table_schema=:schemaname and table_name=:tablename and column_name=:columnname';
-        $params = [
-            'schemaname' => $schemaname,
-            'tablename' => $tablename,
-            'columnname' => $columnname
-        ];
-        $ret = self::queryAndFetch($sql, $params);
-        return $ret;
+        return $this->getPostgreSQLSchemaInspector()->columnDefinition((string) $tablename, (string) $columnname, $schemaname);
     }
 
     public function columnExists($tablename, $columnname, $schemaname = null)
     {
-        if (null == $schemaname || '' == trim($schemaname)) {
-            $schemaname = self::$config->pdo->schema;
-        }
-
-        $tablename = strtolower($tablename);
-        $schemaname = strtolower($schemaname);
-        $columnname = strtolower($columnname);
-
-        $sql = 'select column_name from information_schema.columns where table_schema=:schemaname and table_name=:tablename and column_name=:columnname';
-        $params = [
-            'schemaname' => $schemaname,
-            'tablename' => $tablename,
-            'columnname' => $columnname
-        ];
-        $ret = self::queryAndFetch($sql, $params);
-
-        // \_trace("SQL: $sql");
-        // \_trace("ret = ".json_encode($ret)."");
-
-        if ($ret !== false) {
-            $ret = strcasecmp($ret['column_name'] ?? '', $columnname) == 0;
-            // \_trace("$tablename.$columnname Exists? ".($ret?"Yes":"No")."");
-        }
-        return $ret;
+        return $this->getPostgreSQLSchemaInspector()->columnExists((string) $tablename, (string) $columnname, $schemaname);
     }
 
     public function columns($tablename, $schemaname = null)
     {
-        if (null == $schemaname || '' == trim($schemaname)) {
-            $schemaname = self::$config->pdo->schema;
-        }
-        $tablename = strtolower($tablename);
-        $schemaname = strtolower($schemaname);
+        return $this->getPostgreSQLSchemaInspector()->columns((string) $tablename, $schemaname);
+    }
 
-        $sql = "SELECT c.column_name, c.column_default, c.is_nullable, c.data_type, c.character_maximum_length,
-                        c.numeric_precision, c.numeric_scale,
-                        CASE WHEN p.constraint_type = 'PRIMARY KEY' THEN 1 ELSE 0 END AS is_primary,
-                        CASE WHEN u.constraint_name IS NOT NULL THEN 1 ELSE 0 END AS is_unique,
-                        CASE WHEN c.is_nullable = 'NO' THEN 1 ELSE 0 END AS is_required
-                    FROM information_schema.columns AS c
-                    LEFT JOIN information_schema.key_column_usage AS k ON c.column_name = k.column_name
-                        AND c.table_name = k.table_name AND c.table_schema = k.table_schema
-                    LEFT JOIN information_schema.table_constraints AS p ON p.constraint_name = k.constraint_name
-                        AND p.table_name = k.table_name AND p.table_schema = k.table_schema
-                        AND p.constraint_type = 'PRIMARY KEY'
-                    LEFT JOIN information_schema.table_constraints AS u ON u.constraint_name = k.constraint_name
-                        AND u.table_name = k.table_name AND u.table_schema = k.table_schema
-                        AND u.constraint_type = 'UNIQUE'
-                    WHERE c.table_schema = :schemaname AND c.table_name = :tablename";
-        $params = [
-            'schemaname' => $schemaname,
-            'tablename' => $tablename
-        ];
-        // echo "\n$sql\n";
-        $ret = [];
-        $q = self::query($sql, $params);
-        // print_r($q);
-        while ($d = $q->fetch()) {
-            // print_r($d);
-            $ret[] = $d;
+    private function getConfiguredDriver(): string
+    {
+        $configDriver = self::$config->pdo->driver ?? 'pgsql';
+        return strtolower((string) $configDriver);
+    }
+
+    private function getPostgreSQLSchemaInspector(): PostgreSQLSchemaInspector
+    {
+        if ('pgsql' !== $this->getConfiguredDriver()) {
+            throw new \YeAPF\YeAPFException(
+                'Schema inspection is currently available only for PostgreSQL in PDOConnection',
+                YeAPF_UNIMPLEMENTED_KEY_TYPE
+            );
         }
-        // print_r($ret);
-        return $ret;
+
+        if (null === $this->postgreSQLSchemaInspector) {
+            $defaultSchema = self::$config->pdo->schema ?? 'public';
+            $this->postgreSQLSchemaInspector = new PostgreSQLSchemaInspector($this, (string) $defaultSchema);
+        }
+
+        return $this->postgreSQLSchemaInspector;
+    }
+
+    public static function createMainConnection()
+    {
+        if (null == self::$mainConnection) {
+            _trace('Creating new PDO main connection');
+            self::$mainConnection = new self();
+        }
+
+        return self::$mainConnection;
+    }
+
+    public static function getMainConnection()
+    {
+        return self::$mainConnection;
     }
 }
 
 function CreateMainPDOConnection()
 {
-    global $yeapfMainPDOConnection;
-
-    if (null == $yeapfMainPDOConnection) {
-        _trace('Creating new PDO main connection');
-        $yeapfMainPDOConnection = new PDOConnection();
-    }
-    return $yeapfMainPDOConnection;
+    return PDOConnection::createMainConnection();
 }
 
 function GetMainPDOConnection()
 {
-    global $yeapfMainPDOConnection;
-
-    return $yeapfMainPDOConnection;
+    return PDOConnection::getMainConnection();
 }

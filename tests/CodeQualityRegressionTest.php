@@ -64,5 +64,7 @@ final class CodeQualityRegressionTest extends TestCase
 
         $this->assertStringNotContainsString('global $yAnalyzer', $content);
         $this->assertStringNotContainsString('global $yeapfMainPDOConnection', $content);
+        $this->assertStringNotContainsString('information_schema', $content);
+        $this->assertStringNotContainsString('from pg_tables', strtolower($content));
     }
 }

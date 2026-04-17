@@ -1,5 +1,6 @@
 # CHANGELOG — code-quality-refactor
 
+2026-04-17 — CQR-004 moved to on-work; branch `issue/code-quality-refactor/cqr-004-pdo-global-and-postgres-sql` started
 2026-04-17 — CQR-001 merged via PR #5 and moved to closed; remote issue branch deleted
 2026-04-17 — CQR-001 moved to reviewed after merge validation
 2026-04-17 — CQR-001 moved to PR; branch `issue/code-quality-refactor/cqr-001-collections-debug-noise` pushed and PR #5 opened
