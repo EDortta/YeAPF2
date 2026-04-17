@@ -1,0 +1,7 @@
+# CHANGELOG — code-quality-refactor
+
+2026-04-17 — CQR-010 moved to PR; `checkConstraint()` refactored into per-type validators (`validateString/int/float/bool/date/datetime/time/json`); regression tests passing
+2026-04-17 — CQR-010 moved to on-work; branch `issue/code-quality-refactor/cqr-010-keydata-checkconstraint` started
+2026-04-17 — CQR-008 moved to PR; branch `issue/code-quality-refactor/cqr-008-jwt-secret-in-logs` pushed to GitHub
+2026-04-17 — CQR-008 moved to on-work; branch `issue/code-quality-refactor/cqr-008-jwt-secret-in-logs` created; JWT trace leakage fix validated by regression tests
+2026-04-17 — Epic created after full codebase scan; 10 issues opened covering 8 files

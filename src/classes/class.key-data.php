@@ -505,9 +505,6 @@ class SanitizedKeyData extends KeyData
    */
   public function getConstraints(bool $asInterface = null, string $tag = null)
   {
-    $debug = false;
-    if ($debug)
-      _trace('getConstraints() from ' . print_r($this->__constraints, true));
     if (is_null($asInterface) && is_null($tag)) {
       return $this->__constraints;
     } else {
@@ -570,312 +567,297 @@ class SanitizedKeyData extends KeyData
    */
   public function checkConstraint(string $keyName, mixed $value)
   {
-    $debug = true;
-    if ($debug)
-      _trace('Checkpoint#0');
     try {
-      // if ($debug) {
-      //   _trace('  constraints: '.print_r($this->__constraints, true));
-      // }
-      if (isset($this->__constraints[$keyName])) {
-        $type               = $this->__constraints[$keyName]['type'];
-        $length             = $this->__constraints[$keyName]['length'] ?? 0;
-        $decimals           = $this->__constraints[$keyName]['decimals'] ?? 0;
-        $acceptNULL         = $this->__constraints[$keyName]['acceptNULL'] ?? false;
-        $minValue           = $this->__constraints[$keyName]['minValue'] ?? null;
-        $maxValue           = $this->__constraints[$keyName]['maxValue'] ?? null;
-        $regExpression      = $this->__constraints[$keyName]['regExpression'] ?? null;
-        $defaultValue       = $this->__constraints[$keyName]['defaultValue'] ?? null;
-        $sedInputExpression = $this->__constraints[$keyName]['sedInputExpression'] ?? null;
+      if (!isset($this->__constraints[$keyName])) {
+        return $value;
+      }
 
-        if (!$acceptNULL && ((empty($value) && !is_numeric($value)) || $value === null)) {
-          $value = $defaultValue ?? null;
-        }
+      $constraint = $this->__constraints[$keyName];
+      $acceptNULL = $constraint['acceptNULL'] ?? false;
+      $defaultValue = $constraint['defaultValue'] ?? null;
+      $regExpression = $constraint['regExpression'] ?? null;
 
-        if ($debug)
-          _trace('Checkpoint#1');
-        if (null === $value && !$acceptNULL) {
-          if ($debug)
-            _trace('Checkpoint#2 at ' . __LINE__);
-          list($message, $error) = ['null not allowed in ' . __CLASS__ . ' -> ' . $keyName, YeAPF_NULL_NOT_ALLOWED];
-          if ($debug)
-            _trace($message);
-          throw new \YeAPF\YeAPFException($message, YeAPF_NULL_NOT_ALLOWED);
-        } else {
-          $singleTypes = [YeAPF_TYPE_STRING, YeAPF_TYPE_INT, YeAPF_TYPE_FLOAT, YeAPF_TYPE_BOOL, YeAPF_TYPE_DATE, YeAPF_TYPE_DATETIME, YeAPF_TYPE_TIME];
-          if (in_array($type, $singleTypes)) {
-            if (YeAPF_TYPE_STRING == $type) {
-              if ($debug)
-                _trace('Checkpoint#2 at ' . __LINE__);
-              $unsanitizedValue = $this->unsanitize($value ?? '');
-            } else {
-              $unsanitizedValue = $value;
-            }
+      if (!$acceptNULL && ((empty($value) && !is_numeric($value)) || $value === null)) {
+        $value = $defaultValue ?? null;
+      }
 
-            /**
-             * All single values can have a sedInputExpression
-             * STRING values can have a different representation in the database
-             * As this representation can need more characters than the original
-             * value, the STRING are treated differently than the others.
-             */
-            if (!empty($sedInputExpression)) {
-              list($pattern, $replacement) = $this->__getPatternAndReplacement($sedInputExpression);
-              $unsanitizedValue            = preg_replace("/$pattern/", $replacement, $unsanitizedValue);
-            }
+      if (null === $value && !$acceptNULL) {
+        $message = 'null not allowed in ' . __CLASS__ . ' -> ' . $keyName;
+        throw new \YeAPF\YeAPFException($message, YeAPF_NULL_NOT_ALLOWED);
+      }
 
-            if (YeAPF_TYPE_STRING == $type) {
-              /** First concept: The length of the raw string, need to be less than the length */
-              if ($length > 0 && strlen($unsanitizedValue ?? '') > $length) {
-                list($message, $error) = ['String value has ' . strlen($unsanitizedValue ?? '') . ' chars. Value too long in ' . __CLASS__ . '.' . $keyName . ' It is ' . $length . ' chars long', YeAPF_INVALID_KEY_VALUE];
-                if ($debug)
-                  _trace($message);
-                throw new \YeAPF\YeAPFException($message, YeAPF_VALUE_TOO_LONG);
-              }
-              $value = $this->sanitize($unsanitizedValue ?? '');
-
-              /**
-               * Second concept: The length of the sanitized string, need to be less than the length
-               * In other way, it will not fit in database column
-               */
-              if ($length > 0 && strlen($value ?? '') > $length) {
-                list($message, $error) = ['Sanitized string value has ' . strlen($value ?? '') . ' chars. Value too long in ' . __CLASS__ . '.' . $keyName . ' It is ' . $length . ' chars long', YeAPF_INVALID_KEY_VALUE];
-                if ($debug)
-                  _trace($message);
-                throw new \YeAPF\YeAPFException($message, YeAPF_SANITIZED_VALUE_TOO_LONG);
-              }
-            } else {
-              $value = $unsanitizedValue;
-            }
-          }
-
-          if (YeAPF_TYPE_STRING == $type) {
-            /*
-             * All has ben done before
-             */
-          } elseif (YeAPF_TYPE_INT == $type) {
-            if ($debug)
-              _trace('Checkpoint#2 at ' . __LINE__);
-            if ($value == '' && $acceptNULL) {
-              $value = null;
-            }
-            if (!(null === $value && $acceptNULL)) {
-              if (is_string($value)) {
-                if (is_numeric($value)) {
-                  if ((int) $value == $value)
-                    $value = (int) $value;
-                }
-              }
-              if (!is_int($value)) {
-                list($message, $error) = ['INVALID INTEGER value in ' . __CLASS__ . '.' . $keyName, YeAPF_INVALID_KEY_VALUE];
-                if ($debug)
-                  _trace($message);
-                throw new \YeAPF\YeAPFException($message, YeAPF_INVALID_INT_VALUE);
-              }
-              if (null !== $minValue) {
-                if ($value < $minValue) {
-                  list($message, $error) = ['INVALID INTEGER value: out of bounds in ' . __CLASS__ . '.' . $keyName, YeAPF_VALUE_OUT_OF_RANGE];
-                  if ($debug)
-                    _trace($message);
-                  throw new \YeAPF\YeAPFException($message, YeAPF_INVALID_INT_VALUE);
-                }
-              }
-
-              if (null !== $maxValue) {
-                if ($value > $maxValue) {
-                  list($message, $error) = ['INVALID INTEGER value: out of bounds in ' . __CLASS__ . '.' . $keyName, YeAPF_VALUE_OUT_OF_RANGE];
-                  if ($debug)
-                    _trace($message);
-                  throw new \YeAPF\YeAPFException($message, YeAPF_INVALID_INT_VALUE);
-                }
-              }
-            }
-          } elseif (YeAPF_TYPE_FLOAT == $type) {
-            if ($debug)
-              _trace('Checkpoint#2 at ' . __LINE__);
-            if (!(null === $value && $acceptNULL)) {
-              if (!is_numeric($value)) {
-                list($message, $error) = ['INVALID FLOAT value in ' . __CLASS__ . '.' . $keyName, YeAPF_INVALID_KEY_VALUE];
-                if ($debug)
-                  _trace($message);
-                throw new \YeAPF\YeAPFException($message, YeAPF_INVALID_FLOAT_VALUE);
-              }
-              if (null !== $minValue) {
-                if ($value < $minValue) {
-                  list($message, $error) = ['INVALID FLOAT value: out of bounds in ' . __CLASS__ . '.' . $keyName, YeAPF_VALUE_OUT_OF_RANGE];
-                  if ($debug)
-                    _trace($message);
-                  throw new \YeAPF\YeAPFException($message, YeAPF_INVALID_FLOAT_VALUE);
-                }
-              }
-              if (null !== $maxValue) {
-                if ($value > $maxValue) {
-                  list($message, $error) = ['INVALID FLOAT value: out of bounds in ' . __CLASS__ . '.' . $keyName, YeAPF_VALUE_OUT_OF_RANGE];
-                  if ($debug)
-                    _trace($message);
-                  throw new \YeAPF\YeAPFException($message, YeAPF_INVALID_FLOAT_VALUE);
-                }
-              }
-            }
-          } elseif (YeAPF_TYPE_BOOL == $type) {
-            if ($debug)
-              _trace('Checkpoint#2 at ' . __LINE__);
-            if (!(null === $value && $acceptNULL)) {
-              if (!is_bool($value)) {
-                if (1 == $value || 'Y' == strtoupper("$value")) {
-                  $value = true;
-                }
-
-                if (0 == $value || 'N' == strtoupper("$value")) {
-                  $value = false;
-                }
-              }
-              $validTrueStrings  = ['true',  'yes', '1', 'y', 't', 'enabled',  'on'];
-              $validFalseStrings = ['false', 'no',  '0', 'n', 'f', 'disabled', 'off'];
-              if (is_string($value)) {
-                if (in_array(mb_strtolower(trim($value)), $validTrueStrings)) {
-                  $value = true;
-                } elseif (in_array(mb_strtolower(trim($value)), $validFalseStrings)) {
-                  $value = false;
-                }
-              }
-              if (!is_bool($value)) {
-                list($message, $error) = ['INVALID BOOLEAN value in ' . __CLASS__ . '.' . $keyName . ': ' . print_r($value, true), YeAPF_INVALID_KEY_VALUE];
-                if ($debug)
-                  _trace($message);
-                throw new \YeAPF\YeAPFException($message, YeAPF_VALUE_OUT_OF_RANGE);
-              }
-            }
-          } elseif (YeAPF_TYPE_DATE == $type) {
-            if ($debug)
-              _trace('Checkpoint#2 at ' . __LINE__);
-            if (!(null === $value && $acceptNULL)) {
-              if (!is_string($value)) {
-                list($message, $error) = ['INVALID DATE type (string expected) in ' . __CLASS__ . '.' . $keyName, YeAPF_INVALID_DATE_TYPE];
-                if ($debug)
-                  _trace($message);
-                throw new \YeAPF\YeAPFException($message, YeAPF_INVALID_DATE_TYPE);
-              } else {
-                if (!preg_match(YeAPF_DATE_REGEX, $value)) {
-                  list($message, $error) = ['INVALID DATE value in ' . __CLASS__ . '.' . $keyName, YeAPF_INVALID_DATE_VALUE];
-                  if ($debug)
-                    _trace($message);
-                  {
-                    throw new \YeAPF\YeAPFException($message, YeAPF_INVALID_DATE_VALUE);
-                  }
-                }
-                if (strlen($value) > $length) {
-                  list($message, $error) = ['INVALID DATE. Value too long in ' . __CLASS__ . '.' . $keyName . ' (' . strlen($value) . ' presents but no more than ' . $length . ' chars allowed)', YeAPF_VALUE_TOO_LONG];
-                  if ($debug)
-                    _trace($message);
-                  throw new \YeAPF\YeAPFException($message, YeAPF_VALUE_TOO_LONG);
-                }
-              }
-            }
-          } elseif (YeAPF_TYPE_DATETIME == $type) {
-            if ($debug)
-              _trace('Checkpoint#2 at ' . __LINE__);
-            if (!(null === $value && $acceptNULL)) {
-              if (!is_string($value)) {
-                list($message, $error) = ['INVALID DATETIME type (string expected) in ' . __CLASS__ . '.' . $keyName, YeAPF_INVALID_DATE_TYPE];
-                if ($debug)
-                  _trace($message);
-                throw new \YeAPF\YeAPFException($message, YeAPF_INVALID_DATETIME_VALUE);
-              } else {
-                if ($value > '' && strlen($value) < $length) {
-                  if (preg_match(YeAPF_DATE_REGEX, $value)) {
-                    $value .= ' 00:00:00';
-                  }
-                }
-                if (!preg_match(YeAPF_DATETIME_REGEX, $value)) {
-                  list($message, $error) = ['INVALID DATETIME value in ' . __CLASS__ . '.' . $keyName, YeAPF_INVALID_DATE_VALUE];
-                  if ($debug)
-                    _trace($message);
-                  throw new \YeAPF\YeAPFException($message, YeAPF_INVALID_DATETIME_VALUE);
-                }
-              }
-            }
-          } elseif (YeAPF_TYPE_TIME == $type) {
-            if ($debug)
-              _trace('Checkpoint#2 at ' . __LINE__);
-            if (!(null === $value && $acceptNULL)) {
-              if (!is_string($value)) {
-                list($message, $error) = ['INVALID TIME type (string expected) in ' . __CLASS__ . '.' . $keyName, YeAPF_INVALID_DATE_TYPE];
-                if ($debug)
-                  _trace($message);
-                throw new \YeAPF\YeAPFException($message, YeAPF_INVALID_TIME_TYPE);
-              } else {
-                if (!preg_match(YeAPF_TIME_REGEX, $value))
-                  list($message, $error) = ['INVALID TIME value in ' . __CLASS__ . '.' . $keyName, YeAPF_INVALID_DATE_VALUE];
-                if ($debug)
-                  _trace($message);
-                {
-                  throw new \YeAPF\YeAPFException($message, YeAPF_INVALID_TIME_VALUE);
-                }
-              }
-            }
-          } elseif (YeAPF_TYPE_JSON == $type) {
-            if ($debug)
-              _trace('Checkpoint#2 at ' . __LINE__);
-            if (!(null === $value && $acceptNULL)) {
-              if (is_array($value)) {
-                $value = json_encode($value);
-              }
-              if (!is_string($value)) {
-                list($message, $error) = ['INVALID JSON type (string expected) in ' . __CLASS__ . '.' . $keyName, YeAPF_INVALID_JSON_TYPE];
-                if ($debug)
-                  _trace($message);
-                throw new \YeAPF\YeAPFException($message, YeAPF_INVALID_JSON_TYPE);
-              } else {
-                $json = json_decode($value, true);
-                if (null === $json) {
-                  list($message, $error) = ['INVALID JSON value in ' . __CLASS__ . '.' . $keyName, YeAPF_INVALID_JSON_VALUE];
-                  if ($debug)
-                    _trace($message);
-                  throw new \YeAPF\YeAPFException($message, YeAPF_INVALID_JSON_VALUE);
-                }
-              }
-            }
-          } else {
-            if ($debug)
-              _trace('Checkpoint#2 at ' . __LINE__);
-            list($message, $error) = ['INVALID KEY type in ' . __CLASS__ . '.' . $keyName . ' or not implemented', YeAPF_INVALID_KEY_TYPE];
-            if ($debug)
-              _trace($message);
+      if (null !== $value) {
+        $type = $constraint['type'] ?? '';
+        switch ($type) {
+          case YeAPF_TYPE_STRING:
+            $value = $this->validateString($keyName, $value, $constraint);
+            break;
+          case YeAPF_TYPE_INT:
+            $value = $this->validateInt($keyName, $value, $constraint);
+            break;
+          case YeAPF_TYPE_FLOAT:
+            $value = $this->validateFloat($keyName, $value, $constraint);
+            break;
+          case YeAPF_TYPE_BOOL:
+            $value = $this->validateBool($keyName, $value, $constraint);
+            break;
+          case YeAPF_TYPE_DATE:
+            $value = $this->validateDate($keyName, $value, $constraint);
+            break;
+          case YeAPF_TYPE_DATETIME:
+            $value = $this->validateDatetime($keyName, $value, $constraint);
+            break;
+          case YeAPF_TYPE_TIME:
+            $value = $this->validateTime($keyName, $value, $constraint);
+            break;
+          case YeAPF_TYPE_JSON:
+            $value = $this->validateJson($keyName, $value, $constraint);
+            break;
+          default:
+            $message = 'INVALID KEY type in ' . __CLASS__ . '.' . $keyName . ' or not implemented';
             throw new \YeAPF\YeAPFException($message, YeAPF_INVALID_KEY_TYPE);
-          }
         }
+      }
 
-        if ($debug)
-          _trace('Checkpoint#3');
-
-        if (null !== $regExpression) {
-          if ($value !== null) {
-            if ($debug)
-              _trace('RegExpression: ' . $regExpression . ' in ' . __CLASS__ . ' -> ' . $keyName);
-            if (false === preg_match($regExpression, "$value")) {
-              list($message, $error) = ["Value does not satisfies '$regExpression' in " . __CLASS__ . ' -> ' . $keyName, YeAPF_INVALID_KEY_VALUE];
-              if ($debug)
-                _trace($message);
-              throw new \YeAPF\YeAPFException($message, YeAPF_VALUE_DOES_NOT_SATISFY_REGEXP);
-            } else if ($debug)
-              _trace('Value satisfies the pattern.');
-          }
-        }
-        if ($debug)
-          _trace('Checkpoint#3');
-      } else {
-        if ($debug)
-          _trace("WARNING: no constraint for $keyName");
+      if (null !== $regExpression && $value !== null && false === preg_match($regExpression, "$value")) {
+        $message = "Value does not satisfies '$regExpression' in " . __CLASS__ . ' -> ' . $keyName;
+        throw new \YeAPF\YeAPFException($message, YeAPF_VALUE_DOES_NOT_SATISFY_REGEXP);
       }
     } catch (\Throwable $th) {
       list($message, $error) = [$th->getMessage(), $th->getCode()];
-      if ($debug) {
-        _trace($message);
-      }
       throw new \YeAPF\YeAPFException($message, $error);
     }
-    if ($debug)
-      _trace('Accepting value ' . print_r($value, true));
+    return $value;
+  }
+
+  private function applySedInputExpression(mixed $value, ?string $sedInputExpression): mixed
+  {
+    if (empty($sedInputExpression)) {
+      return $value;
+    }
+
+    list($pattern, $replacement) = $this->__getPatternAndReplacement($sedInputExpression);
+    return preg_replace("/$pattern/", $replacement, $value);
+  }
+
+  private function validateString(string $keyName, mixed $value, array $constraint): mixed
+  {
+    $length = $constraint['length'] ?? 0;
+    $sedInputExpression = $constraint['sedInputExpression'] ?? null;
+
+    $unsanitizedValue = $this->unsanitize($value ?? '');
+    $unsanitizedValue = $this->applySedInputExpression($unsanitizedValue, $sedInputExpression);
+
+    if ($length > 0 && strlen($unsanitizedValue ?? '') > $length) {
+      $message = 'String value has ' . strlen($unsanitizedValue ?? '') . ' chars. Value too long in ' . __CLASS__ . '.' . $keyName . ' It is ' . $length . ' chars long';
+      throw new \YeAPF\YeAPFException($message, YeAPF_VALUE_TOO_LONG);
+    }
+
+    $value = $this->sanitize($unsanitizedValue ?? '');
+    if ($length > 0 && strlen($value ?? '') > $length) {
+      $message = 'Sanitized string value has ' . strlen($value ?? '') . ' chars. Value too long in ' . __CLASS__ . '.' . $keyName . ' It is ' . $length . ' chars long';
+      throw new \YeAPF\YeAPFException($message, YeAPF_SANITIZED_VALUE_TOO_LONG);
+    }
+
+    return $value;
+  }
+
+  private function validateInt(string $keyName, mixed $value, array $constraint): mixed
+  {
+    $acceptNULL = $constraint['acceptNULL'] ?? false;
+    $minValue = $constraint['minValue'] ?? null;
+    $maxValue = $constraint['maxValue'] ?? null;
+    $sedInputExpression = $constraint['sedInputExpression'] ?? null;
+
+    $value = $this->applySedInputExpression($value, $sedInputExpression);
+    if ($value == '' && $acceptNULL) {
+      $value = null;
+    }
+    if (null === $value && $acceptNULL) {
+      return null;
+    }
+
+    if (is_string($value) && is_numeric($value) && ((int) $value == $value)) {
+      $value = (int) $value;
+    }
+    if (!is_int($value)) {
+      $message = 'INVALID INTEGER value in ' . __CLASS__ . '.' . $keyName;
+      throw new \YeAPF\YeAPFException($message, YeAPF_INVALID_INT_VALUE);
+    }
+
+    if (null !== $minValue && $value < $minValue) {
+      $message = 'INVALID INTEGER value: out of bounds in ' . __CLASS__ . '.' . $keyName;
+      throw new \YeAPF\YeAPFException($message, YeAPF_INVALID_INT_VALUE);
+    }
+
+    if (null !== $maxValue && $value > $maxValue) {
+      $message = 'INVALID INTEGER value: out of bounds in ' . __CLASS__ . '.' . $keyName;
+      throw new \YeAPF\YeAPFException($message, YeAPF_INVALID_INT_VALUE);
+    }
+
+    return $value;
+  }
+
+  private function validateFloat(string $keyName, mixed $value, array $constraint): mixed
+  {
+    $acceptNULL = $constraint['acceptNULL'] ?? false;
+    $minValue = $constraint['minValue'] ?? null;
+    $maxValue = $constraint['maxValue'] ?? null;
+    $sedInputExpression = $constraint['sedInputExpression'] ?? null;
+
+    $value = $this->applySedInputExpression($value, $sedInputExpression);
+    if (null === $value && $acceptNULL) {
+      return null;
+    }
+    if (!is_numeric($value)) {
+      $message = 'INVALID FLOAT value in ' . __CLASS__ . '.' . $keyName;
+      throw new \YeAPF\YeAPFException($message, YeAPF_INVALID_FLOAT_VALUE);
+    }
+
+    if (null !== $minValue && $value < $minValue) {
+      $message = 'INVALID FLOAT value: out of bounds in ' . __CLASS__ . '.' . $keyName;
+      throw new \YeAPF\YeAPFException($message, YeAPF_INVALID_FLOAT_VALUE);
+    }
+
+    if (null !== $maxValue && $value > $maxValue) {
+      $message = 'INVALID FLOAT value: out of bounds in ' . __CLASS__ . '.' . $keyName;
+      throw new \YeAPF\YeAPFException($message, YeAPF_INVALID_FLOAT_VALUE);
+    }
+
+    return $value;
+  }
+
+  private function validateBool(string $keyName, mixed $value, array $constraint): mixed
+  {
+    $acceptNULL = $constraint['acceptNULL'] ?? false;
+    $sedInputExpression = $constraint['sedInputExpression'] ?? null;
+
+    $value = $this->applySedInputExpression($value, $sedInputExpression);
+    if (null === $value && $acceptNULL) {
+      return null;
+    }
+
+    if (!is_bool($value)) {
+      if (1 == $value || 'Y' == strtoupper("$value")) {
+        $value = true;
+      }
+      if (0 == $value || 'N' == strtoupper("$value")) {
+        $value = false;
+      }
+    }
+
+    $validTrueStrings  = ['true', 'yes', '1', 'y', 't', 'enabled', 'on'];
+    $validFalseStrings = ['false', 'no', '0', 'n', 'f', 'disabled', 'off'];
+    if (is_string($value)) {
+      $normalized = mb_strtolower(trim($value));
+      if (in_array($normalized, $validTrueStrings)) {
+        $value = true;
+      } elseif (in_array($normalized, $validFalseStrings)) {
+        $value = false;
+      }
+    }
+
+    if (!is_bool($value)) {
+      $message = 'INVALID BOOLEAN value in ' . __CLASS__ . '.' . $keyName . ': ' . print_r($value, true);
+      throw new \YeAPF\YeAPFException($message, YeAPF_VALUE_OUT_OF_RANGE);
+    }
+
+    return $value;
+  }
+
+  private function validateDate(string $keyName, mixed $value, array $constraint): mixed
+  {
+    $acceptNULL = $constraint['acceptNULL'] ?? false;
+    $length = $constraint['length'] ?? 0;
+    $sedInputExpression = $constraint['sedInputExpression'] ?? null;
+
+    $value = $this->applySedInputExpression($value, $sedInputExpression);
+    if (null === $value && $acceptNULL) {
+      return null;
+    }
+    if (!is_string($value)) {
+      $message = 'INVALID DATE type (string expected) in ' . __CLASS__ . '.' . $keyName;
+      throw new \YeAPF\YeAPFException($message, YeAPF_INVALID_DATE_TYPE);
+    }
+    if (!preg_match(YeAPF_DATE_REGEX, $value)) {
+      $message = 'INVALID DATE value in ' . __CLASS__ . '.' . $keyName;
+      throw new \YeAPF\YeAPFException($message, YeAPF_INVALID_DATE_VALUE);
+    }
+    if (strlen($value) > $length) {
+      $message = 'INVALID DATE. Value too long in ' . __CLASS__ . '.' . $keyName . ' (' . strlen($value) . ' presents but no more than ' . $length . ' chars allowed)';
+      throw new \YeAPF\YeAPFException($message, YeAPF_VALUE_TOO_LONG);
+    }
+
+    return $value;
+  }
+
+  private function validateDatetime(string $keyName, mixed $value, array $constraint): mixed
+  {
+    $acceptNULL = $constraint['acceptNULL'] ?? false;
+    $length = $constraint['length'] ?? 0;
+    $sedInputExpression = $constraint['sedInputExpression'] ?? null;
+
+    $value = $this->applySedInputExpression($value, $sedInputExpression);
+    if (null === $value && $acceptNULL) {
+      return null;
+    }
+    if (!is_string($value)) {
+      $message = 'INVALID DATETIME type (string expected) in ' . __CLASS__ . '.' . $keyName;
+      throw new \YeAPF\YeAPFException($message, YeAPF_INVALID_DATETIME_VALUE);
+    }
+
+    if ($value > '' && strlen($value) < $length && preg_match(YeAPF_DATE_REGEX, $value)) {
+      $value .= ' 00:00:00';
+    }
+    if (!preg_match(YeAPF_DATETIME_REGEX, $value)) {
+      $message = 'INVALID DATETIME value in ' . __CLASS__ . '.' . $keyName;
+      throw new \YeAPF\YeAPFException($message, YeAPF_INVALID_DATETIME_VALUE);
+    }
+
+    return $value;
+  }
+
+  private function validateTime(string $keyName, mixed $value, array $constraint): mixed
+  {
+    $acceptNULL = $constraint['acceptNULL'] ?? false;
+    $sedInputExpression = $constraint['sedInputExpression'] ?? null;
+
+    $value = $this->applySedInputExpression($value, $sedInputExpression);
+    if (null === $value && $acceptNULL) {
+      return null;
+    }
+    if (!is_string($value)) {
+      $message = 'INVALID TIME type (string expected) in ' . __CLASS__ . '.' . $keyName;
+      throw new \YeAPF\YeAPFException($message, YeAPF_INVALID_TIME_TYPE);
+    }
+    if (!preg_match(YeAPF_TIME_REGEX, $value)) {
+      $message = 'INVALID TIME value in ' . __CLASS__ . '.' . $keyName;
+      throw new \YeAPF\YeAPFException($message, YeAPF_INVALID_TIME_VALUE);
+    }
+
+    return $value;
+  }
+
+  private function validateJson(string $keyName, mixed $value, array $constraint): mixed
+  {
+    $acceptNULL = $constraint['acceptNULL'] ?? false;
+    if (null === $value && $acceptNULL) {
+      return null;
+    }
+    if (is_array($value)) {
+      $value = json_encode($value);
+    }
+    if (!is_string($value)) {
+      $message = 'INVALID JSON type (string expected) in ' . __CLASS__ . '.' . $keyName;
+      throw new \YeAPF\YeAPFException($message, YeAPF_INVALID_JSON_TYPE);
+    }
+
+    $json = json_decode($value, true);
+    if (null === $json) {
+      $message = 'INVALID JSON value in ' . __CLASS__ . '.' . $keyName;
+      throw new \YeAPF\YeAPFException($message, YeAPF_INVALID_JSON_VALUE);
+    }
+
     return $value;
   }
 
@@ -961,11 +943,8 @@ class SanitizedKeyData extends KeyData
    */
   public function __set(string $name, mixed $value)
   {
-    $debug = true;
 
     $value = $this->sanitize($value);
-    if ($debug)
-      _trace("Setting '$name' with ---[" . gettype($value) . ':' . print_r($value, true) . ']---');
 
     $regExpCount = 0;
     if (\YeAPF\YeAPFConfig::allowExpressionsInSanitizedInput()) {
@@ -998,10 +977,7 @@ class SanitizedKeyData extends KeyData
     if (0 == $regExpCount) {
       // print_r('['.$name.'] ');
       // print_r($value);
-      _trace("Checking constraints for '$name' with ---[" . gettype($value) . ':' . print_r($value, true) . ']---');
       $value = $this->checkConstraint($name, $value);
-      if ($debug)
-        _trace('  :: value = ' . print_r($value, true) . "\n");
       /**
        * The next part of is useless as it's being done in checkConstraint()
        */
@@ -1009,8 +985,6 @@ class SanitizedKeyData extends KeyData
         if (null !== $value) {
           $sedInputExpression = $this->__constraints[$name]['sedInputExpression'] ?? null;
           if (null !== $sedInputExpression) {
-            if ($debug)
-              _trace("Applying sedInputExpression $sedInputExpression\n");
 
             list($pattern, $replacement) = $this->__getPatternAndReplacement($sedInputExpression);
 
@@ -1044,7 +1018,6 @@ class SanitizedKeyData extends KeyData
         }
       }
     } else {
-      _trace('Using simplified expression: ' . print_r($simplifiedExpression, true));
       $value = $simplifiedExpression;
     }
     parent::__set($name, $value);
@@ -1052,20 +1025,11 @@ class SanitizedKeyData extends KeyData
 
   public function __get(string|int $name)
   {
-    $debug = false;
-    if ($debug)
-      _trace("  :: getting '$name' -> ");
     $value = parent::__get($name);
-    if ($debug)
-      _trace(print_r($value, true) . ' -> ');
     $value = $this->unsanitize($value);
-    if ($debug)
-      _trace(print_r($value, true) . "\n");
 
     $sedOutputExpression = $this->__constraints[$name]['sedOutputExpression'] ?? null;
     if (null !== $sedOutputExpression) {
-      if ($debug)
-        _trace("Applying sedOutputExpression $sedOutputExpression\n");
 
       list($pattern, $replacement) = $this->__getPatternAndReplacement($sedOutputExpression);
 
@@ -1078,8 +1042,6 @@ class SanitizedKeyData extends KeyData
        */
       $value2 = $value;
 
-      if ($debug)
-        _trace("$pattern -> $replacement on '$value'\n");
       $value = preg_replace("/$pattern/", $replacement, $value2);
     }
 
