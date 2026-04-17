@@ -26,7 +26,7 @@ Issues are drawn from docs/issues/. Priority order: security first, then product
    → `docs/issues/code-quality-refactor/CQR-001-collections-debug-noise-[closed].md`
 
 4. **CQR-004** `yeapf-pdo-connection.php` — PostgreSQL SQL hardcoded in shared class (AGENTS.md violation) + `global $yAnalyzer` inside method
-   → `docs/issues/code-quality-refactor/CQR-004-pdo-global-and-postgres-sql-[PR].md`
+   → `docs/issues/code-quality-refactor/CQR-004-pdo-global-and-postgres-sql-[closed].md`
 
 5. **CQR-007** `i18n.php` — `$debug = true` hardcoded in `translate()`; fires in production
    → `docs/issues/code-quality-refactor/CQR-007-i18n-translate-refactor-[opened].md`
