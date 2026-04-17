@@ -68,4 +68,13 @@ final class CodeQualityRegressionTest extends TestCase
         $this->assertStringNotContainsString('information_schema', $content);
         $this->assertStringNotContainsString('from pg_tables', strtolower($content));
     }
+
+    public function testPdoConnectionConnectFlowIsSplitAndNoDeadLockCommentsRemain(): void
+    {
+        $content = $this->readSource('src/database/yeapf-pdo-connection.php');
+
+        $this->assertStringContainsString('private function connectSingle(', $content);
+        $this->assertStringContainsString('private function buildPool(', $content);
+        $this->assertStringNotContainsString('// if (PDOConnectionLock::lock())', $content);
+    }
 }

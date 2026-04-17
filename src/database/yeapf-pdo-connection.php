@@ -80,34 +80,44 @@ class PDOConnection extends \YeAPF\Connection\DBConnection
         $auxConfig = self::$config->pdo ?? new \stdClass();
 
         if (self::$trulyConnected) {
-            self::$poolId = PDOConnectionLock::getNewPoolId();
-            \_trace('CONNECTING TO DATABASE SERVER (PDO)');
-            do {
-                try {
-                    self::$connectionString = $this->buildConnectionString($auxConfig);
-                    \_trace("connectionString: '" . self::$connectionString . "'");
-                    self::$db = new \PDO(self::$connectionString, $auxConfig->user ?? 'VoidUserName', $auxConfig->password ?? 'VoidPassword');
-                    self::$db->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_WARNING);
-                    self::setConnected(true);
-                } catch (\Throwable $th) {
-                    self::setConnected(false);
-                    if ($auxConfig->halt_on_error ?? false) {
-                        throw new \YeAPF\YeAPFException($th->getMessage(), YeAPF_PDO_CONNECTION, $th);
-                    } else {
-                        \_trace('+----------------------');
-                        \_trace('| PDO NOT AVAILABLE! ');
-                        \_trace('|   at ' . self::$connectionString);
-                        \_trace('| ' . $th->getMessage() . '');
-                        \_trace('+----------------------');
-                    }
-                }
-            } while (!self::getConnected());
+            $this->connectSingle($auxConfig);
         } else {
-            $minPool = max(1, min(20, $auxConfig->pool ?? 5));
-            \_trace("Building PDO connection pool with $minPool item(s)");
-            for ($i = 0; $i < $minPool; $i++) {
-                self::$pool[] = new self(true);
+            $this->buildPool($auxConfig);
+        }
+    }
+
+    private function connectSingle(\stdClass $auxConfig): void
+    {
+        self::$poolId = PDOConnectionLock::getNewPoolId();
+        \_trace('CONNECTING TO DATABASE SERVER (PDO)');
+        do {
+            try {
+                self::$connectionString = $this->buildConnectionString($auxConfig);
+                \_trace("connectionString: '" . self::$connectionString . "'");
+                self::$db = new \PDO(self::$connectionString, $auxConfig->user ?? 'VoidUserName', $auxConfig->password ?? 'VoidPassword');
+                self::$db->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_WARNING);
+                self::setConnected(true);
+            } catch (\Throwable $th) {
+                self::setConnected(false);
+                if ($auxConfig->halt_on_error ?? false) {
+                    throw new \YeAPF\YeAPFException($th->getMessage(), YeAPF_PDO_CONNECTION, $th);
+                }
+
+                \_trace('+----------------------');
+                \_trace('| PDO NOT AVAILABLE! ');
+                \_trace('|   at ' . self::$connectionString);
+                \_trace('| ' . $th->getMessage() . '');
+                \_trace('+----------------------');
             }
+        } while (!self::getConnected());
+    }
+
+    private function buildPool(\stdClass $auxConfig): void
+    {
+        $minPool = max(1, min(20, $auxConfig->pool ?? 5));
+        \_trace("Building PDO connection pool with $minPool item(s)");
+        for ($i = 0; $i < $minPool; $i++) {
+            self::$pool[] = new self(true);
         }
     }
 
@@ -125,14 +135,6 @@ class PDOConnection extends \YeAPF\Connection\DBConnection
 
     public function popConnection(&$ret)
     {
-        // if (PDOConnectionLock::lock()) {
-        //     try {
-        //         ...
-        //     } finally {
-        //         PDOConnectionLock::unlock();
-        //     }
-        // }
-
         $ret = array_pop(self::$pool);
         if (null == $ret) {
             $ret = new self(true);
@@ -148,12 +150,6 @@ class PDOConnection extends \YeAPF\Connection\DBConnection
 
     public function pushConnection($connection)
     {
-        // if (PDOConnectionLock::lock()) {
-        //     try {
-        //     } finally {
-        //         PDOConnectionLock::unlock();
-        //     }
-        // }
         \_trace('Connection parked: ' . $connection->getPoolId() . '');
         self::$pool[] = $connection;
     }
