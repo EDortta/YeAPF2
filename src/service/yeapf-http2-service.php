@@ -531,6 +531,328 @@ abstract class HTTP2Service extends Skeleton
         return $this->mainAccess;
     }
 
+    private function configureRequestContext(Request $request): void
+    {
+        $proto             = $request->header['x-forwarded-proto'] ?? '';
+        $host              = $request->header['host'] ?? '';
+        $entryURI          = $request->header['x-entry-uri'] ?? '';
+        $this->externalURL = $proto . '://' . $host . $entryURI;
+        $this->clientIP    = $request->header['x-forwarded-for'] ?? '';
+
+        $parsedUrl        = parse_url($this->getExternalURL());
+        $domain           = $parsedUrl['host'] ?? '';
+        $port             = isset($parsedUrl['port']) ? ':' . $parsedUrl['port'] : '';
+        $this->mainAccess = $domain . $port;
+
+        $requestMethod   = $request->server['request_method'] ?? 'unknown';
+        $requestUri      = $request->server['request_uri'] ?? 'unknown';
+        $requestProtocol = $request->server['server_protocol'] ?? 'unknown';
+        $httpReferer     = $request->header['referer'] ?? '-';
+        $httpUserAgent   = $request->header['user-agent'] ?? '-';
+        $thisHost        = gethostname();
+        $thisIP          = $request->server['remote_addr'] ?? '';
+        $requestTime     = $request->server['request_time'] ?? gmdate('U');
+
+        \YeAPF\yLogger::setLogTags(
+            [
+                YeAPF_LOG_TAG_SERVER       => trim($thisHost . ' ' . $thisIP),
+                YeAPF_LOG_TAG_SERVICE      => 'yeapf_service',
+                YeAPF_LOG_TAG_CLIENT       => $this->getClientIP(),
+                YeAPF_LOG_TAG_REQUEST_TIME => gmdate('Y-m-d\TH:i:sP', $requestTime),
+                YeAPF_LOG_TAG_REQUEST      => "{$requestMethod} {$requestUri} {$requestProtocol}",
+                YeAPF_LOG_TAG_REFERRER     => $httpReferer,
+                YeAPF_LOG_TAG_USERAGENT    => $httpUserAgent
+            ]
+        );
+
+        \YeAPF\yLogger::setTraceDetails(
+            uri: $this->getExternalURL() . ($request->server['path_info'] ?? ''),
+            headers: $request->header,
+            server: $request->server,
+            cookie: $request->cookie,
+            method: $request->server['request_method'],
+        );
+    }
+
+    private function buildRequestParams(Request $request, string $method): array
+    {
+        $params = [];
+        if (mb_strtolower(substr(trim(($request->header['content-type']) ?? ''), 0, 16)) === 'application/json') {
+            $data = explode("\r\n", $request->getData());
+            _trace('DATA: ' . json_encode($data));
+            $jsonData                    = end($data);
+            $params[strtolower($method)] = json_decode($jsonData, true);
+        }
+
+        $allowedParams = ['cookie', 'get', 'post', 'files'];
+        foreach ($request as $key => $value) {
+            if (null != $value && in_array($key, $allowedParams, true)) {
+                $params[$key] = $value;
+            }
+        }
+        return $params;
+    }
+
+    private function handleRequestCallback(Request $request, Response $response): void
+    {
+        \YeAPF\yLogger::setTraceDescriptor('HTTP2 service on ' . $request->server['request_uri']);
+
+        $uri            = urldecode($request->server['request_uri']);
+        $startTimestamp = microtime(true);
+
+        $this->configureRequestContext($request);
+
+        $ret_code  = 406;
+        $cleanCode = false;
+        $aBulletin = new \YeAPF\Http2Bulletin();
+        try {
+            $method = $request->server['request_method'];
+            $params = $this->buildRequestParams($request, $method);
+            $headers = $request->header;
+
+            _trace("START $uri ($method)");
+            $this->openContext();
+            $this->configureAndStartup();
+
+            _trace('ATTENDANTS: ' . json_encode($this->handlers));
+            _trace('PARAMS: ' . json_encode($params));
+
+            $handler = $this->findHandler($method, $uri);
+            _trace('HANDLER: ' . json_encode($handler));
+            if (null !== $handler) {
+                $bearerFormat = '';
+                $secToken     = null;
+                $minSecOk     = false;
+
+                $security = $handler['security'] ?? false;
+                if (false == $security) {
+                    _trace("WARNING: No security for $method $uri");
+                    $minSecOk = true;
+                } else {
+                    $knownSchemes = $this->getAPIDetail('components', 'securitySchemes');
+                    _trace('CHOSEN SCHEME: ' . print_r($security, true));
+                    $secType   = 'notFound';
+                    $secScheme = 'notDefined';
+                    if (is_array($security)) {
+                        foreach ($security as $k => $sec) {
+                            _trace("KEY: $k VALUE: $sec");
+                            $secType = $knownSchemes[$sec]['type'];
+                            if ('http' == $secType) {
+                                $secScheme = $knownSchemes[$sec]['scheme'];
+                                if ('bearer' == $secScheme) {
+                                    $bearerFormat = $knownSchemes[$sec]['bearerFormat'] ?? 'JWT';
+                                }
+                            }
+                        }
+                    } else {
+                        if (!empty($knownSchemes[$security])) {
+                            $secType = $knownSchemes[$security]['type'];
+                            if ('http' == $secType) {
+                                $secScheme = $knownSchemes[$security]['scheme'];
+                                if ('bearer' == $secScheme) {
+                                    $bearerFormat = $knownSchemes[$security]['bearerFormat'] ?? 'JWT';
+                                }
+                            }
+                        }
+                    }
+                    _trace("SECURITY TYPE: $secType");
+                    _trace("SECURITY SCHEME: $secScheme");
+
+                    if ('notFound' == $secType) {
+                        $minSecOk = false;
+                        _trace("ERROR: Security declared for $method $uri but not found");
+                    } else {
+                        preg_match('/' . $secScheme . ' (.*)/i', $headers['authorization'] ?? '', $output_array);
+                        if ($output_array) {
+                            $secToken = $output_array[1];
+                            _trace("SECURITY TOKEN: $secToken");
+                            $minSecOk = true;
+                        }
+                    }
+                }
+
+                $inlineVariables = new \YeAPF\SanitizedKeyData($handler['constraints'] ?? null);
+                $pathSegments    = explode('/', $handler['path']);
+                $uriSegments     = $this->getPathFromURI($uri);
+
+                foreach ($handler['inlineParams'] as $inlineParam => $inlineName) {
+                    $paramIndex = array_search($inlineParam, $pathSegments);
+                    $uriSegment = $uriSegments[$paramIndex];
+                    if (is_numeric($uriSegment)) {
+                        if (strpos($uriSegment, '.') !== false) {
+                            $inlineVariables[$inlineName] = (float) $uriSegment;
+                        } else {
+                            $inlineVariables[$inlineName] = (int) $uriSegment;
+                        }
+                    } else {
+                        $inlineVariables[$inlineName] = $uriSegment;
+                    }
+                }
+                _trace('INLINES: ' . json_encode($inlineVariables));
+
+                $aux = new \YeAPF\SanitizedKeyData($handler['constraints'] ?? null);
+                try {
+                    if ($minSecOk) {
+                        $tokenNotUsable = false;
+                        if ('JWT' == $bearerFormat) {
+                            $params['__secToken'] = [];
+                            $aJWT                 = new \YeAPF\Security\yJWT($secToken);
+                            $params['__secToken'] = [
+                                'text' => $secToken
+                            ];
+                            $importResult = $aJWT->getImportResult();
+                            if ($importResult == YeAPF_JWT_SIGNATURE_VERIFICATION_OK) {
+                                $params['__secToken']['jwt'] = $aJWT->exportData();
+                                $expirationTime              = $aJWT->exp;
+
+                                $tokenNotUsable = ($expirationTime < time());
+                                _trace("Expiration time: $expirationTime");
+                                _trace('   Current Time: ' . time());
+                                _trace('      Time diff: ' . ($expirationTime - time()));
+                                _trace('Token expiration: ' . ($tokenNotUsable ? 'Achieved' : 'Not achieved'));
+                                _trace('Decoded token:' . print_r($aJWT->exportData(), true));
+
+                                if ($tokenNotUsable) {
+                                    _trace('Token expired');
+                                    $aBulletin->reason = 'Token expired';
+                                    $ret_code          = 401;
+                                } else {
+                                    if ($aJWT->tokenInBin()) {
+                                        $tokenNotUsable    = true;
+                                        $aBulletin->reason = 'Token already deleted';
+                                        $ret_code          = 401;
+                                    } else {
+                                        if (($aJWT->nbf ?? 0) > time()) {
+                                            $tokenNotUsable    = true;
+                                            $aBulletin->reason = 'Token not yet valid. Use only after ' . date('Y-m-d H:i:s', $aJWT->nbf ?? 0) . ' Issued at ' . date('Y-m-d H:i:s', $aJWT->iat) . ' Current time: ' . date('Y-m-d H:i:s', time());
+                                            $ret_code          = 401;
+                                        } else {
+                                            if ($aJWT->iss != $this->getMainAccess()) {
+                                                $tokenNotUsable    = true;
+                                                $aBulletin->reason = "Token issued for another server '" . $aJWT->iss . "' and not for '" . $this->getMainAccess() . "'";
+                                                $ret_code          = 401;
+                                            }
+                                        }
+                                    }
+                                }
+                            } else {
+                                $tokenNotUsable    = true;
+                                $aBulletin->reason = 'Token cannot be used. 0x' . dechex($importResult) . ':' . $aJWT->explainImportResult();
+                                $ret_code          = 401;
+                                _trace($aBulletin->reason);
+                            }
+                        }
+                        if ($tokenNotUsable) {
+                            if (406 == $ret_code) {
+                                $aBulletin->reason = $aBulletin->reason ?? 'Token expired or damaged';
+                                $ret_code          = 401;
+                            }
+                        } else {
+                            _trace("Calling handler >>>> $method $uri");
+                            $aux->importData($params);
+                            $ret_code  = $handler['attendant']($aBulletin, $uri, $params, ...$inlineVariables);
+                            $cleanCode = true;
+                            if ($ret_code >= 200 && $ret_code <= 299) {
+                                if ('JWT' == $bearerFormat) {
+                                    if ($aJWT->uot) {
+                                        _trace("Discarding token $secToken");
+                                        $aJWT->sendToBin($secToken);
+                                    }
+                                }
+                            }
+                        }
+                    } else {
+                        _trace('Security not satisfied');
+                        $aBulletin->reason = 'Method not allowed';
+                        $ret_code          = 405;
+                    }
+                } catch (\Exception $e) {
+                    $this->error = $e->getMessage();
+                    _trace($e->getMessage());
+                    $this->stackTrace  = [
+                        'code'    => $e->getCode(),
+                        'file'    => $e->getFile(),
+                        'line'    => $e->getLine(),
+                        'message' => $e->getMessage(),
+                        'trace'   => $e->getTrace()
+                    ];
+                    $aBulletin->reason = $e->getMessage();
+                    $ret_code          = 406;
+                }
+            } else {
+                $ret_code = $this->answerQuery($aBulletin, $uri, $params) ?? 204;
+            }
+        } catch (\Exception $e) {
+            _trace('EXCEPTION: ' . $e->getMessage());
+            $this->stackTrace = [
+                'code'    => $e->getCode(),
+                'file'    => $e->getFile(),
+                'line'    => $e->getLine(),
+                'message' => $e->getMessage(),
+                'trace'   => $e->getTrace()
+            ];
+            $ret_code         = 550;
+        } catch (\Error $e) {
+            _trace('ERROR: ' . $e->getMessage());
+            $this->stackTrace  = [
+                'code'    => $e->getCode(),
+                'file'    => $e->getFile(),
+                'line'    => $e->getLine(),
+                'message' => $e->getMessage(),
+                'trace'   => $e->getTrace()
+            ];
+            $this->error       = $e->getMessage();
+            $aBulletin->reason = $e->getMessage();
+            $ret_code          = 551;
+        } catch (\Throwable $e) {
+            _trace('THROWABLE: ' . $e->getMessage());
+            $this->stackTrace  = [
+                'code'    => $e->getCode(),
+                'file'    => $e->getFile(),
+                'line'    => $e->getLine(),
+                'message' => $e->getMessage(),
+                'trace'   => $e->getTrace()
+            ];
+            $this->error       = $e->getMessage();
+            $aBulletin->reason = $e->getMessage();
+            $ret_code          = 552;
+        } finally {
+            if (!$cleanCode) {
+                if ($ret_code < 300) {
+                    $ret_code = 500;
+                }
+                _trace("NOT CLEAN CODE: $ret_code");
+            }
+
+            $contentLength = strlen(json_encode($aBulletin->exportData()));
+            \YeAPF\yLogger::setLogTags(
+                [
+                    YeAPF_LOG_TAG_RESULT        => $ret_code,
+                    YeAPF_LOG_TAG_RESPONSE_SIZE => $contentLength,
+                    YeAPF_LOG_TAG_RESPONSE_TIME => microtime(true) - $startTimestamp
+                ]
+            );
+
+            if ($ret_code > 299) {
+                \YeAPF\yLogger::log(0, YeAPF_LOG_ERROR, \YeAPF\yLogger::getTraceFilename() . ' ' . $this->error);
+                if (!empty($this->stackTrace)) {
+                    \YeAPF\handleException(...$this->stackTrace);
+                }
+            } else {
+                \YeAPF\yLogger::log(0, YeAPF_LOG_DEBUG);
+            }
+
+            \YeAPF\yLogger::setTraceDetails(
+                httpCode: $ret_code,
+                return: $aBulletin->exportData()
+            );
+            $aBulletin($ret_code, $request, $response);
+
+            $this->closeContext();
+            \YeAPF\yLogger::closeTrace($ret_code > 299);
+        }
+    }
+
     public function start($port = 9501, $host = '0.0.0.0')
     {
         _log("Preparing service on $host:$port");
@@ -585,371 +907,12 @@ abstract class HTTP2Service extends Skeleton
              *   'Finish': Triggered when a task is finished by the worker process.
              *   'Receive': Triggered when a TCP/UDP connection receives data.
              */
-            $server->on('Request', function (Request $request, Response $response) use ($server) {
-                                       global $currentURI;
-
-                                       \YeAPF\yLogger::setTraceDescriptor('HTTP2 service on ' . $request->server['request_uri']);
-                                       // _log("Request arrived");
-                                       // \YeAPF\yLogger::log(0, YeAPF_LOG_DEBUG, "REQUEST ARRIVED: " . $request->server['request_uri']);
-
-                                       // $authorizationHeader = $request->getHeaderLine('Authorization');
-                                       // $bearerToken = '';
-
-                                       // if (preg_match('/Bearer\s+(.*)/', $authorizationHeader, $matches)) {
-                                       //     $bearerToken = $matches[1];
-                                       // }
-
-                                       // _trace("Authorization: $authorizationHeader");
-                                       // _trace("Bearer token: $bearerToken");
-
-                                       $uri        = urldecode($request->server['request_uri']);
-                                       $currentURI = md5($uri);
-
-                                       $params = [];
-
-                                       $startTimestamp = microtime(true);
-
-                                       (function () use ($request) {
-                                           $proto             = $request->header['x-forwarded-proto'] ?? '';
-                                           $host              = $request->header['host'] ?? '';
-                                           $entryURI          = $request->header['x-entry-uri'] ?? '';
-                                           $this->externalURL = $proto . '://' . $host . $entryURI;
-                                           $this->clientIP    = $request->header['x-forwarded-for'];
-
-                                           $parsed_url = parse_url($this->getExternalURL());
-                                           $domain     = $parsed_url['host'];
-                                           $port       = isset($parsed_url['port']) ? ':' . $parsed_url['port'] : '';
-
-                                           $this->mainAccess = $domain . $port;
-
-                                           // $requestTime = date('Y-m-d\TH:i:sP');
-                                           // $remoteAddr = $this->getClientIP();
-                                           // $status = $ret_code;
-                                           $requestMethod   = $request->server['request_method'] ?? 'unknown';
-                                           $requestUri      = $request->server['request_uri'] ?? 'unknown';
-                                           $requestProtocol = $request->server['server_protocol'] ?? 'unknown';
-                                           $httpReferer     = $request->header['referer'] ?? '-';
-                                           $httpUserAgent   = $request->header['user-agent'] ?? '-';
-                                           $thisHost        = gethostname();
-                                           $thisIP          = $request->server['remote_addr'];
-                                           $requestTime     = $request->server['request_time'] ?? gmdate('U');
-                                           // $thisIP = $request->server['SERVER_ADDR'] ?? 'unknown';
-
-                                           \YeAPF\yLogger::setLogTags(
-                                               [
-                                                   YeAPF_LOG_TAG_SERVER       => trim($thisHost . ' ' . $thisIP),
-                                                   YeAPF_LOG_TAG_SERVICE      => 'yeapf_service',
-                                                   YeAPF_LOG_TAG_CLIENT       => $this->getClientIP(),
-                                                   YeAPF_LOG_TAG_REQUEST_TIME => gmdate('Y-m-d\TH:i:sP', $requestTime),
-                                                   YeAPF_LOG_TAG_REQUEST      => "{$requestMethod} {$requestUri} {$requestProtocol}",
-                                                   YeAPF_LOG_TAG_REFERRER     => $httpReferer,
-                                                   YeAPF_LOG_TAG_USERAGENT    => $httpUserAgent
-                                               ]
-                                           );
-                                       })();
-
-                                       // _trace('URL: ' . $this->getExternalURL());
-
-                                       // _trace('PATH_INFO: ' . $request->server['path_info']);
-                                       // _trace('REQUEST: ' . json_encode($request));
-
-                                       \YeAPF\yLogger::setTraceDetails(
-                                           uri: $this->getExternalURL() . $request->server['path_info'],
-                                           headers: $request->header,
-                                           server: $request->server,
-                                           cookie: $request->cookie,
-                                           method: $request->server['request_method'],
-                                       );
-
-                                       $ret_code     = 406;
-                                       $cleanCode    = false;
-                                       $serviceStage = 0;
-
-                                       $aBulletin = new \YeAPF\Http2Bulletin();
-                                       try {
-                                           $method = $request->server['request_method'];
-                                           if (mb_strtolower(substr(trim(($request->header['content-type']) ?? ''), 0, 16)) === 'application/json') {
-                                               $data = explode("\r\n", $request->getData());
-
-                                               _trace('DATA: ' . json_encode($data));
-                                               $jsonData                    = end($data);
-                                               $params[strtolower($method)] = json_decode($jsonData, true);
-                                               array_pop($data);
-                                           } else {
-                                           }
-                                           $headers = $request->header;
-
-                                           _trace("START $uri ($method)");
-                                           $serviceStage = 1;
-                                           $this->openContext();
-                                           $serviceStage = 2;
-                                           $this->configureAndStartup();
-                                           $serviceStage = 3;
-
-                                           _trace('ATTENDANTS: ' . json_encode($this->handlers));
-
-                                           $allowedParams = ['cookie', 'get', 'post', 'files'];
-                                           foreach ($request as $key => $value) {
-                                               if (null != $value && in_array($key, $allowedParams))
-                                                   $params[$key] = $value;
-                                           }
-
-                                           _trace('PARAMS: ' . json_encode($params));
-
-                                           $handler = $this->findHandler($method, $uri);
-
-                                           _trace('HANDLER: ' . json_encode($handler));
-                                           if (null !== $handler) {
-                                               $bearerFormat = '';
-                                               $secToken     = null;
-                                               $minSecOk     = false;
-
-                                               $security = $handler['security'] ?? false;
-                                               if (false == $security) {
-                                                   _trace("WARNING: No security for $method $uri");
-                                                   $minSecOk = true;
-                                               } else {
-                                                   $knownSchemes = $this->getAPIDetail('components', 'securitySchemes');
-                                                   // _trace('KNOWN SCHEMES: ' . print_r($knownSchemes, true));
-                                                   _trace('CHOSEN SCHEME: ' . print_r($security, true));
-                                                   $secType   = 'notFound';
-                                                   $secScheme = 'notDefined';
-                                                   if (is_array($security)) {
-                                                       foreach ($security as $k => $sec) {
-                                                           _trace("KEY: $k VALUE: $sec");
-                                                           $secType = $knownSchemes[$sec]['type'];
-                                                           if ('http' == $secType) {
-                                                               $secScheme = $knownSchemes[$sec]['scheme'];
-                                                               if ('bearer' == $secScheme) {
-                                                                   $bearerFormat = $knownSchemes[$sec]['bearerFormat'] ?? 'JWT';
-                                                               }
-                                                           }
-                                                       }
-                                                   } else {
-                                                       if (!empty($knownSchemes[$security])) {
-                                                           $secType = $knownSchemes[$security]['type'];
-                                                           if ('http' == $secType) {
-                                                               $secScheme = $knownSchemes[$security]['scheme'];
-                                                               if ('bearer' == $secScheme) {
-                                                                   $bearerFormat = $knownSchemes[$sec]['bearerFormat'] ?? 'JWT';
-                                                               }
-                                                           }
-                                                       }
-                                                   }
-                                                   _trace("SECURITY TYPE: $secType");
-                                                   _trace("SECURITY SCHEME: $secScheme");
-
-                                                   if ('notFound' == $secType) {
-                                                       $minSecOk = false;
-                                                       _trace("ERROR: Security declared for $method $uri but not found");
-                                                   } else {
-                                                       preg_match('/' . $secScheme . ' (.*)/i', $headers['authorization'] ?? '', $output_array);
-                                                       if ($output_array) {
-                                                           $secToken = $output_array[1];
-                                                           _trace("SECURITY TOKEN: $secToken");
-                                                           $minSecOk = true;
-                                                       }
-                                                   }
-                                               }
-
-                                               $serviceStage = 4;
-
-                                               $inlineVariables = new \YeAPF\SanitizedKeyData($handler['constraints'] ?? null);
-                                               $pathSegments    = explode('/', $handler['path']);
-                                               $uriSegments     = $this->getPathFromURI($uri);
-
-                                               foreach ($handler['inlineParams'] as $inlineParam => $inlineName) {
-                                                   $paramIndex = array_search($inlineParam, $pathSegments);
-                                                   $uriSegment = $uriSegments[$paramIndex];
-                                                   if (is_numeric($uriSegment)) {
-                                                       if (strpos($uriSegment, '.') !== false) {
-                                                           $inlineVariables[$inlineName] = (float) $uriSegment;
-                                                       } else {
-                                                           $inlineVariables[$inlineName] = (int) $uriSegment;
-                                                       }
-                                                   } else {
-                                                       $inlineVariables[$inlineName] = $uriSegment;
-                                                   }
-                                               }
-                                               _trace('INLINES: ' . json_encode($inlineVariables));
-
-                                               $serviceStage = 5;
-
-                                               $aux = new \YeAPF\SanitizedKeyData($handler['constraints'] ?? null);
-                                               try {
-                                                   if ($minSecOk) {
-                                                       $tokenNotUsable = false;
-                                                       if ('JWT' == $bearerFormat) {
-                                                           $params['__secToken'] = [];
-                                                           $aJWT                 = new \YeAPF\Security\yJWT($secToken);
-                                                           $params['__secToken'] = [
-                                                               'text' => $secToken
-                                                           ];
-                                                           $importResult         = $aJWT->getImportResult();
-                                                           if ($importResult == YeAPF_JWT_SIGNATURE_VERIFICATION_OK) {
-                                                               $params['__secToken']['jwt'] = $aJWT->exportData();
-                                                               $expirationTime              = $aJWT->exp;
-
-                                                               $tokenNotUsable = ($expirationTime < time());
-                                                               _trace("Expiration time: $expirationTime");
-                                                               _trace('   Current Time: ' . time());
-                                                               _trace('      Time diff: ' . ($expirationTime - time()));
-                                                               _trace('Token expiration: ' . ($tokenNotUsable ? 'Achieved' : 'Not achieved'));
-                                                               _trace('Decoded token:' . print_r($aJWT->exportData(), true));
-
-                                                               if ($tokenNotUsable) {
-                                                                   _trace('Token expired');
-                                                                   $aBulletin->reason = 'Token expired';
-                                                                   $ret_code          = 401;
-                                                               } else {
-                                                                   if ($aJWT->tokenInBin()) {
-                                                                       $tokenNotUsable    = true;
-                                                                       $aBulletin->reason = 'Token already deleted';
-                                                                       $ret_code          = 401;
-                                                                   } else {
-                                                                       if (($aJWT->nbf ?? 0) > time()) {
-                                                                           $tokenNotUsable    = true;
-                                                                           $aBulletin->reason = 'Token not yet valid. Use only after ' . date('Y-m-d H:i:s', $aJWT->nbf ?? 0) . ' Issued at ' . date('Y-m-d H:i:s', $aJWT->iat) . ' Current time: ' . date('Y-m-d H:i:s', time());
-                                                                           $ret_code          = 401;
-                                                                       } else {
-                                                                           if ($aJWT->iss != $this->getMainAccess()) {
-                                                                               $tokenNotUsable    = true;
-                                                                               $aBulletin->reason = "Token issued for another server '" . $aJWT->iss . "' and not for '" . $this->getMainAccess() . "'";
-                                                                               $ret_code          = 401;
-                                                                           }
-                                                                       }
-                                                                   }
-                                                               }
-                                                           } else {
-                                                               $tokenNotUsable    = true;
-                                                               $aBulletin->reason = 'Token cannot be used. 0x' . dechex($importResult) . ':' . $aJWT->explainImportResult();
-                                                               $ret_code          = 401;
-
-                                                               _trace($aBulletin->reason);
-                                                           }
-                                                       }
-                                                       if ($tokenNotUsable) {
-                                                           if (406 == $ret_code) {
-                                                               $aBulletin->reason = $aBulletin->reason ?? 'Token expired or damaged';
-                                                               $ret_code          = 401;
-                                                           }
-                                                       } else {
-                                                           _trace("Calling handler >>>> $method $uri");
-                                                           // check this
-                                                           // aux appears to 1) import as referential array and 2) not being used
-                                                           $aux->importData($params);
-
-                                                           $serviceStage = 6;
-
-                                                           $ret_code  = $handler['attendant']($aBulletin, $uri, $params, ...$inlineVariables);
-                                                           $cleanCode = true;
-
-                                                           $serviceStage = 8;
-
-                                                           if ($ret_code >= 200 && $ret_code <= 299) {
-                                                               if ('JWT' == $bearerFormat) {
-                                                                   if ($aJWT->uot) {
-                                                                       _trace("Discarding token $secToken");
-                                                                       $aJWT->sendToBin($secToken);
-                                                                   }
-                                                               }
-                                                           }
-                                                       }
-                                                   } else {
-                                                       _trace('Security not satisfied');
-                                                       $aBulletin->reason = 'Method not allowed';
-                                                       $ret_code          = 405;
-                                                   }
-                                               } catch (\Exception $e) {
-                                                   $this->error = $e->getMessage();
-                                                   _trace($e->getMessage());
-                                                   $this->stackTrace  = [
-                                                       'code'    => $e->getCode(),
-                                                       'file'    => $e->getFile(),
-                                                       'line'    => $e->getLine(),
-                                                       'message' => $e->getMessage(),
-                                                       'trace'   => $e->getTrace()
-                                                   ];
-                                                   $aBulletin->reason = $e->getMessage();
-                                                   $ret_code          = 406;
-                                               }
-                                           } else {
-                                               $ret_code = $this->answerQuery($aBulletin, $uri, $params) ?? 204;
-                                           }
-                                       } catch (\Exception $e) {
-                                           _trace('EXCEPTION: ' . $e->getMessage());
-                                           $this->stackTrace = [
-                                               'code'    => $e->getCode(),
-                                               'file'    => $e->getFile(),
-                                               'line'    => $e->getLine(),
-                                               'message' => $e->getMessage(),
-                                               'trace'   => $e->getTrace()
-                                           ];
-                                           $ret_code         = 550;
-                                       } catch (\Error $e) {
-                                           _trace('ERROR: ' . $e->getMessage());
-                                           $this->stackTrace  = [
-                                               'code'    => $e->getCode(),
-                                               'file'    => $e->getFile(),
-                                               'line'    => $e->getLine(),
-                                               'message' => $e->getMessage(),
-                                               'trace'   => $e->getTrace()
-                                           ];
-                                           $this->error       = $e->getMessage();
-                                           $aBulletin->reason = $e->getMessage();
-                                           $ret_code          = 551;
-                                       } catch (\Throwable $e) {
-                                           _trace('THROWABLE: ' . $e->getMessage());
-                                           $this->stackTrace  = [
-                                               'code'    => $e->getCode(),
-                                               'file'    => $e->getFile(),
-                                               'line'    => $e->getLine(),
-                                               'message' => $e->getMessage(),
-                                               'trace'   => $e->getTrace()
-                                           ];
-                                           $this->error       = $e->getMessage();
-                                           $aBulletin->reason = $e->getMessage();
-                                           $ret_code          = 552;
-                                       } finally {
-                                           if (!$cleanCode) {
-                                               if ($ret_code < 300) {
-                                                   $ret_code = 500;
-                                               }
-                                               _trace("NOT CLEAN CODE: $ret_code");
-                                           }
-
-                                           $contentLength = strlen(json_encode($aBulletin->exportData()));
-                                           \YeAPF\yLogger::setLogTags(
-                                               [
-                                                   YeAPF_LOG_TAG_RESULT        => $ret_code,
-                                                   YeAPF_LOG_TAG_RESPONSE_SIZE => $contentLength,
-                                                   YeAPF_LOG_TAG_RESPONSE_TIME => microtime(true) - $startTimestamp
-                                               ]
-                                           );
-
-                                           if ($ret_code > 299) {
-                                               \YeAPF\yLogger::log(0, YeAPF_LOG_ERROR, \YeAPF\yLogger::getTraceFilename() . ' ' . $this->error);
-                                               if (!empty($this->stackTrace)) {
-                                                   \YeAPF\handleException(...$this->stackTrace);
-                                               }
-                                           } else {
-                                               \YeAPF\yLogger::log(0, YeAPF_LOG_DEBUG);
-                                           }
-
-                                           // _log("RETURN: $ret_code BODY: " . json_encode($aBulletin->exportData()));
-
-                                           \YeAPF\yLogger::setTraceDetails(
-                                               httpCode: $ret_code,
-                                               return: $aBulletin->exportData()
-                                           );
-                                           // _trace("RETURN: $ret_code BODY: " . json_encode($aBulletin->exportData()));
-                                           $aBulletin($ret_code, $request, $response);
-
-                                           // _trace("FINNISH $uri");
-                                           $this->closeContext();
-                                           \YeAPF\yLogger::closeTrace($ret_code > 299);
-                                       }
-                                   });
+            $server->on(
+                'Request',
+                function (Request $request, Response $response) {
+                    $this->handleRequestCallback($request, $response);
+                }
+            );
 
             $server->on('Close', function (Server $server) use ($host, $port) {
                                      $this->closeContext();

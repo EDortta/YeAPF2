@@ -149,4 +149,14 @@ final class CodeQualityRegressionTest extends TestCase
         $this->assertStringContainsString('private function buildOpenApiOperation(', $content);
         $this->assertStringNotContainsString("_trace('CONSTRAINTS:", $content);
     }
+
+    public function testHttp2RequestCallbackNoLongerUsesGlobalCurrentUri(): void
+    {
+        $content = $this->readSource('src/service/yeapf-http2-service.php');
+
+        $this->assertStringNotContainsString('global $currentURI', $content);
+        $this->assertStringContainsString('private function handleRequestCallback(', $content);
+        $this->assertStringContainsString('private function configureRequestContext(', $content);
+        $this->assertStringContainsString('private function buildRequestParams(', $content);
+    }
 }
