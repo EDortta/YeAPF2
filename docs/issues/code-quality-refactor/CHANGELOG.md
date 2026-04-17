@@ -1,5 +1,8 @@
 # CHANGELOG — code-quality-refactor
 
+2026-04-17 — Removed stale `CQR-003-[PR]` file after closure to keep one issue file per issue
+2026-04-17 — CQR-003 merged via PR #8 and moved to closed; remote issue branch deleted
+2026-04-17 — CQR-003 moved to reviewed after merge validation
 2026-04-17 — CQR-003 moved to PR; branch `issue/code-quality-refactor/cqr-003-pdo-connect-split` pushed and PR #8 opened
 2026-04-17 — CQR-003 moved to on-work; branch `issue/code-quality-refactor/cqr-003-pdo-connect-split` started
 2026-04-17 — Removed stale `CQR-007-[PR]` file after closure to keep one issue file per issue
