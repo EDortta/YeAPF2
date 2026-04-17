@@ -37,7 +37,7 @@ Issues are drawn from docs/issues/. Priority order: security first, then product
    → `docs/issues/code-quality-refactor/CQR-003-pdo-connect-split-[closed].md`
 
 7. **CQR-005** `yeapf-webapp.php` — `global $yAnalyzer` in two static methods; live `var_dump` + `die()` behind `$debug=false`; `setRouteHandler()` is 83 lines
-   → `docs/issues/code-quality-refactor/CQR-005-webapp-globals-and-debug-[opened].md`
+   → `docs/issues/code-quality-refactor/CQR-005-webapp-globals-and-debug-[PR].md`
 
 8. **CQR-006** `yeapf-sse-service.php` — `echo` instead of logger; `start()` 125 lines; nested coroutine inside callback
    → `docs/issues/code-quality-refactor/CQR-006-sse-callbacks-and-echo-[opened].md`

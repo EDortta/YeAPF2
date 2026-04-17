@@ -20,7 +20,7 @@ One issue per file. Each issue targets the specific problems found in that file.
 - [CQR-002-collections-exportdocumentmodel.md](./CQR-002-collections-exportdocumentmodel-[opened].md)
 - [CQR-003-pdo-connect-split.md](./CQR-003-pdo-connect-split-[closed].md)
 - [CQR-004-pdo-global-and-postgres-sql.md](./CQR-004-pdo-global-and-postgres-sql-[closed].md)
-- [CQR-005-webapp-globals-and-debug.md](./CQR-005-webapp-globals-and-debug-[opened].md)
+- [CQR-005-webapp-globals-and-debug.md](./CQR-005-webapp-globals-and-debug-[PR].md)
 - [CQR-006-sse-callbacks-and-echo.md](./CQR-006-sse-callbacks-and-echo-[opened].md)
 - [CQR-007-i18n-translate-refactor.md](./CQR-007-i18n-translate-refactor-[closed].md)
 - [CQR-008-jwt-secret-in-logs.md](./CQR-008-jwt-secret-in-logs-[closed].md)
