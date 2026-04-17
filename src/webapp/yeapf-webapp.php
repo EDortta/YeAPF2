@@ -17,6 +17,7 @@ class WebApp
         'HEAD'    => [],
         'OPTIONS' => [],
     ];
+    static private ?yAnalyzerClass $analyzer = null;
 
     public static function initialize()
     {
@@ -208,126 +209,140 @@ class WebApp
     {
         if (!isset(self::$handlers[$method])) {
             throw new \YeAPF\YeAPFException("Not allowed method $method");
-        } else {
-            // $path = ltrim($path, '/');
-            // $path = ltrim($path, '\/');
-
-            $pSlash        = strrpos($path, '/');
-            $pEscapedSlash = strrpos($path, '\/');
-            if ($pSlash != $pEscapedSlash + 1) {
-                $path = preg_quote($path, '/');
-            }
-
-            $path = str_replace('\{\{', '{{', $path);
-            $path = str_replace('\}\}', '}}', $path);
-            $path = str_replace('\:\:', '::', $path);
-
-            $path = str_replace('*', '([^\/\s]*)', $path);
-
-            $typedParameterExpression = '/\{\{([\w]+)::([\w]+)\}\}/';
-            if (preg_match_all($typedParameterExpression, $path, $matches)) {
-                $tmpHandlerParams = [];
-                $p0               = 0;
-                $regexpPath       = '';
-                foreach ($matches[1] as $index => $paramName) {
-                    $paramType = $matches[2][$index];
-
-                    $paramDeclaration = '{{' . $paramName . '::' . $paramType . '}}';
-                    $p1               = strpos($path, $paramDeclaration, $p0);
-                    $p2               = strpos($path, $paramDeclaration, $p1 + strlen($paramDeclaration));
-                    if ($p2 !== false) {
-                        throw new \YeAPF\YeAPFException("Parameter '$paramName' already declared in path $path");
-                    }
-
-                    $typeDefinition = BasicTypes::get($paramType);
-                    if (null == $typeDefinition) {
-                        throw new \YeAPF\YeAPFException("Type '$paramType' not found when declaring '$path'");
-                    }
-
-                    $auxRegExpression = $typeDefinition['regExpression'];
-                    $auxRegExpression = str_replace('/^', '', $auxRegExpression);
-                    $auxRegExpression = str_replace('$/', '', $auxRegExpression);
-                    $auxRegExpression = rtrim($auxRegExpression, '/');
-                    if (substr($auxRegExpression, 0, 1) != '(' || substr($auxRegExpression, -1, 1) != ')') {
-                        $auxRegExpression = '(' . $auxRegExpression . ')';
-                    }
-
-                    $regexpPath .= substr($path, $p0, $p1 - $p0) . $auxRegExpression;
-                    $p0          = $p1 + strlen($paramDeclaration);
-
-                    $tmpHandlerParams[] = [
-                        'name' => $paramName,
-                        'type' => $paramType
-                    ];
-                }
-
-                $fnPath = preg_replace($typedParameterExpression, '*', $path);
-                $fnPath = str_replace('\/', '/', $fnPath);
-                if (isset(self::$handlers[$method][$regexpPath])) {
-                    throw new \YeAPF\YeAPFException("Path $path already exists");
-                } else {
-                    self::$handlers[$method][$regexpPath] = [
-                        'handler'    => $handler,
-                        'fnAlias'    => $fnPath,
-                        'parameters' => []
-                    ];
-                    self::$handlers[$method][$regexpPath]['parameters'] = $tmpHandlerParams;
-                }
-            } else {
-                if (isset(self::$handlers[$method][$path])) {
-                    throw new \YeAPF\YeAPFException("Path $path already exists");
-                } else {
-                    $fnPath = preg_replace('/\((.*)\)/', '*', $path);
-                    $fnPath = str_replace('\/', '/', $fnPath);
-                    self::$handlers[$method][$path] = [
-                        'handler'    => $handler,
-                        'fnAlias'    => $fnPath,
-                        'parameters' => []
-                    ];
-                }
-            }
         }
+
+        $path = self::normalizeRoutePath($path);
+
+        $typedParameterExpression = '/\{\{([\w]+)::([\w]+)\}\}/';
+        if (preg_match_all($typedParameterExpression, $path, $matches)) {
+            self::registerTypedRoute($method, $path, $handler, $matches, $typedParameterExpression);
+            return;
+        }
+
+        self::registerSimpleRoute($method, $path, $handler);
+    }
+
+    private static function normalizeRoutePath(string $path): string
+    {
+        $pSlash        = strrpos($path, '/');
+        $pEscapedSlash = strrpos($path, '\/');
+        if ($pSlash != $pEscapedSlash + 1) {
+            $path = preg_quote($path, '/');
+        }
+
+        $path = str_replace('\{\{', '{{', $path);
+        $path = str_replace('\}\}', '}}', $path);
+        $path = str_replace('\:\:', '::', $path);
+        return str_replace('*', '([^\/\s]*)', $path);
+    }
+
+    private static function registerTypedRoute(string $method, string $path, $handler, array $matches, string $typedParameterExpression): void
+    {
+        $tmpHandlerParams = [];
+        $p0               = 0;
+        $regexpPath       = '';
+        foreach ($matches[1] as $index => $paramName) {
+            $paramType = $matches[2][$index];
+
+            $paramDeclaration = '{{' . $paramName . '::' . $paramType . '}}';
+            $p1               = strpos($path, $paramDeclaration, $p0);
+            $p2               = strpos($path, $paramDeclaration, $p1 + strlen($paramDeclaration));
+            if ($p2 !== false) {
+                throw new \YeAPF\YeAPFException("Parameter '$paramName' already declared in path $path");
+            }
+
+            $typeDefinition = BasicTypes::get($paramType);
+            if (null == $typeDefinition) {
+                throw new \YeAPF\YeAPFException("Type '$paramType' not found when declaring '$path'");
+            }
+
+            $auxRegExpression = $typeDefinition['regExpression'];
+            $auxRegExpression = str_replace('/^', '', $auxRegExpression);
+            $auxRegExpression = str_replace('$/', '', $auxRegExpression);
+            $auxRegExpression = rtrim($auxRegExpression, '/');
+            if (substr($auxRegExpression, 0, 1) != '(' || substr($auxRegExpression, -1, 1) != ')') {
+                $auxRegExpression = '(' . $auxRegExpression . ')';
+            }
+
+            $regexpPath .= substr($path, $p0, $p1 - $p0) . $auxRegExpression;
+            $p0          = $p1 + strlen($paramDeclaration);
+
+            $tmpHandlerParams[] = [
+                'name' => $paramName,
+                'type' => $paramType
+            ];
+        }
+
+        $fnPath = preg_replace($typedParameterExpression, '*', $path);
+        $fnPath = str_replace('\/', '/', $fnPath);
+        if (isset(self::$handlers[$method][$regexpPath])) {
+            throw new \YeAPF\YeAPFException("Path $path already exists");
+        }
+
+        self::$handlers[$method][$regexpPath] = [
+            'handler'    => $handler,
+            'fnAlias'    => $fnPath,
+            'parameters' => $tmpHandlerParams
+        ];
+    }
+
+    private static function registerSimpleRoute(string $method, string $path, $handler): void
+    {
+        if (isset(self::$handlers[$method][$path])) {
+            throw new \YeAPF\YeAPFException("Path $path already exists");
+        }
+
+        $fnPath = preg_replace('/\((.*)\)/', '*', $path);
+        $fnPath = str_replace('\/', '/', $fnPath);
+        self::$handlers[$method][$path] = [
+            'handler'    => $handler,
+            'fnAlias'    => $fnPath,
+            'parameters' => []
+        ];
+    }
+
+    private static function getAnalyzer(): yAnalyzerClass
+    {
+        if (self::$analyzer instanceof yAnalyzerClass) {
+            return self::$analyzer;
+        }
+
+        if (isset($GLOBALS['yAnalyzer']) && $GLOBALS['yAnalyzer'] instanceof yAnalyzerClass) {
+            self::$analyzer = $GLOBALS['yAnalyzer'];
+            return self::$analyzer;
+        }
+
+        self::$analyzer = new yAnalyzerClass();
+        return self::$analyzer;
     }
 
     static function getRouteHandlerDefinition($path, $method)
     {
-        $debug=false;
-
-        $ret = null;
-
         if (substr($path, 0, 1) != '/') {
             $path = '/' . $path;
         }
-        
-
-        if($debug) {echo "<pre>$path\n" . str_repeat('-', 80) . "\n";}
 
         $matches = [];
         foreach (self::$handlers[$method] as $pattern => $pathDefinition) {
-            if ($debug) { echo "pattern=$pattern\n"; }
             if (preg_match('/' . $pattern . '/i', $path, $match)) {
                 $matches[$pattern] = $pathDefinition;
             }
         }
 
+        if (empty($matches)) {
+            return null;
+        }
+
         krsort($matches);
         reset($matches);
-        $ret = current($matches);
-
-        if($debug) {var_dump(explode('\/', key($matches) ?? ''));}
+        $ret = current($matches) ?: null;
 
         $c1 = count(explode('/', $path));
         $c2 = count(explode('\/', key($matches) ?? ''));
-        if($debug) {echo "c1=$c1\nc2=$c2\n";}
 
         if ($c1 > $c2) {
             $ret = null;
         }
-
-        if($debug) {var_dump($matches);}
-        if($debug) {echo 'ret=';}
-        if($debug) {var_dump($ret);}
-        if($debug) {die();}
 
         return $ret;
     }
@@ -335,8 +350,7 @@ class WebApp
     static function renderPage($uri, &$context, string|null|bool $antiCache = true)
     {
         header('Content-Type: text/html; charset=utf-8');
-
-        global $yAnalyzer;
+        $analyzer = self::getAnalyzer();
 
         $entrance = '';
         $uri      = explode('/', $uri);
@@ -379,7 +393,7 @@ class WebApp
                     }
                 }
             }
-            $context['page_content'] = $yAnalyzer->do($page_content, $context);
+            $context['page_content'] = $analyzer->do($page_content, $context);
         } else {
             $places    = ["pages/$uri.html", "pages/$uri/$uri.html", "$uri.html", "$uri/$uri.html"];
             $pageFound = false;
@@ -401,7 +415,7 @@ class WebApp
 
     static function go(array $context = [], string|null|bool $antiCache = true)
     {
-        global $yAnalyzer;
+        $analyzer = self::getAnalyzer();
 
         $context['baseURL'] = self::getBaseURL();
 
@@ -492,7 +506,7 @@ class WebApp
             // die("actualContentType: $actualContentType</pre>");
             $processableContentTypes = ['application/json', 'text/plain', 'text/html', 'text/markdown'];
             if ($actualContentType !== null && in_array($actualContentType, $processableContentTypes)) {
-                $content = $yAnalyzer->do($content, $context);
+                $content = $analyzer->do($content, $context);
             }
             // $content = $yAnalyzer->do($content, $context);
 

@@ -77,4 +77,24 @@ final class CodeQualityRegressionTest extends TestCase
         $this->assertStringContainsString('private function buildPool(', $content);
         $this->assertStringNotContainsString('// if (PDOConnectionLock::lock())', $content);
     }
+
+    public function testWebAppHasNoGlobalAnalyzerOrLiveDebugBlockInRouteLookup(): void
+    {
+        $content = $this->readSource('src/webapp/yeapf-webapp.php');
+
+        $this->assertStringNotContainsString('global $yAnalyzer', $content);
+        $this->assertDoesNotMatchRegularExpression(
+            '/function getRouteHandlerDefinition\\s*\\(.*?\\)\\s*\\{.*?\\$debug\\s*=\\s*false\\s*;.*?\\bvar_dump\\s*\\(.*?\\)\\s*;.*?\\bdie\\s*\\(\\s*\\)\\s*;/s',
+            $content
+        );
+    }
+
+    public function testWebAppRouteRegistrationWasSplitIntoSmallerMethods(): void
+    {
+        $content = $this->readSource('src/webapp/yeapf-webapp.php');
+
+        $this->assertStringContainsString('private static function registerTypedRoute(', $content);
+        $this->assertStringContainsString('private static function registerSimpleRoute(', $content);
+        $this->assertStringContainsString('private static function normalizeRoutePath(', $content);
+    }
 }
