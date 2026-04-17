@@ -38,6 +38,13 @@ class SSEUniqueQueue
     static protected $config;
     static protected $lock;
 
+    private static function log(string $message): void
+    {
+        if (function_exists('\_log')) {
+            \_log($message);
+        }
+    }
+
     static public function __startup()
     {
         self::$config = new OpenSwoole\Table(20);
@@ -85,7 +92,7 @@ class SSEUniqueQueue
         try {
             self::$lock->lock();
             if (!self::$queue->exists($target)) {
-                echo "@ Registering target: $target\n";
+                self::log("@ Registering target: $target");
                 self::$queue->set($target, [
                     'target' => $target,
                     'lastHeartbeat' => 0,
@@ -94,7 +101,7 @@ class SSEUniqueQueue
                 self::enqueueHeartBeat($target, true);
             }
         } catch (\Exception $e) {
-            echo 'Error registering target: ' . $e->getMessage() . "\n";
+            self::log('Error registering target: ' . $e->getMessage());
         } finally {
             self::$lock->unlock();
         }
@@ -114,7 +121,7 @@ class SSEUniqueQueue
         try {
             self::$lock->lock();
             if (self::$queue->exists($target)) {
-                echo "@ Unregistering target: $target\n";
+                self::log("@ Unregistering target: $target");
                 self::$queue->del($target);
             }
         } finally {
@@ -130,25 +137,25 @@ class SSEUniqueQueue
             $data = json_encode($data);
         }
         if ('*' == $target) {
-            echo "@ Broadcasting for all clients '$event' with data: $data\n";
+            self::log("@ Broadcasting for all clients '$event' with data: $data");
             $cc = 1;
             foreach ($registeredTargets as $t) {
-                echo "@ Enqueueing event from '$source' to '$t' ($cc)\n";
+                self::log("@ Enqueueing event from '$source' to '$t' ($cc)");
                 $cc++;
                 self::enqueueEvent($source, $t, $event, $data, $id, $retry);
             }
         } else if (strpos($target, '*') !== false) {
-            echo "@ Broadcasting for some clients '$event' with data: $data\n";
+            self::log("@ Broadcasting for some clients '$event' with data: $data");
             $cc = 1;
             foreach ($registeredTargets as $t) {
                 if (fnmatch($target, $t)) {
-                    echo "@ Enqueueing event from '$source' to '$t' ($cc)\n";
+                    self::log("@ Enqueueing event from '$source' to '$t' ($cc)");
                     $cc++;
                     self::enqueueEvent($source, $t, $event, $data, $id, $retry);
                 }
             }
             if (0==$cc) {
-                echo "@ No target found for $target\n";
+                self::log("@ No target found for $target");
             }
         } else {
             if (in_array($target, $registeredTargets)) {
@@ -228,7 +235,7 @@ class SSEUniqueQueue
                 }
             }
         } catch (\Exception $e) {
-            echo 'ERROR DEQUEUEING EVENT: ' . $e->getMessage() . "\n";
+            self::log('ERROR DEQUEUEING EVENT: ' . $e->getMessage());
         } finally {
             self::$lock->unlock();
         }
@@ -316,6 +323,13 @@ abstract class SSEService extends \YeAPF\YeAPFConfig
     private $server = null;
     private $__serverRunning = false;
 
+    private function log(string $message): void
+    {
+        if (function_exists('\_log')) {
+            \_log($message);
+        }
+    }
+
     public function __construct()
     {
         $this->config = $this->getSection('sse');
@@ -330,9 +344,9 @@ abstract class SSEService extends \YeAPF\YeAPFConfig
         if (empty($this->config->globalHeartbeatTimeout))
             $this->config->globalHeartbeatTimeout = '5';
 
-        echo 'SSEService: ' . $this->getHost() . ':' . $this->getPort() . "\n";
-        echo '  globalHeartbeat: ' . $this->config->globalHeartbeat . "\n";
-        echo '  globalHeartbeatTimeout: ' . $this->config->globalHeartbeatTimeout . "\n";
+        $this->log('SSEService: ' . $this->getHost() . ':' . $this->getPort());
+        $this->log('  globalHeartbeat: ' . $this->config->globalHeartbeat);
+        $this->log('  globalHeartbeatTimeout: ' . $this->config->globalHeartbeatTimeout);
 
         SSEUniqueQueue::setConfig('globalHeartbeat', $this->config->globalHeartbeat);
         SSEUniqueQueue::setConfig('globalHeartbeatTimeout', $this->config->globalHeartbeatTimeout);
@@ -387,7 +401,26 @@ abstract class SSEService extends \YeAPF\YeAPFConfig
     {
         $host = $this->getHost();
         $port = $this->getPort();
-        $this->server = new TaggedServer(
+        $this->server = $this->createTaggedServer($host, $port);
+        $this->registerServerCallbacks($host, $port, $callback);
+        $this->registerTimers($mqttProcessor);
+        $this->server->start();
+    }
+
+    public function stop()
+    {
+        $this->setServerRunning(false);
+        foreach ($this->runningServers as $server) {
+            $this->log('Stopping client ' . $server->getClientId());
+            $server->setRunning(false);
+        }
+        $this->server->shutdown();
+        $this->server = null;
+    }
+
+    private function createTaggedServer(string $host, int $port): TaggedServer
+    {
+        $server = new TaggedServer(
             $host,
             $port,
             SWOOLE_PROCESS,
@@ -396,127 +429,133 @@ abstract class SSEService extends \YeAPF\YeAPFConfig
 
         $this->setServerRunning(true);
 
-        $user_callback = $callback;
-
         $factor = 6;
-
         $worker_num = OpenSwoole\Util::getCPUNum() * $factor;
         $reactor_num = min(16, OpenSwoole\Util::getCPUNum() * $factor);
 
-        $this->server->set([
+        $server->set([
             'open_http2_protocol' => true,
             'enable_coroutine' => true,
             'max_coroutine' => $worker_num * 5000,
             'reactor_num' => $reactor_num,
             'worker_num' => $worker_num,
             'max_request' => 100000,
-            'buffer_output_size' => $factor * 1024 * 1024,  // 4MB
+            'buffer_output_size' => $factor * 1024 * 1024,
             'log_level' => SWOOLE_LOG_WARNING,
         ]);
 
-        $this->server->on('Start', function (Server $server) use ($host, $port) {
-            _log("Starting SSE service on $host:$port");
-        });
+        return $server;
+    }
 
-        $this->server->on('Connect', function (Server $server, int $fd, int $reactorId) {
-            if ($this->getServerRunning()) {
-                echo ">>> New client connection [ $fd ]\n";
-                $this->registerServer($fd, $server);
-            } else {
-                $server->close($fd);
-            }
-        });
+    private function registerServerCallbacks(string $host, int $port, $userCallback): void
+    {
+        $this->server->on('Start', fn(Server $server) => $this->onStart($host, $port));
+        $this->server->on('Connect', fn(Server $server, int $fd, int $reactorId) => $this->onConnect($server, $fd));
+        $this->server->on('Disconnect', fn(Server $server, int $fd, int $reactorId) => $this->onDisconnect($server, $fd));
+        $this->server->on('Request', fn(Request $request, Response $response) => $this->handleRequest($request, $response, $userCallback));
+        $this->server->on('Close', fn(Server $server) => $this->onClose($server));
+    }
 
-        $this->server->on('Disconnect', function (Server $server, int $fd, int $reactorId) {
-            echo "<<< Client connection closed [ $fd ]\n";
-            $server->setRunning(false);
-            $this->unregisterServer($fd);
-        });
-
-        $this->server->on('Request', function (Request $request, Response $response) use ($user_callback) {
-            if ($this->getServerRunning()) {
-                $fd = $request->fd;
-                $cid = $request->get['cid'] ?? $this->getNewClientId();
-
-                $server = $this->runningServers[$fd];
-                $server->fd = $fd;
-
-                echo 'Current clientID: ' . $server->getClientId() . "\n";
-
-                $response->header('Access-Control-Allow-Origin', '*');
-                $response->header('Content-Type', 'text/event-stream');
-                $response->header('Cache-Control', 'no-cache');
-                $response->header('Connection', 'keep-alive');
-                $response->header('X-Accel-Buffering', 'no');
-
-                $clientId = $cid;
-                echo "New client request [ $clientId ]\n";
-
-                $server->setClientId($clientId);
-
-                $server->setRunning(true);
-
-                go(function () use ($response, $user_callback, $clientId, $server) {
-                    $counter = 0;
-                    while ($server->getRunning()) {
-                        if (is_callable($user_callback)) {
-                            call_user_func($user_callback, $clientId);
-                        }
-                        $event = $server->dequeueEvent($clientId);
-                        if ($event) {
-                            echo "[ sending event: {$event['event']} {$event['data']} to $clientId ]\n";
-                            $response->write("event: {$event['event']}\n");
-                            if ($event['id'] ?? null) {
-                                $response->write("id: {$event['id']}\n");
-                            }
-                            $response->write("data: {$event['data']}\n\n");
-                        } else {
-                            $counter++;
-                            if ($counter % 4 == 0) {
-                                \Co::wait(1);
-                            } else {
-                                \Co::sleep(1);
-                            }
-                        }
-                    }
-
-                    $response->close();
-                    echo "Client request closed [ $clientId ]\n";
-                    $server->stop();
-                    unset($this->runningServers[$clientId]);
-                    $server = null;
-                });
-            }
-        });
-
-        $this->server->on('Close', function (Server $server) {
-            echo '<<< Closing SSE connection ' . $server->getClientId(). "\n";
-            $server->setRunning(false);
-            $this->unregisterServer($server->fd??-1);
-            // $server->stop();
-        });
-
-        $user_mqtt_processor = $mqttProcessor;
-        OpenSwoole\Timer::tick(1000, $user_mqtt_processor);        
+    private function registerTimers($mqttProcessor): void
+    {
+        OpenSwoole\Timer::tick(1000, $mqttProcessor);
         OpenSwoole\Timer::tick(15000, function () {
             $msg = [
                 'time' => time(),
                 'rnd' => rand(10000000, 99999999),
                 'host' => gethostname(),
             ];
-            $this->addEvent('yeapf-sse-service','*', 'heartbeat', json_encode($msg));
+            $this->addEvent('yeapf-sse-service', '*', 'heartbeat', json_encode($msg));
         });
-        $this->server->start();
     }
 
-    public function stop()
+    private function onStart(string $host, int $port): void
     {
-        $this->setServerRunning(false);
-        foreach ($this->runningServers as $server) {
-            echo 'Stopping client ' . $server->getClientId() . "\n";
-            $server->setRunning(false);
+        $this->log("Starting SSE service on $host:$port");
+    }
+
+    private function onConnect(Server $server, int $fd): void
+    {
+        if ($this->getServerRunning()) {
+            $this->log(">>> New client connection [ $fd ]");
+            $this->registerServer($fd, $server);
+            return;
         }
-        $this->server->shutdown();
-        $this->server = null;
+        $server->close($fd);
+    }
+
+    private function onDisconnect(Server $server, int $fd): void
+    {
+        $this->log("<<< Client connection closed [ $fd ]");
+        $server->setRunning(false);
+        $this->unregisterServer($fd);
+    }
+
+    private function onClose(Server $server): void
+    {
+        $this->log('<<< Closing SSE connection ' . $server->getClientId());
+        $server->setRunning(false);
+        $this->unregisterServer($server->fd ?? -1);
+    }
+
+    private function handleRequest(Request $request, Response $response, $userCallback): void
+    {
+        if (!$this->getServerRunning()) {
+            return;
+        }
+
+        $fd = $request->fd;
+        $cid = $request->get['cid'] ?? $this->getNewClientId();
+        /** @var TaggedServer $server */
+        $server = $this->runningServers[$fd];
+        $server->fd = $fd;
+
+        $this->log('Current clientID: ' . $server->getClientId());
+
+        $response->header('Access-Control-Allow-Origin', '*');
+        $response->header('Content-Type', 'text/event-stream');
+        $response->header('Cache-Control', 'no-cache');
+        $response->header('Connection', 'keep-alive');
+        $response->header('X-Accel-Buffering', 'no');
+
+        $clientId = $cid;
+        $this->log("New client request [ $clientId ]");
+        $server->setClientId($clientId);
+        $server->setRunning(true);
+
+        go(function () use ($response, $userCallback, $clientId, $server) {
+            $this->runClientEventLoop($response, (string) $clientId, $server, $userCallback);
+        });
+    }
+
+    private function runClientEventLoop(Response $response, string $clientId, TaggedServer $server, $userCallback): void
+    {
+        $counter = 0;
+        while ($server->getRunning()) {
+            if (is_callable($userCallback)) {
+                call_user_func($userCallback, $clientId);
+            }
+            $event = $server->dequeueEvent();
+            if ($event) {
+                $this->log("[ sending event: {$event['event']} {$event['data']} to $clientId ]");
+                $response->write("event: {$event['event']}\n");
+                if ($event['id'] ?? null) {
+                    $response->write("id: {$event['id']}\n");
+                }
+                $response->write("data: {$event['data']}\n\n");
+            } else {
+                $counter++;
+                if ($counter % 4 == 0) {
+                    \Co::wait(1);
+                } else {
+                    \Co::sleep(1);
+                }
+            }
+        }
+
+        $response->close();
+        $this->log("Client request closed [ $clientId ]");
+        $server->stop();
+        unset($this->runningServers[$server->fd]);
     }
 }

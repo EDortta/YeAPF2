@@ -1,5 +1,7 @@
 # CHANGELOG — code-quality-refactor
 
+2026-04-17 — CQR-006 moved to PR; branch `issue/code-quality-refactor/cqr-006-sse-callbacks-and-echo` pushed and PR #10 opened
+2026-04-17 — CQR-006 moved to on-work; branch `issue/code-quality-refactor/cqr-006-sse-callbacks-and-echo` started
 2026-04-17 — Removed stale `CQR-005-[PR]` file after closure to keep one issue file per issue
 2026-04-17 — CQR-005 merged via PR #9 and moved to closed; remote issue branch deleted
 2026-04-17 — CQR-005 moved to reviewed after merge validation
