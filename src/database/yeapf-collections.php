@@ -12,25 +12,118 @@ use Swoole;
  */
 class VirtualRedis
 {
-    public function set($name, $value) {}
+    /** @var array<string,mixed> */
+    private array $values = [];
+
+    /** @var array<string,array<string,string>> */
+    private array $hashes = [];
+
+    public function set($name, $value)
+    {
+        $this->values[(string) $name] = $value;
+    }
 
     public function get($name)
     {
-        return null;
+        return $this->values[(string) $name] ?? null;
     }
 
     public function exists($name)
     {
-        return false;
+        $key = (string) $name;
+        return array_key_exists($key, $this->values) || array_key_exists($key, $this->hashes);
     }
 
-    public function delete($name) {}
+    public function delete($name)
+    {
+        $key = (string) $name;
+        unset($this->values[$key], $this->hashes[$key]);
+        return true;
+    }
 
-    public function clear() {}
+    public function clear()
+    {
+        $this->values = [];
+        $this->hashes = [];
+    }
 
     public function list()
     {
-        return [];
+        return array_merge(array_keys($this->values), array_keys($this->hashes));
+    }
+
+    public function type($name)
+    {
+        $key = (string) $name;
+        if (array_key_exists($key, $this->hashes)) {
+            return \Redis::REDIS_HASH;
+        }
+
+        if (array_key_exists($key, $this->values)) {
+            return \Redis::REDIS_STRING;
+        }
+
+        return \Redis::REDIS_NOT_FOUND;
+    }
+
+    public function keys(string $filter = '*')
+    {
+        $regex = '/^' . str_replace('\*', '.*', preg_quote($filter, '/')) . '$/';
+        return array_values(
+            array_filter(
+                $this->list(),
+                static function (string $key) use ($regex): bool {
+                    return preg_match($regex, $key) === 1;
+                }
+            )
+        );
+    }
+
+    public function hset(string $name, mixed $data, int $expiration = null)
+    {
+        if (!is_iterable($data)) {
+            return false;
+        }
+
+        $hash = [];
+        foreach ($data as $key => $value) {
+            if (is_numeric($key)) {
+                continue;
+            }
+            $hash[(string) $key] = (string) $value;
+        }
+
+        $this->hashes[$name] = $hash;
+        return true;
+    }
+
+    public function hget(string $name, string $field)
+    {
+        return $this->hashes[$name][$field] ?? false;
+    }
+
+    public function hgetall(string $name)
+    {
+        return $this->hashes[$name] ?? false;
+    }
+
+    public function hlen(string $name)
+    {
+        if (!isset($this->hashes[$name])) {
+            return 0;
+        }
+
+        return count($this->hashes[$name]);
+    }
+
+    public function hdel(string $name, string $field)
+    {
+        if (!isset($this->hashes[$name][$field])) {
+            return false;
+        }
+
+        unset($this->hashes[$name][$field]);
+        return true;
     }
 
     public function getConnected()
