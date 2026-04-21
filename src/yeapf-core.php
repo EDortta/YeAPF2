@@ -113,6 +113,7 @@ require_once __DIR__ . '/yeapf-config.php';
     'database/driver/DriverCapabilities.php',
     'database/driver/DDLSynthesizerInterface.php',
     'database/yeapf-pgsql-schema-inspector.php',
+    'database/yeapf-mysql-schema-inspector.php',
     'database/yeapf-pdo-connection.php',
     'database/yeapf-persistence-interface.php',
     'database/yeapf-collections.php',

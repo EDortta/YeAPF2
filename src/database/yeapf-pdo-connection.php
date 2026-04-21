@@ -157,6 +157,105 @@ final class PostgreSQLPDOAdapter implements DBDriverInterface
     }
 }
 
+final class MySQLPDOAdapter implements DBDriverInterface
+{
+    private PDOConnection $connection;
+    private SchemaInspectorInterface $schemaInspector;
+
+    public function __construct(PDOConnection $connection, SchemaInspectorInterface $schemaInspector)
+    {
+        $this->connection = $connection;
+        $this->schemaInspector = $schemaInspector;
+    }
+
+    public function getDriverName(): string
+    {
+        return 'mysql';
+    }
+
+    public function getDriverVersion(): ?string
+    {
+        return $this->connection->getServerVersion();
+    }
+
+    public function getCapabilities(): DriverCapabilities
+    {
+        return new DriverCapabilities([
+            'transactions' => true,
+            'prepared_statements' => true,
+            'schema_inspection' => true,
+            'ddl_synthesis' => false,
+            'json_type' => true,
+            'enum_type' => true,
+            'upsert' => true,
+            'returning_clause' => false,
+        ]);
+    }
+
+    public function execute(string $sql, array $params = []): int
+    {
+        $statement = $this->connection->query($sql, $params);
+        if (!$statement instanceof \PDOStatement) {
+            return 0;
+        }
+
+        return (int) $statement->rowCount();
+    }
+
+    public function fetchOne(string $sql, array $params = []): ?array
+    {
+        $row = $this->connection->queryAndFetch($sql, $params);
+        return is_array($row) ? $row : null;
+    }
+
+    public function fetchAll(string $sql, array $params = []): array
+    {
+        return $this->connection->queryAll($sql, $params);
+    }
+
+    public function beginTransaction(): void
+    {
+        $this->connection->beginTransaction();
+    }
+
+    public function commit(): void
+    {
+        $this->connection->commitTransaction();
+    }
+
+    public function rollBack(): void
+    {
+        $this->connection->rollBackTransaction();
+    }
+
+    public function normalizeError(\Throwable $throwable, ?string $sql = null, array $params = []): array
+    {
+        $message = trim((string) $throwable->getMessage());
+        $sqlState = null;
+        if (preg_match('/^([0-9A-Z]{5})\b/', $message, $matches) === 1) {
+            $sqlState = $matches[1];
+        }
+
+        return [
+            'driver' => $this->getDriverName(),
+            'sql_state' => $sqlState,
+            'driver_code' => $throwable->getCode(),
+            'message' => '' !== $message ? $message : 'Database error',
+            'normalized_code' => 'DB_ERROR',
+            'is_transient' => false,
+            'context' => [
+                'sql' => $sql,
+                'params' => $params,
+            ],
+        ];
+    }
+
+    public function getSchemaInspector(): SchemaInspectorInterface
+    {
+        return $this->schemaInspector;
+    }
+}
+
 class PDOConnection extends \YeAPF\Connection\DBConnection
 {
     private static $config;
@@ -290,7 +389,10 @@ class PDOConnection extends \YeAPF\Connection\DBConnection
             $errorInfo = $ret->errorInfo();
             if ('00000' !== $errorInfo[0]) {
                 $normalized = $this->resolveDriverAdapter()->normalizeError(
-                    new \RuntimeException((string) ($errorInfo[2] ?? 'Database execution error'), (int) ($errorInfo[1] ?? 0)),
+                    new \RuntimeException(
+                        trim((string) ($errorInfo[0] ?? '')) . ' ' . (string) ($errorInfo[2] ?? 'Database execution error'),
+                        (int) ($errorInfo[1] ?? 0)
+                    ),
                     $sql,
                     $fParams
                 );
@@ -440,6 +542,10 @@ class PDOConnection extends \YeAPF\Connection\DBConnection
             return new PostgreSQLPDOAdapter($connection, $schemaInspector);
         }
 
+        if ('mysql' === $driverName) {
+            return new MySQLPDOAdapter($connection, $schemaInspector);
+        }
+
         throw new \YeAPF\YeAPFException(
             'Driver adapter is currently unavailable for `' . $driverName . '` in PDOConnection',
             YeAPF_UNIMPLEMENTED_KEY_TYPE
@@ -454,6 +560,10 @@ class PDOConnection extends \YeAPF\Connection\DBConnection
     {
         if ('pgsql' === $driverName) {
             return new PostgreSQLSchemaInspector($connection, $defaultSchema);
+        }
+
+        if ('mysql' === $driverName) {
+            return new MySQLSchemaInspector($connection, $defaultSchema);
         }
 
         throw new \YeAPF\YeAPFException(

@@ -5,15 +5,15 @@ require_once __DIR__ . '/helpers/InMemoryRedisConnection.php';
 
 use PHPUnit\Framework\TestCase;
 
-final class ORMDockerPostgresFlowTest extends TestCase
+final class ORMDockerMySQLFlowTest extends TestCase
 {
     private const HOST = '127.0.0.1';
-    private const PORT = 55432;
+    private const PORT = 53306;
     private const DB = 'yeapf2_test';
     private const USER = 'yeapf2';
     private const PASSWORD = 'yeapf2';
-    private const SCHEMA = 'public';
-    private const TABLE = 'yeapf2_orm_flow_users';
+    private const SCHEMA = 'yeapf2_test';
+    private const TABLE = 'yeapf2_orm_flow_users_mysql';
 
     /** @var array<string,mixed>|null */
     private static ?array $previousConfigAreas = null;
@@ -21,7 +21,7 @@ final class ORMDockerPostgresFlowTest extends TestCase
     public static function setUpBeforeClass(): void
     {
         if (!self::isDockerDbReachable()) {
-            self::markTestSkipped('PostgreSQL docker container is not reachable at 127.0.0.1:55432. Start tests/db-environments first.');
+            self::markTestSkipped('MySQL docker container is not reachable at 127.0.0.1:53306. Start tests/db-environments first.');
         }
 
         self::backupAndSetRuntimeConnectionConfig();
@@ -36,25 +36,22 @@ final class ORMDockerPostgresFlowTest extends TestCase
         self::restoreRuntimeConnectionConfig();
     }
 
-    public function testOrmUsageStepByStepOnDockerPostgres(): void
+    public function testOrmUsageStepByStepOnDockerMySQL(): void
     {
         $context = new \YeAPF\Connection\PersistenceContext(new InMemoryRedisConnection(), null);
 
-        // Step 1: Define the document model (what the collection structure should be).
         $model = new \YeAPF\ORM\DocumentModel($context, self::TABLE);
         $model->setConstraint('id', YeAPF_TYPE_STRING, length: 36, primary: true, required: true, protobufOrder: 1);
         $model->setConstraint('name', YeAPF_TYPE_STRING, length: 120, required: true, protobufOrder: 2);
         $model->setConstraint('email', YeAPF_TYPE_STRING, length: 180, acceptNULL: true, protobufOrder: 3);
         $model->setConstraint('hired', YeAPF_TYPE_BOOL, required: true, protobufOrder: 4);
 
-        // Step 2: Create the persistent collection (auto-creates table and missing columns).
         $collection = new \YeAPF\ORM\PersistentCollection($context, self::TABLE, 'id', $model);
 
         $this->assertTrue(self::withBorrowedConnection(static function ($pdo): bool {
             return $pdo->tableExists(self::TABLE, self::SCHEMA);
         }));
 
-        // Step 3: Insert one document using the model clone.
         $alice = clone $collection->getDocumentModel();
         $alice->id = 'user-001';
         $alice->name = 'Alice';
@@ -62,12 +59,10 @@ final class ORMDockerPostgresFlowTest extends TestCase
         $alice->hired = true;
         $this->assertTrue($collection->setDocument('user-001', $alice));
 
-        // Step 4: Read the same document back by id.
         $stored = $collection->getDocument('user-001');
         $this->assertSame('Alice', $stored->name);
         $this->assertSame('alice@example.test', $stored->email);
 
-        // Step 5: Update the existing document (same id, changed fields).
         $aliceUpdated = clone $collection->getDocumentModel();
         $aliceUpdated->id = 'user-001';
         $aliceUpdated->name = 'Alice Updated';
@@ -78,7 +73,6 @@ final class ORMDockerPostgresFlowTest extends TestCase
         $storedUpdated = $collection->getDocument('user-001');
         $this->assertSame('Alice Updated', $storedUpdated->name);
 
-        // Step 6: Query by example and list ids.
         $sample = clone $collection->getDocumentModel();
         $sample->name = 'Alice Updated';
         $found = $collection->findByExample($sample);
@@ -87,7 +81,6 @@ final class ORMDockerPostgresFlowTest extends TestCase
         $ids = $collection->listDocuments();
         $this->assertContains('user-001', $ids);
 
-        // Step 7: Delete and verify absence.
         $collection->deleteDocument('user-001');
         $this->assertFalse($collection->hasDocument('user-001'));
     }
@@ -115,7 +108,7 @@ final class ORMDockerPostgresFlowTest extends TestCase
         $areasProperty->setValue([
             'connection' => (object) [
                 'pdo' => (object) [
-                    'driver' => 'pgsql',
+                    'driver' => 'mysql',
                     'server' => self::HOST,
                     'port' => self::PORT,
                     'dbname' => self::DB,
@@ -180,7 +173,6 @@ final class ORMDockerPostgresFlowTest extends TestCase
                 $pdo->query('drop table if exists ' . self::TABLE);
             });
         } catch (Throwable $exception) {
-            // Best-effort cleanup.
         }
     }
 

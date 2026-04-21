@@ -66,6 +66,48 @@ final class PDOConnectionDriverAdapterTest extends TestCase
         $this->assertSame(['column_name' => 'id'], $connection->columnDefinition('customers', 'id', 'public'));
         $this->assertCount(1, $connection->columns('customers', 'public'));
     }
+
+    public function testMySqlAdapterExposesCapabilitiesAndExecutionMethods(): void
+    {
+        $connection = $this->getMockBuilder(\YeAPF\Connection\DB\PDOConnection::class)
+            ->disableOriginalConstructor()
+            ->onlyMethods(['query', 'queryAndFetch', 'queryAll', 'beginTransaction', 'commitTransaction', 'rollBackTransaction', 'getServerVersion'])
+            ->getMock();
+
+        $statement = $this->createMock(\PDOStatement::class);
+        $statement->method('rowCount')->willReturn(2);
+
+        $connection->expects($this->once())->method('query')->with('update x set y=:y', ['y' => 1])->willReturn($statement);
+        $connection->expects($this->once())->method('queryAndFetch')->with('select * from x where id=:id', ['id' => 10])->willReturn(['id' => 10]);
+        $connection->expects($this->once())->method('queryAll')->with('select * from x', [])->willReturn([['id' => 1], ['id' => 2]]);
+        $connection->expects($this->once())->method('beginTransaction');
+        $connection->expects($this->once())->method('commitTransaction');
+        $connection->expects($this->once())->method('rollBackTransaction');
+        $connection->expects($this->once())->method('getServerVersion')->willReturn('8.4');
+
+        $schemaInspector = new FixtureSchemaInspector();
+        $adapter = new \YeAPF\Connection\DB\MySQLPDOAdapter($connection, $schemaInspector);
+
+        $this->assertSame('mysql', $adapter->getDriverName());
+        $this->assertSame('8.4', $adapter->getDriverVersion());
+        $this->assertSame(2, $adapter->execute('update x set y=:y', ['y' => 1]));
+        $this->assertSame(['id' => 10], $adapter->fetchOne('select * from x where id=:id', ['id' => 10]));
+        $this->assertSame([['id' => 1], ['id' => 2]], $adapter->fetchAll('select * from x'));
+
+        $adapter->beginTransaction();
+        $adapter->commit();
+        $adapter->rollBack();
+
+        $capabilities = $adapter->getCapabilities();
+        $this->assertTrue($capabilities->isEnabled('schema_inspection'));
+        $this->assertTrue($capabilities->isEnabled('upsert'));
+        $this->assertFalse($capabilities->isEnabled('returning_clause'));
+
+        $normalized = $adapter->normalizeError(new RuntimeException('23000 duplicate key', 1062), 'insert into x values (:id)', ['id' => 1]);
+        $this->assertSame('mysql', $normalized['driver']);
+        $this->assertSame('23000', $normalized['sql_state']);
+        $this->assertSame(1062, $normalized['driver_code']);
+    }
 }
 
 final class FixtureSchemaInspector implements \YeAPF\Connection\DB\Driver\SchemaInspectorInterface

@@ -48,3 +48,21 @@ Run it with:
 ```bash
 tests/db-environments/run-orm-flow-test.sh
 ```
+
+## ORM step-by-step flow test (Docker MySQL)
+
+This repository also includes the same YeAPF2 ORM flow validated against MySQL:
+
+- `tests/ORMDockerMySQLFlowTest.php`
+
+Run it with:
+
+```bash
+tests/db-environments/run-orm-flow-test-mysql.sh
+```
+
+Run both (PostgreSQL + MySQL):
+
+```bash
+tests/db-environments/run-orm-flow-tests.sh
+```

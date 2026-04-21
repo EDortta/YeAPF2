@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
 cd "$ROOT_DIR"
 
-echo "[1/3] Starting docker databases"
+echo "[1/4] Starting docker databases"
 cd tests/db-environments
 docker compose up -d
 cd "$ROOT_DIR"

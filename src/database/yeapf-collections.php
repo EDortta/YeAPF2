@@ -1022,6 +1022,20 @@ class PersistentCollection extends \YeAPF\ORM\SharedSanitizedCollection implemen
                     $diff           = array_diff($internalColDef, $colDef);
 
                     if (!empty($diff)) {
+                        if ('mysql' === $this->getConfiguredPdoDriver()) {
+                            $mysqlColumnDefinition = $key . ' ' . self::internalType2SQLType($constraint);
+                            if (false == $constraint['acceptNULL']) {
+                                $mysqlColumnDefinition .= ' not null ';
+                            }
+
+                            $sql = 'alter table ' . self::getCollectionName() . ' modify column ' . $mysqlColumnDefinition;
+                            $retAlter = $pdo->query($sql);
+                            if (!$retAlter) {
+                                throw new \YeAPF\YeAPFException("Error altering column $key", YeAPF_ERROR_ADDING_COLUMN);
+                            }
+                            continue;
+                        }
+
                         foreach ($diff as $colDefKey => $colDefValue) {
                             $sql = 'alter table ' . self::getCollectionName();
                             switch ($colDefKey) {
@@ -1066,6 +1080,16 @@ class PersistentCollection extends \YeAPF\ORM\SharedSanitizedCollection implemen
         } finally {
             $this->pskData->giveBackPDOConnection($pdo);
         }
+    }
+
+    private function getConfiguredPdoDriver(): string
+    {
+        $connection = \YeAPF\YeAPFConfig::getSection('connection');
+        if (null === $connection || !isset($connection->pdo)) {
+            return 'pgsql';
+        }
+
+        return strtolower((string) ($connection->pdo->driver ?? 'pgsql'));
     }
 
     private function internalType2SQLType($constraint)
@@ -1190,11 +1214,11 @@ class PersistentCollection extends \YeAPF\ORM\SharedSanitizedCollection implemen
     private function hasDocumentInDatabase($id)
     {
         $ret    = null;
-        $sql    = 'select exists(select 1 from ' . $this->getCollectionName() . ' where id=:id)';
+        $sql    = 'select exists(select 1 from ' . $this->getCollectionName() . ' where id=:id) as row_exists';
         $params = [$this->getCollectionIdName() => $id];
         $this->pskData->do(function ($persistentData) use ($sql, $params, &$ret) {
                                $auxRet = $persistentData->queryAndFetch($sql, $params);
-                               $ret    = (is_array($auxRet) && $auxRet['exists'] ?? false);
+                               $ret    = (is_array($auxRet) && $auxRet['row_exists'] ?? false);
                            });
         return $ret;
     }
@@ -1499,7 +1523,13 @@ class PersistentCollection extends \YeAPF\ORM\SharedSanitizedCollection implemen
             $sql   .= "limit $count offset $start";
         }
 
-        $sql = 'select * from ' . $this->getCollectionName() . ' where ' . $this->getCollectionIdName() . ' in (' . $sql . ') ';
+        if ('mysql' === $this->getConfiguredPdoDriver()) {
+            $prefix = 'select ' . $this->getCollectionIdName() . ' from ' . $this->getCollectionName() . ' where ';
+            $whereAndWindowClause = substr($sql, strlen($prefix));
+            $sql = 'select * from ' . $this->getCollectionName() . ' where ' . $whereAndWindowClause;
+        } else {
+            $sql = 'select * from ' . $this->getCollectionName() . ' where ' . $this->getCollectionIdName() . ' in (' . $sql . ') ';
+        }
         // if ($usingExpression)
         //   die("$sql\n");
 
