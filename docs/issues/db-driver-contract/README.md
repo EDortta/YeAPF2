@@ -25,6 +25,6 @@ Currently, PostgreSQL-specific SQL is embedded in `yeapf-pdo-connection.php` and
 - [DBC-004-query-dialect-contract-[opened].md](./DBC-004-query-dialect-contract-[opened].md)
 - [DBC-005-ddl-synthesizer-contract-[on-work].md](./DBC-005-ddl-synthesizer-contract-[on-work].md)
 - [DBC-006-adapter-in-pdo-connection-[on-work].md](./DBC-006-adapter-in-pdo-connection-[on-work].md)
-- [DBC-007-contract-test-harness-[opened].md](./DBC-007-contract-test-harness-[opened].md)
+- [DBC-007-contract-test-harness-[on-work].md](./DBC-007-contract-test-harness-[on-work].md)
 - [DBC-008-error-normalization-policy-[opened].md](./DBC-008-error-normalization-policy-[opened].md)
 - [DBC-009-docs-and-migration-notes-[opened].md](./DBC-009-docs-and-migration-notes-[opened].md)
