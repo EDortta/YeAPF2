@@ -20,8 +20,13 @@ Currently, PostgreSQL-specific SQL is embedded in `yeapf-pdo-connection.php` and
 
 ## Issues
 - [DBC-001-driver-contract-skeleton-[on-work].md](./DBC-001-driver-contract-skeleton-[on-work].md)
+<<<<<<< issue/db-driver-contract/schema-inspector-contract
 - [DBC-002-dbdriverinterface-methods-[on-work].md](./DBC-002-dbdriverinterface-methods-[on-work].md)
 - [DBC-003-schema-inspector-contract-[opened].md](./DBC-003-schema-inspector-contract-[opened].md)
+=======
+- [DBC-002-dbdriverinterface-methods-[opened].md](./DBC-002-dbdriverinterface-methods-[opened].md)
+- [DBC-003-schema-inspector-contract-[on-work].md](./DBC-003-schema-inspector-contract-[on-work].md)
+>>>>>>> local
 - [DBC-004-query-dialect-contract-[opened].md](./DBC-004-query-dialect-contract-[opened].md)
 - [DBC-005-ddl-synthesizer-contract-[opened].md](./DBC-005-ddl-synthesizer-contract-[opened].md)
 - [DBC-006-adapter-in-pdo-connection-[opened].md](./DBC-006-adapter-in-pdo-connection-[opened].md)

@@ -2,7 +2,9 @@
 
 namespace YeAPF\Connection\DB;
 
-final class PostgreSQLSchemaInspector
+use YeAPF\Connection\DB\Driver\SchemaInspectorInterface;
+
+final class PostgreSQLSchemaInspector implements SchemaInspectorInterface
 {
     private PDOConnection $connection;
     private string $defaultSchema;
@@ -34,7 +36,7 @@ final class PostgreSQLSchemaInspector
         return (bool) (is_array($ret) && ($ret['exists'] ?? false));
     }
 
-    public function columnDefinition(string $tablename, string $columnname, ?string $schemaname = null): mixed
+    public function columnDefinition(string $tablename, string $columnname, ?string $schemaname = null): ?array
     {
         $sql = 'select column_name, column_default, is_nullable, data_type, character_maximum_length, numeric_precision, numeric_scale from information_schema.columns where table_schema=:schemaname and table_name=:tablename and column_name=:columnname';
         $params = [
@@ -43,7 +45,12 @@ final class PostgreSQLSchemaInspector
             'columnname' => strtolower($columnname)
         ];
 
-        return $this->connection->queryAndFetch($sql, $params);
+        $row = $this->connection->queryAndFetch($sql, $params);
+        if (!is_array($row)) {
+            return null;
+        }
+
+        return $this->normalizeColumnMetadata($row);
     }
 
     public function columnExists(string $tablename, string $columnname, ?string $schemaname = null): bool
@@ -88,9 +95,31 @@ final class PostgreSQLSchemaInspector
         $ret = [];
         $q = $this->connection->query($sql, $params);
         while ($d = $q->fetch()) {
-            $ret[] = $d;
+            $ret[] = $this->normalizeColumnMetadata($d);
         }
 
         return $ret;
+    }
+
+    /**
+     * @param array<string,mixed> $columnMetadata
+     * @return array<string,mixed>
+     */
+    private function normalizeColumnMetadata(array $columnMetadata): array
+    {
+        $normalized = [
+            'column_name' => strtolower((string) ($columnMetadata['column_name'] ?? '')),
+            'column_default' => $columnMetadata['column_default'] ?? null,
+            'is_nullable' => strtoupper((string) ($columnMetadata['is_nullable'] ?? 'YES')),
+            'data_type' => strtolower((string) ($columnMetadata['data_type'] ?? '')),
+            'character_maximum_length' => $columnMetadata['character_maximum_length'] ?? null,
+            'numeric_precision' => $columnMetadata['numeric_precision'] ?? null,
+            'numeric_scale' => $columnMetadata['numeric_scale'] ?? null,
+            'is_primary' => (int) ($columnMetadata['is_primary'] ?? 0),
+            'is_unique' => (int) ($columnMetadata['is_unique'] ?? 0),
+            'is_required' => (int) ($columnMetadata['is_required'] ?? (($columnMetadata['is_nullable'] ?? 'YES') === 'NO' ? 1 : 0)),
+        ];
+
+        return $normalized;
     }
 }
