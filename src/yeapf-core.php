@@ -104,6 +104,7 @@ require_once __DIR__ . '/yeapf-config.php';
     'bulletin/yeapf-bulletin.php',
     'classes/class.plugins.php',
     'classes/class.plugin-template.php',
+    'classes/class.plugin-role-interfaces.php',
     'request/yeapf-request.php',
     'database/yeapf-connection.php',
     'database/yeapf-redis-connection.php',
