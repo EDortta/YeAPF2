@@ -1,3 +1,4 @@
+2026-04-22 — PLG-001 moved to PR; branch `issue/plugin-system/plugin-role-interfaces` pushed and PR opened against main
 # CHANGELOG — plugin-system
 
 2026-04-21 — PLG-003 moved to on-work; wired `authenticityChecker` into `SanitizedKeyData::checkConstraint()` with registry lookup and regression tests

@@ -70,7 +70,7 @@ PluginRoleInterface (marker)
 `code-quality-agent`
 
 ## Issues
-- [PLG-001-plugin-role-interfaces-[on-work].md](./PLG-001-plugin-role-interfaces-[on-work].md)
+- [PLG-001-plugin-role-interfaces-[PR].md](./PLG-001-plugin-role-interfaces-[PR].md)
 - [PLG-002-plugin-registry-boot-freeze-[on-work].md](./PLG-002-plugin-registry-boot-freeze-[on-work].md)
 - [PLG-003-authenticity-checker-in-constraint-pipeline-[on-work].md](./PLG-003-authenticity-checker-in-constraint-pipeline-[on-work].md)
 - [PLG-004-brazil-document-plugin-[opened].md](./PLG-004-brazil-document-plugin-[opened].md)
