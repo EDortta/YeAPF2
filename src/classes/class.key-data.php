@@ -305,6 +305,7 @@ class SanitizedKeyData extends KeyData
    * @param int|null $protobufOrder The order of the key in the protobuf.
    * @param string|null $tag The tag of the key. Can be splitted using ';'
    * @param any|null $defaultValue The default value of the key.
+   * @param string|null $authenticityChecker Registry key for document authenticity validation.
    * @throws \YeAPF\YeAPFException If an invalid key type is provided or if the key already exists.
    * @return void
    */
@@ -324,7 +325,8 @@ class SanitizedKeyData extends KeyData
     bool|null $primary               = false,
     int|null $protobufOrder          = null,
     string|null $tag                 = null,
-    $defaultValue                    = null
+    $defaultValue                    = null,
+    string|null $authenticityChecker = null
   ) {
     $validTypes = [YeAPF_TYPE_STRING, YeAPF_TYPE_INT, YeAPF_TYPE_FLOAT, YeAPF_TYPE_BOOL, YeAPF_TYPE_DATE, YeAPF_TYPE_TIME, YeAPF_TYPE_DATETIME, YeAPF_TYPE_BYTES, YeAPF_TYPE_JSON];
     if (!in_array($keyType, $validTypes)) {
@@ -461,7 +463,8 @@ class SanitizedKeyData extends KeyData
           'primary'             => $primary,
           'protobufOrder'       => $protobufOrder,
           'tag'                 => ';' . join(';', explode(';', $tag)) . ';',
-          'defaultValue'        => $defaultValue
+          'defaultValue'        => $defaultValue,
+          'authenticityChecker' => $authenticityChecker
         ];
       }
     }
@@ -545,7 +548,8 @@ class SanitizedKeyData extends KeyData
         'unique'              => $constraint['unique'] ?? false,
         'required'            => $constraint['required'] ?? false,
         'primary'             => $constraint['primary'] ?? false,
-        'tag'                 => $constraint['tag'] ?? null
+        'tag'                 => $constraint['tag'] ?? null,
+        'authenticityChecker' => $constraint['authenticityChecker'] ?? null
       ];
       if (!empty($constraint['protobufOrder'])) {
         $this->__constraints[$keyName]['protobufOrder'] = $constraint['protobufOrder'];
@@ -622,6 +626,17 @@ class SanitizedKeyData extends KeyData
       if (null !== $regExpression && $value !== null && false === preg_match($regExpression, "$value")) {
         $message = "Value does not satisfies '$regExpression' in " . __CLASS__ . ' -> ' . $keyName;
         throw new \YeAPF\YeAPFException($message, YeAPF_VALUE_DOES_NOT_SATISFY_REGEXP);
+      }
+
+      $checkerKey = $constraint['authenticityChecker'] ?? null;
+      if ($checkerKey !== null && $value !== null) {
+        $validator = \YeAPF\Plugins\Registry::getDocumentValidator($checkerKey);
+        if ($validator !== null && !$validator->validate($checkerKey, (string) $value)) {
+          throw new \YeAPF\YeAPFException(
+            "Value fails authenticity check '$checkerKey' in " . __CLASS__ . ' -> ' . $keyName,
+            YeAPF_AUTHENTICITY_CHECK_FAILED
+          );
+        }
       }
     } catch (\Throwable $th) {
       list($message, $error) = [$th->getMessage(), $th->getCode()];

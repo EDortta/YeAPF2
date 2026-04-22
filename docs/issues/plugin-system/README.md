@@ -72,7 +72,7 @@ PluginRoleInterface (marker)
 ## Issues
 - [PLG-001-plugin-role-interfaces-[PR].md](./PLG-001-plugin-role-interfaces-[PR].md)
 - [PLG-002-plugin-registry-boot-freeze-[PR].md](./PLG-002-plugin-registry-boot-freeze-[PR].md)
-- [PLG-003-authenticity-checker-in-constraint-pipeline-[on-work].md](./PLG-003-authenticity-checker-in-constraint-pipeline-[on-work].md)
+- [PLG-003-authenticity-checker-in-constraint-pipeline-[PR].md](./PLG-003-authenticity-checker-in-constraint-pipeline-[PR].md)
 - [PLG-004-brazil-document-plugin-[opened].md](./PLG-004-brazil-document-plugin-[opened].md)
 - [PLG-005-latam-document-plugin-migration-[opened].md](./PLG-005-latam-document-plugin-migration-[opened].md)
 - [PLG-006-document-validator-conformance-test-[opened].md](./PLG-006-document-validator-conformance-test-[opened].md)
