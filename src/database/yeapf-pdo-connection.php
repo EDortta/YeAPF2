@@ -2,6 +2,10 @@
 
 namespace YeAPF\Connection\DB;
 
+use YeAPF\Connection\DB\Driver\DBDriverInterface;
+use YeAPF\Connection\DB\Driver\DriverCapabilities;
+use YeAPF\Connection\DB\Driver\SchemaInspectorInterface;
+
 class PDOConnectionLock
 {
     private static $lock = null;
@@ -54,6 +58,204 @@ class PDOConnectionLock
     }
 }
 
+final class PostgreSQLPDOAdapter implements DBDriverInterface
+{
+    private PDOConnection $connection;
+    private SchemaInspectorInterface $schemaInspector;
+
+    public function __construct(PDOConnection $connection, SchemaInspectorInterface $schemaInspector)
+    {
+        $this->connection = $connection;
+        $this->schemaInspector = $schemaInspector;
+    }
+
+    public function getDriverName(): string
+    {
+        return 'pgsql';
+    }
+
+    public function getDriverVersion(): ?string
+    {
+        return $this->connection->getServerVersion();
+    }
+
+    public function getCapabilities(): DriverCapabilities
+    {
+        return new DriverCapabilities([
+            'transactions' => true,
+            'prepared_statements' => true,
+            'schema_inspection' => true,
+            'ddl_synthesis' => false,
+            'json_type' => true,
+            'enum_type' => true,
+            'upsert' => true,
+            'returning_clause' => true,
+        ]);
+    }
+
+    public function execute(string $sql, array $params = []): int
+    {
+        $statement = $this->connection->query($sql, $params);
+        if (!$statement instanceof \PDOStatement) {
+            return 0;
+        }
+
+        return (int) $statement->rowCount();
+    }
+
+    public function fetchOne(string $sql, array $params = []): ?array
+    {
+        $row = $this->connection->queryAndFetch($sql, $params);
+        return is_array($row) ? $row : null;
+    }
+
+    public function fetchAll(string $sql, array $params = []): array
+    {
+        return $this->connection->queryAll($sql, $params);
+    }
+
+    public function beginTransaction(): void
+    {
+        $this->connection->beginTransaction();
+    }
+
+    public function commit(): void
+    {
+        $this->connection->commitTransaction();
+    }
+
+    public function rollBack(): void
+    {
+        $this->connection->rollBackTransaction();
+    }
+
+    public function normalizeError(\Throwable $throwable, ?string $sql = null, array $params = []): array
+    {
+        $message = trim((string) $throwable->getMessage());
+        $sqlState = null;
+        if (preg_match('/^([0-9A-Z]{5})\b/', $message, $matches) === 1) {
+            $sqlState = $matches[1];
+        }
+
+        return [
+            'driver' => $this->getDriverName(),
+            'sql_state' => $sqlState,
+            'driver_code' => $throwable->getCode(),
+            'message' => '' !== $message ? $message : 'Database error',
+            'normalized_code' => 'DB_ERROR',
+            'is_transient' => false,
+            'context' => [
+                'sql' => $sql,
+                'params' => $params,
+            ],
+        ];
+    }
+
+    public function getSchemaInspector(): SchemaInspectorInterface
+    {
+        return $this->schemaInspector;
+    }
+}
+
+final class MySQLPDOAdapter implements DBDriverInterface
+{
+    private PDOConnection $connection;
+    private SchemaInspectorInterface $schemaInspector;
+
+    public function __construct(PDOConnection $connection, SchemaInspectorInterface $schemaInspector)
+    {
+        $this->connection = $connection;
+        $this->schemaInspector = $schemaInspector;
+    }
+
+    public function getDriverName(): string
+    {
+        return 'mysql';
+    }
+
+    public function getDriverVersion(): ?string
+    {
+        return $this->connection->getServerVersion();
+    }
+
+    public function getCapabilities(): DriverCapabilities
+    {
+        return new DriverCapabilities([
+            'transactions' => true,
+            'prepared_statements' => true,
+            'schema_inspection' => true,
+            'ddl_synthesis' => false,
+            'json_type' => true,
+            'enum_type' => true,
+            'upsert' => true,
+            'returning_clause' => false,
+        ]);
+    }
+
+    public function execute(string $sql, array $params = []): int
+    {
+        $statement = $this->connection->query($sql, $params);
+        if (!$statement instanceof \PDOStatement) {
+            return 0;
+        }
+
+        return (int) $statement->rowCount();
+    }
+
+    public function fetchOne(string $sql, array $params = []): ?array
+    {
+        $row = $this->connection->queryAndFetch($sql, $params);
+        return is_array($row) ? $row : null;
+    }
+
+    public function fetchAll(string $sql, array $params = []): array
+    {
+        return $this->connection->queryAll($sql, $params);
+    }
+
+    public function beginTransaction(): void
+    {
+        $this->connection->beginTransaction();
+    }
+
+    public function commit(): void
+    {
+        $this->connection->commitTransaction();
+    }
+
+    public function rollBack(): void
+    {
+        $this->connection->rollBackTransaction();
+    }
+
+    public function normalizeError(\Throwable $throwable, ?string $sql = null, array $params = []): array
+    {
+        $message = trim((string) $throwable->getMessage());
+        $sqlState = null;
+        if (preg_match('/^([0-9A-Z]{5})\b/', $message, $matches) === 1) {
+            $sqlState = $matches[1];
+        }
+
+        return [
+            'driver' => $this->getDriverName(),
+            'sql_state' => $sqlState,
+            'driver_code' => $throwable->getCode(),
+            'message' => '' !== $message ? $message : 'Database error',
+            'normalized_code' => 'DB_ERROR',
+            'is_transient' => false,
+            'context' => [
+                'sql' => $sql,
+                'params' => $params,
+            ],
+        ];
+    }
+
+    public function getSchemaInspector(): SchemaInspectorInterface
+    {
+        return $this->schemaInspector;
+    }
+}
+
 class PDOConnection extends \YeAPF\Connection\DBConnection
 {
     private static $config;
@@ -63,7 +265,8 @@ class PDOConnection extends \YeAPF\Connection\DBConnection
     private static $pool = [];
     private static $poolId = null;
     private static $mainConnection = null;
-    private ?PostgreSQLSchemaInspector $postgreSQLSchemaInspector = null;
+    private ?DBDriverInterface $driverAdapter = null;
+    private ?SchemaInspectorInterface $schemaInspector = null;
 
     private function buildConnectionString(\stdClass $auxConfig): string
     {
@@ -185,13 +388,24 @@ class PDOConnection extends \YeAPF\Connection\DBConnection
             $ret->execute($fParams);
             $errorInfo = $ret->errorInfo();
             if ('00000' !== $errorInfo[0]) {
-                \_trace('RET Error Info:');
-                \_trace(print_r($ret->errorInfo(), true));
+                $normalized = $this->resolveDriverAdapter()->normalizeError(
+                    new \RuntimeException(
+                        trim((string) ($errorInfo[0] ?? '')) . ' ' . (string) ($errorInfo[2] ?? 'Database execution error'),
+                        (int) ($errorInfo[1] ?? 0)
+                    ),
+                    $sql,
+                    $fParams
+                );
 
                 $msg = str_replace("\n", ' ', $sql);
                 $msg = preg_replace('/\s+/', ' ', $msg);
 
-                throw new \YeAPF\YeAPFException('PGSQL-' . $errorInfo[0] . ': ' . $errorInfo[2] . " when doing:\n           " . $msg, $errorInfo[1]);
+                $driverPrefix = strtoupper((string) ($normalized['driver'] ?? 'db'));
+                $sqlState = (string) ($normalized['sql_state'] ?? 'UNKNOWN');
+                $errMsg = (string) ($normalized['message'] ?? 'Database execution error');
+                $driverCode = (int) ($normalized['driver_code'] ?? YeAPF_PDO_CONNECTION);
+
+                throw new \YeAPF\YeAPFException($driverPrefix . '-' . $sqlState . ': ' . $errMsg . " when doing:\n           " . $msg, $driverCode);
             } else {
                 _trace('RowCount: ' . $ret->rowCount());
             }
@@ -223,24 +437,72 @@ class PDOConnection extends \YeAPF\Connection\DBConnection
         return $ret;
     }
 
+    public function queryAll($sql, $data = null): array
+    {
+        $ret = [];
+        if (self::getConnected()) {
+            $statement = $this->query($sql, $data);
+            if ($statement instanceof \PDOStatement) {
+                while ($row = $statement->fetch()) {
+                    if (is_array($row)) {
+                        $ret[] = $row;
+                    }
+                }
+            }
+        }
+
+        return $ret;
+    }
+
+    public function beginTransaction(): void
+    {
+        if (self::getConnected() && self::$db instanceof \PDO && !self::$db->inTransaction()) {
+            self::$db->beginTransaction();
+        }
+    }
+
+    public function commitTransaction(): void
+    {
+        if (self::getConnected() && self::$db instanceof \PDO && self::$db->inTransaction()) {
+            self::$db->commit();
+        }
+    }
+
+    public function rollBackTransaction(): void
+    {
+        if (self::getConnected() && self::$db instanceof \PDO && self::$db->inTransaction()) {
+            self::$db->rollBack();
+        }
+    }
+
+    public function getServerVersion(): ?string
+    {
+        if (!self::getConnected() || !(self::$db instanceof \PDO)) {
+            return null;
+        }
+
+        $version = self::$db->getAttribute(\PDO::ATTR_SERVER_VERSION);
+        return is_string($version) ? $version : null;
+    }
+
     public function tableExists($tablename, $schemaname = null)
     {
-        return $this->getPostgreSQLSchemaInspector()->tableExists((string) $tablename, $schemaname);
+        return $this->resolveSchemaInspector()->tableExists((string) $tablename, is_string($schemaname) ? $schemaname : null);
     }
 
     public function columnDefinition($tablename, $columnname, $schemaname = null)
     {
-        return $this->getPostgreSQLSchemaInspector()->columnDefinition((string) $tablename, (string) $columnname, $schemaname);
+        return $this->resolveSchemaInspector()->columnDefinition((string) $tablename, (string) $columnname, is_string($schemaname) ? $schemaname : null);
     }
 
     public function columnExists($tablename, $columnname, $schemaname = null)
     {
-        return $this->getPostgreSQLSchemaInspector()->columnExists((string) $tablename, (string) $columnname, $schemaname);
+        return $this->resolveSchemaInspector()->columnExists((string) $tablename, (string) $columnname, is_string($schemaname) ? $schemaname : null);
     }
 
     public function columns($tablename, $schemaname = null)
     {
-        return $this->getPostgreSQLSchemaInspector()->columns((string) $tablename, $schemaname);
+        return $this->resolveSchemaInspector()->columns((string) $tablename, is_string($schemaname) ? $schemaname : null);
     }
 
     private function getConfiguredDriver(): string
@@ -249,21 +511,65 @@ class PDOConnection extends \YeAPF\Connection\DBConnection
         return strtolower((string) $configDriver);
     }
 
-    private function getPostgreSQLSchemaInspector(): PostgreSQLSchemaInspector
+    private function resolveDriverAdapter(): DBDriverInterface
     {
-        if ('pgsql' !== $this->getConfiguredDriver()) {
-            throw new \YeAPF\YeAPFException(
-                'Schema inspection is currently available only for PostgreSQL in PDOConnection',
-                YeAPF_UNIMPLEMENTED_KEY_TYPE
-            );
+        if (null === $this->driverAdapter) {
+            $driverName = $this->getConfiguredDriver();
+            $this->driverAdapter = self::createDriverAdapter($driverName, $this, $this->resolveSchemaInspector());
         }
 
-        if (null === $this->postgreSQLSchemaInspector) {
-            $defaultSchema = self::$config->pdo->schema ?? 'public';
-            $this->postgreSQLSchemaInspector = new PostgreSQLSchemaInspector($this, (string) $defaultSchema);
+        return $this->driverAdapter;
+    }
+
+    private function resolveSchemaInspector(): SchemaInspectorInterface
+    {
+        if (null === $this->schemaInspector) {
+            $driverName = $this->getConfiguredDriver();
+            $defaultSchema = (string) (self::$config->pdo->schema ?? 'public');
+            $this->schemaInspector = self::createSchemaInspector($driverName, $this, $defaultSchema);
         }
 
-        return $this->postgreSQLSchemaInspector;
+        return $this->schemaInspector;
+    }
+
+    private static function createDriverAdapter(
+        string $driverName,
+        PDOConnection $connection,
+        SchemaInspectorInterface $schemaInspector
+    ): DBDriverInterface
+    {
+        if ('pgsql' === $driverName) {
+            return new PostgreSQLPDOAdapter($connection, $schemaInspector);
+        }
+
+        if ('mysql' === $driverName) {
+            return new MySQLPDOAdapter($connection, $schemaInspector);
+        }
+
+        throw new \YeAPF\YeAPFException(
+            'Driver adapter is currently unavailable for `' . $driverName . '` in PDOConnection',
+            YeAPF_UNIMPLEMENTED_KEY_TYPE
+        );
+    }
+
+    private static function createSchemaInspector(
+        string $driverName,
+        PDOConnection $connection,
+        string $defaultSchema
+    ): SchemaInspectorInterface
+    {
+        if ('pgsql' === $driverName) {
+            return new PostgreSQLSchemaInspector($connection, $defaultSchema);
+        }
+
+        if ('mysql' === $driverName) {
+            return new MySQLSchemaInspector($connection, $defaultSchema);
+        }
+
+        throw new \YeAPF\YeAPFException(
+            'Schema inspector is currently unavailable for `' . $driverName . '` in PDOConnection',
+            YeAPF_UNIMPLEMENTED_KEY_TYPE
+        );
     }
 
     public static function createMainConnection()

@@ -183,6 +183,9 @@ define('YeAPF_INCOMPLETE_SED_EXPRESSION', YeAPF_EXPRESSION_BASE + 5);
 /***************************/
 /* PLUGINS */
 define('YeAPF_PLUGIN_ERROR', YeAPF_PLUGIN_BASE + 1);
+define('YeAPF_AUTHENTICITY_CHECK_FAILED', YeAPF_PLUGIN_BASE + 2);
+define('YeAPF_AUTH_FAILED', YeAPF_PLUGIN_BASE + 3);
+define('YeAPF_PLUGIN_REGISTRY_FROZEN', YeAPF_PLUGIN_BASE + 4);
 
 /**
  * Common regular expressions
