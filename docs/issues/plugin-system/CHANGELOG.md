@@ -1,3 +1,6 @@
+2026-04-22 — PLG-003 moved to closed after merge to master; branch `issue/plugin-system/authenticity-checker-in-constraint-pipeline` deleted
+2026-04-22 — PLG-002 moved to closed after merge to master; branch `issue/plugin-system/plugin-registry-boot-freeze` deleted
+2026-04-22 — PLG-001 moved to closed after merge to master; branch `issue/plugin-system/plugin-role-interfaces` deleted
 2026-04-22 — PLG-003 moved to PR; branch `issue/plugin-system/authenticity-checker-in-constraint-pipeline` pushed and PR opened against PLG-002
 2026-04-22 — PLG-002 moved to PR; branch `issue/plugin-system/plugin-registry-boot-freeze` pushed and PR opened against PLG-001
 2026-04-22 — PLG-001 moved to PR; branch `issue/plugin-system/plugin-role-interfaces` pushed and PR opened against master
