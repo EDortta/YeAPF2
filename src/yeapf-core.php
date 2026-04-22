@@ -105,6 +105,7 @@ require_once __DIR__ . '/yeapf-config.php';
     'classes/class.plugins.php',
     'classes/class.plugin-template.php',
     'classes/class.plugin-role-interfaces.php',
+    'classes/class.plugin-registry.php',
     'request/yeapf-request.php',
     'database/yeapf-connection.php',
     'database/yeapf-redis-connection.php',
@@ -155,7 +156,7 @@ if ($__yTypesObsolete) {
 require_once __DIR__ . '/misc/yTypes.php';
 require_once __DIR__ . '/misc/yTypeChecker.php';
 
-\YeAPF\Plugins\PluginList::loadPlugins(__DIR__ . '/plugins');
-\YeAPF\Plugins\PluginList::loadPlugins('plugins');
+\YeAPF\Plugins\PluginList::loadPlugins(__DIR__ . '/plugins', 10, false);
+\YeAPF\Plugins\PluginList::loadPlugins('plugins', 10, true);
 
 \YeAPF\yLogger::defineLogTag('Application');

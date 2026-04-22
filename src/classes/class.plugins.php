@@ -38,11 +38,43 @@ class PluginList {
         'filename' => $filename,
         'object'   => $object,
       ];
+      self::registerRoles($object);
       $ret = true;
     } else {
       //   throw new \Exception("$className already registered");
     }
     return $ret;
+  }
+
+  private static function registerRoles(object $object): void
+  {
+    if ($object instanceof \YeAPF\Plugins\Validator\DocumentValidatorInterface) {
+      \YeAPF\Plugins\Registry::registerDocumentValidator($object);
+    }
+
+    if ($object instanceof \YeAPF\Plugins\Type\TypeProviderInterface) {
+      \YeAPF\Plugins\Registry::registerTypeProvider($object);
+    }
+
+    if ($object instanceof \YeAPF\Connection\DB\Driver\DBDriverInterface) {
+      \YeAPF\Plugins\Registry::registerDBDriver($object);
+    }
+
+    if ($object instanceof \YeAPF\Plugins\Cache\CacheProviderInterface) {
+      \YeAPF\Plugins\Registry::registerCacheProvider($object);
+    }
+
+    if ($object instanceof \YeAPF\Plugins\Auth\AuthProviderInterface) {
+      \YeAPF\Plugins\Registry::registerAuthProvider($object);
+    }
+
+    if ($object instanceof \YeAPF\Plugins\I18n\TranslationProviderInterface) {
+      \YeAPF\Plugins\Registry::registerTranslationProvider($object);
+    }
+
+    if ($object instanceof \YeAPF\Plugins\Log\LogHandlerInterface) {
+      \YeAPF\Plugins\Registry::registerLogHandler($object);
+    }
   }
 
   /**
@@ -82,7 +114,7 @@ class PluginList {
    *
    * @return void
    */
-  static public function loadPlugins(string $folder, int $level = 10) {
+  static public function loadPlugins(string $folder, int $level = 10, bool $freezeWhenComplete = true) {
     if ($level > 0) {
       if (is_dir($folder)) {
         \_log("Plugin loader from '$folder'");
@@ -97,11 +129,14 @@ class PluginList {
               }
             } else {
               if (!in_array($filename, ['.', '..'])) {
-                self::loadPlugins($filename, $level - 1);
+                self::loadPlugins($filename, $level - 1, false);
               }
             }
           }
           closedir($dh);
+          if ($freezeWhenComplete) {
+            \YeAPF\Plugins\Registry::freeze();
+          }
         }
         \_log("Plugins ready");
       }
