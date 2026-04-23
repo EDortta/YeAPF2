@@ -1,3 +1,4 @@
+2026-04-23 — PLG-006 moved to on-work; branch `issue/plugin-system/document-validator-conformance-test` created and conformance test contract implementation started
 2026-04-23 — PLG-005 moved to closed after merge to master; branch `issue/plugin-system/latam-document-plugin-migration` deleted
 2026-04-23 — PLG-005 moved to PR; migrated LATAM (UY/AR/PE) validator from legacy global plugin to typed registry plugin with parity tests
 2026-04-23 — PLG-005 moved to on-work; recovered issue draft and started LATAM validator migration branch `issue/plugin-system/latam-document-plugin-migration`

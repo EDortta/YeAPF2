@@ -1,27 +1,49 @@
 <?php declare(strict_types=1);
 
-require_once __DIR__ . '/../src/yeapf-core.php';
+require_once __DIR__ . '/DocumentValidatorConformanceTestCase.php';
 
-use PHPUnit\Framework\TestCase;
-
-final class LatamDocumentPluginTest extends TestCase
+final class LatamDocumentPluginTest extends DocumentValidatorConformanceTestCase
 {
-    protected function setUp(): void
+    protected function supportedKeys(): array
     {
-        $this->resetAndBootstrapRegistry();
+        return ['UY.CI', 'AR.DNI', 'PE.DNI'];
     }
 
-    public function testRegistryLoadsLatamDocumentValidator(): void
+    protected function validFixtures(): array
     {
-        $uy = \YeAPF\Plugins\Registry::getDocumentValidator('UY.CI');
-        $ar = \YeAPF\Plugins\Registry::getDocumentValidator('AR.DNI');
-        $pe = \YeAPF\Plugins\Registry::getDocumentValidator('PE.DNI');
+        return [
+            ['UY.CI', '34043626'],
+            ['AR.DNI', '12345676'],
+            ['PE.DNI', '84814845H'],
+        ];
+    }
 
-        $this->assertNotNull($uy);
-        $this->assertNotNull($ar);
-        $this->assertNotNull($pe);
-        $this->assertSame($uy, $ar);
-        $this->assertSame($ar, $pe);
+    protected function invalidFixtures(): array
+    {
+        return [
+            ['UY.CI', '92500986'],
+            ['AR.DNI', '01234567'],
+            ['PE.DNI', '1234-AB'],
+        ];
+    }
+
+    protected function typeAuthenticityMap(): array
+    {
+        return [
+            'UY_CI' => 'UY.CI',
+            'AR_DNI' => 'AR.DNI',
+            'PE_DNI' => 'PE.DNI',
+        ];
+    }
+
+    protected function pluginClassName(): string
+    {
+        return 'LatamDocumentPlugin';
+    }
+
+    protected function pluginFilePath(): string
+    {
+        return __DIR__ . '/../src/plugins/latam-document-plugin.php';
     }
 
     public function testLegacyFixturesKeepSameResults(): void
@@ -47,21 +69,6 @@ final class LatamDocumentPluginTest extends TestCase
             };
             $this->assertSame($legacyResult, $validator->validate($key, $value), $key . ':' . $value);
         }
-    }
-
-    public function testTypeDefinitionsAreLoadedWithAuthenticityCheckers(): void
-    {
-        $uyType = \YeAPF\BasicTypes::get('UY_CI');
-        $arType = \YeAPF\BasicTypes::get('AR_DNI');
-        $peType = \YeAPF\BasicTypes::get('PE_DNI');
-
-        $this->assertIsArray($uyType);
-        $this->assertIsArray($arType);
-        $this->assertIsArray($peType);
-
-        $this->assertSame('UY.CI', $uyType['authenticityChecker'] ?? null);
-        $this->assertSame('AR.DNI', $arType['authenticityChecker'] ?? null);
-        $this->assertSame('PE.DNI', $peType['authenticityChecker'] ?? null);
     }
 
     public function testGlobalCustomerCheckerNoLongerExists(): void
@@ -134,35 +141,5 @@ final class LatamDocumentPluginTest extends TestCase
         }
 
         return $controlsLetters[$index] === $dcontrol;
-    }
-
-    private function resetAndBootstrapRegistry(): void
-    {
-        $registry = new ReflectionClass(\YeAPF\Plugins\Registry::class);
-        $properties = [
-            'frozen' => false,
-            'documentValidators' => [],
-            'typeProviders' => [],
-            'dbDrivers' => [],
-            'cacheProvider' => null,
-            'authProvider' => null,
-            'translationProvider' => null,
-            'logHandler' => null,
-        ];
-
-        foreach ($properties as $name => $value) {
-            $property = $registry->getProperty($name);
-            $property->setAccessible(true);
-            $property->setValue(null, $value);
-        }
-
-        if (!class_exists('LatamDocumentPlugin')) {
-            require_once __DIR__ . '/../src/plugins/latam-document-plugin.php';
-        }
-
-        $plugin = new LatamDocumentPlugin();
-        \YeAPF\Plugins\Registry::registerDocumentValidator($plugin);
-        \YeAPF\Plugins\Registry::registerTypeProvider($plugin);
-        \YeAPF\Plugins\Registry::freeze();
     }
 }
