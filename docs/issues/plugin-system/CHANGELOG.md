@@ -1,3 +1,4 @@
+2026-04-23 — PLG-004 moved to PR; implemented BrazilDocumentPlugin (CNPJ/CPF validator + type provider) with regression tests
 2026-04-22 — PLG-004 moved to on-work; branch `issue/plugin-system/brazil-document-plugin` created to implement Brazil document validator plugin end-to-end
 2026-04-22 — PLG-003 moved to closed after merge to master; branch `issue/plugin-system/authenticity-checker-in-constraint-pipeline` deleted
 2026-04-22 — PLG-002 moved to closed after merge to master; branch `issue/plugin-system/plugin-registry-boot-freeze` deleted
