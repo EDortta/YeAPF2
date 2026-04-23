@@ -6,6 +6,11 @@ use PHPUnit\Framework\TestCase;
 
 final class BrazilDocumentPluginTest extends TestCase
 {
+    protected function setUp(): void
+    {
+        $this->resetAndBootstrapRegistry();
+    }
+
     public function testRegistryLoadsBrazilDocumentValidator(): void
     {
         $cnpjValidator = \YeAPF\Plugins\Registry::getDocumentValidator('BR.CNPJ');
@@ -47,5 +52,35 @@ final class BrazilDocumentPluginTest extends TestCase
         $this->assertSame('BR.CPF', $cpf['authenticityChecker'] ?? null);
         $this->assertSame('/^\d{14}$/', $cnpj['regExpression'] ?? null);
         $this->assertSame('/^\d{11}$/', $cpf['regExpression'] ?? null);
+    }
+
+    private function resetAndBootstrapRegistry(): void
+    {
+        $registry = new ReflectionClass(\YeAPF\Plugins\Registry::class);
+        $properties = [
+            'frozen' => false,
+            'documentValidators' => [],
+            'typeProviders' => [],
+            'dbDrivers' => [],
+            'cacheProvider' => null,
+            'authProvider' => null,
+            'translationProvider' => null,
+            'logHandler' => null,
+        ];
+
+        foreach ($properties as $name => $value) {
+            $property = $registry->getProperty($name);
+            $property->setAccessible(true);
+            $property->setValue(null, $value);
+        }
+
+        if (!class_exists('BrazilDocumentPlugin')) {
+            require_once __DIR__ . '/../src/plugins/br-document-plugin.php';
+        }
+
+        $plugin = new BrazilDocumentPlugin();
+        \YeAPF\Plugins\Registry::registerDocumentValidator($plugin);
+        \YeAPF\Plugins\Registry::registerTypeProvider($plugin);
+        \YeAPF\Plugins\Registry::freeze();
     }
 }

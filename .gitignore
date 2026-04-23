@@ -128,3 +128,11 @@ dist
 .tern-port
 
 tools/.phpunit.result.cache
+
+# Local-only operational files (never commit)
+.credentials/
+AGENTS.md
+CLAUDE.md
+zip-local-copy.sh
+.phpunit.result.cache
+.vscode/

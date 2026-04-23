@@ -7,7 +7,7 @@ use PHPUnit\Framework\TestCase;
 
 final class DocumentModelTest extends TestCase
 {
-    public function testRawValue()
+    public function testRawValue(): void
     {
         $context = $this->createMock(\YeAPF\Connection\PersistenceContext::class);
 
@@ -15,10 +15,10 @@ final class DocumentModelTest extends TestCase
 
         $documentModel->text = "Don't have an Account";
 
-        $this->assertEquals('Don&#039;t have an Account', $documentModel->__get_raw_value('text'));
+        $this->assertSame('Don&#039;t have an Account', $documentModel->__get_raw_value('text'));
     }
 
-    public function testProcessedValue()
+    public function testProcessedValue(): void
     {
         $context = $this->createMock(\YeAPF\Connection\PersistenceContext::class);
 
@@ -26,7 +26,7 @@ final class DocumentModelTest extends TestCase
 
         $documentModel->text = "Don't have an Account";
 
-        $this->assertEquals("Don't have an Account", $documentModel->text);
+        $this->assertSame("Don't have an Account", $documentModel->text);
     }
 }
 //106676

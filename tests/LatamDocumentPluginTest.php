@@ -6,6 +6,11 @@ use PHPUnit\Framework\TestCase;
 
 final class LatamDocumentPluginTest extends TestCase
 {
+    protected function setUp(): void
+    {
+        $this->resetAndBootstrapRegistry();
+    }
+
     public function testRegistryLoadsLatamDocumentValidator(): void
     {
         $uy = \YeAPF\Plugins\Registry::getDocumentValidator('UY.CI');
@@ -129,5 +134,35 @@ final class LatamDocumentPluginTest extends TestCase
         }
 
         return $controlsLetters[$index] === $dcontrol;
+    }
+
+    private function resetAndBootstrapRegistry(): void
+    {
+        $registry = new ReflectionClass(\YeAPF\Plugins\Registry::class);
+        $properties = [
+            'frozen' => false,
+            'documentValidators' => [],
+            'typeProviders' => [],
+            'dbDrivers' => [],
+            'cacheProvider' => null,
+            'authProvider' => null,
+            'translationProvider' => null,
+            'logHandler' => null,
+        ];
+
+        foreach ($properties as $name => $value) {
+            $property = $registry->getProperty($name);
+            $property->setAccessible(true);
+            $property->setValue(null, $value);
+        }
+
+        if (!class_exists('LatamDocumentPlugin')) {
+            require_once __DIR__ . '/../src/plugins/latam-document-plugin.php';
+        }
+
+        $plugin = new LatamDocumentPlugin();
+        \YeAPF\Plugins\Registry::registerDocumentValidator($plugin);
+        \YeAPF\Plugins\Registry::registerTypeProvider($plugin);
+        \YeAPF\Plugins\Registry::freeze();
     }
 }
