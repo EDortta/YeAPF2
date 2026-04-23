@@ -115,31 +115,41 @@ class PluginList {
    * @return void
    */
   static public function loadPlugins(string $folder, int $level = 10, bool $freezeWhenComplete = true) {
-    if ($level > 0) {
-      if (is_dir($folder)) {
-        \_log("Plugin loader from '$folder'");
-        if ($dh = opendir($folder)) {
-          while (($filename = readdir($dh)) !== false) {
-            if (!is_dir("$folder/$filename")) {
-              $ext = pathinfo($filename, PATHINFO_EXTENSION);
-              if ("php" === $ext) {
-                \_log("  Loading '$filename' plugin\n");
-                require_once "$folder/$filename";
-                \YeAPF\checkClassesRequirements();
-              }
-            } else {
-              if (!in_array($filename, ['.', '..'])) {
-                self::loadPlugins($filename, $level - 1, false);
-              }
-            }
+    if ($level <= 0) {
+      if ($freezeWhenComplete) {
+        \YeAPF\Plugins\Registry::freeze();
+      }
+      return;
+    }
+
+    if (!is_dir($folder)) {
+      if ($freezeWhenComplete) {
+        \YeAPF\Plugins\Registry::freeze();
+      }
+      return;
+    }
+
+    \_log("Plugin loader from '$folder'");
+    if ($dh = opendir($folder)) {
+      while (($filename = readdir($dh)) !== false) {
+        if (!is_dir("$folder/$filename")) {
+          $ext = pathinfo($filename, PATHINFO_EXTENSION);
+          if ("php" === $ext) {
+            \_log("  Loading '$filename' plugin\n");
+            require_once "$folder/$filename";
+            \YeAPF\checkClassesRequirements();
           }
-          closedir($dh);
-          if ($freezeWhenComplete) {
-            \YeAPF\Plugins\Registry::freeze();
+        } else {
+          if (!in_array($filename, ['.', '..'])) {
+            self::loadPlugins($filename, $level - 1, false);
           }
         }
-        \_log("Plugins ready");
+      }
+      closedir($dh);
+      if ($freezeWhenComplete) {
+        \YeAPF\Plugins\Registry::freeze();
       }
     }
+    \_log("Plugins ready");
   }
 }
