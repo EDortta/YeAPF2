@@ -32,12 +32,20 @@ $cedulas=[
     ],
 ];
 echo "UI Cédula\tRes.\tRes.Correto?\n";
+$countryToKey = [
+    'UY' => 'UY.CI',
+    'AR' => 'AR.DNI',
+    'PE' => 'PE.DNI',
+];
+
 foreach($cedulas as $cedula => $cedulaDef) {
     $pais = $cedulaDef[0];
     $resultadoEsperado = $cedulaDef[1];
+    $validatorKey = $countryToKey[$pais] ?? null;
 
     echo "$pais $cedula\t";
-    $resultadoObtido = $customerDocumentChecker->validate($pais, $cedula);
+    $validator = $validatorKey ? \YeAPF\Plugins\Registry::getDocumentValidator($validatorKey) : null;
+    $resultadoObtido = $validator ? $validator->validate($validatorKey, $cedula) : false;
     if ($resultadoObtido) {
       echo "SIM";
     } else {
@@ -49,4 +57,3 @@ foreach($cedulas as $cedula => $cedulaDef) {
       echo "\tErrado";
     echo "\n";
   }
-
