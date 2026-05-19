@@ -119,6 +119,7 @@ require_once __DIR__ . '/yeapf-config.php';
     'database/yeapf-pdo-connection.php',
     'database/yeapf-persistence-interface.php',
     'database/yeapf-collections.php',
+    'database/schema-bootstrap/schema-bootstrap.php',
     'database/yeapf-eyeshot.php',
     'service/yeapf-service-skeleton.php',
     'service/yeapf-http2-service.php',
