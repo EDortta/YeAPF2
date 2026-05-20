@@ -1,5 +1,11 @@
 {
     "require-dev": {
         "phpunit/phpunit": "^10"
+    },
+    "scripts": {
+        "test": "php -d opcache.enable_cli=0 vendor/bin/phpunit -c phpunit.xml",
+        "test:schema-bootstrap": "php -d opcache.enable_cli=0 vendor/bin/phpunit -c phpunit.xml --testsuite schema-bootstrap",
+        "test:handoff": "bash run-handoff.sh",
+        "test:handoff:schema-bootstrap": "bash run-handoff.sh schema-bootstrap"
     }
 }

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+         bootstrap="../src/yeapf-core.php"
+         colors="true"
+         cacheDirectory=".phpunit.cache"
+         failOnWarning="false"
+         failOnDeprecation="false">
+    <testsuites>
+        <testsuite name="yeapf2">
+            <directory suffix="Test.php">.</directory>
+            <exclude>./vendor</exclude>
+            <exclude>./helpers</exclude>
+            <exclude>./fixtures</exclude>
+            <exclude>./db-environments</exclude>
+        </testsuite>
+        <testsuite name="schema-bootstrap">
+            <file>SchemaSessionBootstrapTest.php</file>
+        </testsuite>
+    </testsuites>
+</phpunit>
