@@ -1,4 +1,6 @@
 .DS_Store
+.test-results/
+tests/.phpunit.cache/
 **/.phpdoc
 **/vendor
 **/docs

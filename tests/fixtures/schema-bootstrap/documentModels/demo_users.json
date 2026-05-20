@@ -1,0 +1,54 @@
+{
+  "id": {
+    "type": "STRING",
+    "primary": true,
+    "required": true,
+    "acceptNULL": false,
+    "length": 15,
+    "protobufOrder": 1
+  },
+  "name": {
+    "type": "STRING",
+    "length": 120,
+    "required": true,
+    "acceptNULL": false,
+    "protobufOrder": 2
+  },
+  "email": {
+    "type": "STRING",
+    "length": 180,
+    "required": true,
+    "acceptNULL": false,
+    "unique": true,
+    "protobufOrder": 3
+  },
+  "created_by_id": {
+    "type": "STRING",
+    "length": 15,
+    "required": false,
+    "acceptNULL": true,
+    "protobufOrder": 4
+  },
+  "deleted_at": {
+    "type": "DATETIME",
+    "required": false,
+    "acceptNULL": true,
+    "protobufOrder": 5
+  },
+  "foreignKeys": [
+    {
+      "name": "fk_demo_users_created_by",
+      "columns": ["created_by_id"],
+      "references": "demo_users",
+      "onDelete": "SET NULL"
+    }
+  ],
+  "indexes": [
+    {
+      "name": "demo_users_email_active",
+      "columns": ["email"],
+      "where": "deleted_at IS NULL",
+      "unique": true
+    }
+  ]
+}
