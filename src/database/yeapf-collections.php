@@ -79,7 +79,7 @@ class VirtualRedis
         );
     }
 
-    public function hset(string $name, mixed $data, int $expiration = null)
+    public function hset(string $name, mixed $data, ?int $expiration = null)
     {
         if (!is_iterable($data)) {
             return false;
@@ -626,7 +626,7 @@ interface iCollection
         \YeAPF\Connection\PersistenceContext $context,
         string $collectionName,
         string $collectionIdName                = 'id',
-        \YeAPF\ORM\DocumentModel $documentModel = null,
+        ?\YeAPF\ORM\DocumentModel $documentModel = null,
         int $cacheExpiration                    = 0
     );
 
@@ -700,7 +700,7 @@ class SharedSanitizedCollection extends \YeAPF\ORM\SharedSanitizedKeyData implem
         \YeAPF\Connection\PersistenceContext $context,
         string $collectionName,
         string $collectionIdName                = 'id',
-        \YeAPF\ORM\DocumentModel $documentModel = null,
+        ?\YeAPF\ORM\DocumentModel $documentModel = null,
         int $cacheExpiration                    = 0
     ) {
         parent::__construct($context);
@@ -964,7 +964,7 @@ class PersistentCollection extends \YeAPF\ORM\SharedSanitizedCollection implemen
         \YeAPF\Connection\PersistenceContext $context,
         string $collectionName,
         string $collectionIdName                = 'id',
-        \YeAPF\ORM\DocumentModel $documentModel = null,
+        ?\YeAPF\ORM\DocumentModel $documentModel = null,
         int $cacheExpiration                    = 0,
         int $cacheMode                          = YeAPF_SAVE_CACHE_FIRST
     ) {

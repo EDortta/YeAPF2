@@ -256,10 +256,10 @@ class Translator extends \YeAPF\Plugins\ServicePlugin implements \YeAPF\Plugins\
   }
 
   public function translate(
-    string $scope      = null,
-    string $targetLang = null,
-    string $tag        = null,
-    string $DOMText    = null
+    ?string $scope      = null,
+    ?string $targetLang = null,
+    ?string $tag        = null,
+    ?string $DOMText    = null
   ) {
     $ret = [];
 
