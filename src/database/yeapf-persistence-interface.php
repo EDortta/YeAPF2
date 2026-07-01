@@ -7,8 +7,8 @@ class PersistenceContext
     static private $redisConnection=null;
     static private $pdoConnection=null;
     public function __construct(
-        \YeAPF\Connection\DB\RedisConnection $redisConnection=null,
-        \YeAPF\Connection\DB\PDOConnection $pdoConnection=null)
+        ?\YeAPF\Connection\DB\RedisConnection $redisConnection=null,
+        ?\YeAPF\Connection\DB\PDOConnection $pdoConnection=null)
     {
         self::$redisConnection = $redisConnection;
         self::$pdoConnection = $pdoConnection;

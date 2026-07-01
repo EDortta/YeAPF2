@@ -300,7 +300,7 @@ class TaggedServer extends Server
         return $ret;
     }
 
-    public function enqueueEvent(string $source, string $event, string|array|object|null $data, string $id = null, int $retry = null)
+    public function enqueueEvent(string $source, string $event, string|array|object|null $data, ?string $id = null, ?int $retry = null)
     {
         $this->grantQueue();
         SSEUniqueQueue::enqueueEvent($source, $this->clientId, $event, $data, $id, $retry);
@@ -387,7 +387,7 @@ abstract class SSEService extends \YeAPF\YeAPFConfig
         unset($this->runningServers[$fd]);
     }
 
-    public function addEvent(string $source, string $target, string $event, string|array|object|null $data, string $id = null)
+    public function addEvent(string $source, string $target, string $event, string|array|object|null $data, ?string $id = null)
     {
         try {
             $this->lock->lock();
