@@ -1,5 +1,5 @@
 {
-    "name": "yeapf/v2",
+    "name": "edortta/yeapf2",
     "description": "Yet Another PHP Framework v2",
     "type": "framework",
     "homepage": "https://www.yeapf.com/v2",
@@ -19,5 +19,8 @@
         }
     ],
     "minimum-stability": "stable",
+    "replace": {
+        "yeapf/v2": "self.version"
+    },
     "require": {}
 }

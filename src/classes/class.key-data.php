@@ -278,7 +278,7 @@ class SanitizedKeyData extends KeyData
 {
   private $__constraints = [];
 
-  public function __construct(array $constraints = null)
+  public function __construct(?array $constraints = null)
   {
     parent::__construct();
     if (null !== $constraints) {
@@ -506,7 +506,7 @@ class SanitizedKeyData extends KeyData
    *
    * @return array The constraints associated with this object.
    */
-  public function getConstraints(bool $asInterface = null, string $tag = null)
+  public function getConstraints(?bool $asInterface = null, ?string $tag = null)
   {
     if (is_null($asInterface) && is_null($tag)) {
       return $this->__constraints;

@@ -1,5 +1,6 @@
 # CHANGELOG — db-driver-contract
 
+2026-07-13 — DBC-001/002/003/005/006/007 closed after contract, adapter, and harness tests passed on PHP 8.4
 2026-04-21 — DBC-007 moved to on-work; branch `issue/db-driver-contract/contract-test-harness` created
 2026-04-21 — DBC-006 moved to on-work; branch `issue/db-driver-contract/adapter-in-pdo-connection` created
 2026-04-21 — DBC-005 moved to on-work; branch `issue/db-driver-contract/ddl-synthesizer-contract` created

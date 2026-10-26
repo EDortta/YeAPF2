@@ -19,12 +19,12 @@ Currently, PostgreSQL-specific SQL is embedded in `yeapf-pdo-connection.php` and
 `db-driver-contract-agent`
 
 ## Issues
-- [DBC-001-driver-contract-skeleton-[on-work].md](./DBC-001-driver-contract-skeleton-[on-work].md)
-- [DBC-002-dbdriverinterface-methods-[on-work].md](./DBC-002-dbdriverinterface-methods-[on-work].md)
-- [DBC-003-schema-inspector-contract-[on-work].md](./DBC-003-schema-inspector-contract-[on-work].md)
+- [DBC-001-driver-contract-skeleton-[closed].md](./DBC-001-driver-contract-skeleton-[closed].md)
+- [DBC-002-dbdriverinterface-methods-[closed].md](./DBC-002-dbdriverinterface-methods-[closed].md)
+- [DBC-003-schema-inspector-contract-[closed].md](./DBC-003-schema-inspector-contract-[closed].md)
 - [DBC-004-query-dialect-contract-[opened].md](./DBC-004-query-dialect-contract-[opened].md)
-- [DBC-005-ddl-synthesizer-contract-[on-work].md](./DBC-005-ddl-synthesizer-contract-[on-work].md)
-- [DBC-006-adapter-in-pdo-connection-[on-work].md](./DBC-006-adapter-in-pdo-connection-[on-work].md)
-- [DBC-007-contract-test-harness-[on-work].md](./DBC-007-contract-test-harness-[on-work].md)
+- [DBC-005-ddl-synthesizer-contract-[closed].md](./DBC-005-ddl-synthesizer-contract-[closed].md)
+- [DBC-006-adapter-in-pdo-connection-[closed].md](./DBC-006-adapter-in-pdo-connection-[closed].md)
+- [DBC-007-contract-test-harness-[closed].md](./DBC-007-contract-test-harness-[closed].md)
 - [DBC-008-error-normalization-policy-[opened].md](./DBC-008-error-normalization-policy-[opened].md)
 - [DBC-009-docs-and-migration-notes-[opened].md](./DBC-009-docs-and-migration-notes-[opened].md)

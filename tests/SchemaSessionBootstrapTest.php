@@ -193,7 +193,7 @@ final class SchemaSessionBootstrapTest extends TestCase
         $current = $areasProperty->getValue();
         self::$previousConfigAreas = is_array($current) ? $current : [];
 
-        $areasProperty->setValue([
+        $areasProperty->setValue(null, [
             'connection' => (object) [
                 'pdo' => (object) [
                     'driver' => 'pgsql',
@@ -220,7 +220,7 @@ final class SchemaSessionBootstrapTest extends TestCase
         $configClass = new ReflectionClass(\YeAPF\YeAPFConfig::class);
         $areasProperty = $configClass->getProperty('configAreas');
         $areasProperty->setAccessible(true);
-        $areasProperty->setValue(self::$previousConfigAreas ?? []);
+        $areasProperty->setValue(null, self::$previousConfigAreas ?? []);
     }
 
     private static function resetPdoConnectionStatics(): void

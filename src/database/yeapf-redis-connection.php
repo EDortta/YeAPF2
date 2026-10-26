@@ -111,7 +111,7 @@ class RedisConnection extends \YeAPF\Connection\DBConnection
         return $ret;
     }
 
-    public function hset(string $name, mixed $data, int $expiration = null)
+    public function hset(string $name, mixed $data, ?int $expiration = null)
     {
         $ret = false;
         if (self::getConnected()) {
@@ -181,7 +181,7 @@ class RedisConnection extends \YeAPF\Connection\DBConnection
         return $ret;
     }
 
-    public function setKeyExpiration(string $name, int $expiration = null)
+    public function setKeyExpiration(string $name, ?int $expiration = null)
 {
     if (self::getConnected()) {
         if ($expiration !== null) {
@@ -190,7 +190,7 @@ class RedisConnection extends \YeAPF\Connection\DBConnection
     }
 }
 
-    public function setGlobalExpiration(int $expiration = null)
+    public function setGlobalExpiration(?int $expiration = null)
     {
         if (self::getConnected()) {
             if ($expiration !== null) {
