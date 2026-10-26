@@ -318,6 +318,10 @@ class WebApp
 
     static function getRouteHandlerDefinition($path, $method)
     {
+        $method = strtoupper((string) $method);
+        if (!isset(self::$handlers[$method])) {
+            return null;
+        }
         if (substr($path, 0, 1) != '/') {
             $path = '/' . $path;
         }

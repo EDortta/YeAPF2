@@ -1,0 +1,985 @@
+parameters:
+	ignoreErrors:
+		-
+			message: '#^Access to private property \$characterSet of parent class YeAPF\\BaseBulletin\.$#'
+			identifier: property.private
+			count: 1
+			path: ../src/bulletin/yeapf-bulletin.php
+
+		-
+			message: '#^Access to private property \$contentType of parent class YeAPF\\BaseBulletin\.$#'
+			identifier: property.private
+			count: 1
+			path: ../src/bulletin/yeapf-bulletin.php
+
+		-
+			message: '#^Constructor of class YeAPF\\WebBulletin has an unused parameter \$characterSet\.$#'
+			identifier: constructor.unusedParameter
+			count: 1
+			path: ../src/bulletin/yeapf-bulletin.php
+
+		-
+			message: '#^Constructor of class YeAPF\\WebBulletin has an unused parameter \$contentType\.$#'
+			identifier: constructor.unusedParameter
+			count: 1
+			path: ../src/bulletin/yeapf-bulletin.php
+
+		-
+			message: '#^Expression on left side of \?\? is not nullable\.$#'
+			identifier: nullCoalesce.expr
+			count: 4
+			path: ../src/bulletin/yeapf-bulletin.php
+
+		-
+			message: '#^Property YeAPF\\BaseBulletin\:\:\$__content is never read, only written\.$#'
+			identifier: property.onlyWritten
+			count: 1
+			path: ../src/bulletin/yeapf-bulletin.php
+
+		-
+			message: '#^Undefined variable\: \$i$#'
+			identifier: variable.undefined
+			count: 1
+			path: ../src/bulletin/yeapf-grpc-interface.php
+
+		-
+			message: '#^If condition is always false\.$#'
+			identifier: if.alwaysFalse
+			count: 1
+			path: ../src/classes/class.key-data.php
+
+		-
+			message: '#^Instantiated class YeAPF\\YeAPF\\YeAPFException not found\.$#'
+			identifier: class.notFound
+			count: 2
+			path: ../src/classes/class.key-data.php
+
+		-
+			message: '#^Loose comparison using \=\= between null and ''BOOLEAN''\|''BYTES''\|''DATE''\|''DATETIME''\|''FLOAT''\|''INTEGER''\|''JSON''\|''STRING''\|''TIME'' will always evaluate to false\.$#'
+			identifier: equal.alwaysFalse
+			count: 1
+			path: ../src/classes/class.key-data.php
+
+		-
+			message: '#^Method YeAPF\\KeyData\:\:__get\(\) with return type void returns mixed but should not return anything\.$#'
+			identifier: return.void
+			count: 1
+			path: ../src/classes/class.key-data.php
+
+		-
+			message: '#^Method YeAPF\\SanitizedKeyData\:\:__get\(\) with return type void returns mixed but should not return anything\.$#'
+			identifier: return.void
+			count: 1
+			path: ../src/classes/class.key-data.php
+
+		-
+			message: '#^PHPDoc tag @param for parameter \$name with type mixed is not subtype of native type int\|string\.$#'
+			identifier: parameter.phpDocType
+			count: 1
+			path: ../src/classes/class.key-data.php
+
+		-
+			message: '#^PHPDoc tag @throws with type YeAPF\\Exception is not subtype of Throwable$#'
+			identifier: throws.notThrowable
+			count: 2
+			path: ../src/classes/class.key-data.php
+
+		-
+			message: '#^PHPDoc tag @throws with type YeAPF\\None is not subtype of Throwable$#'
+			identifier: throws.notThrowable
+			count: 1
+			path: ../src/classes/class.key-data.php
+
+		-
+			message: '#^PHPDoc tag @throws with type YeAPF\\YeAPF\\YeAPFException is not subtype of Throwable$#'
+			identifier: throws.notThrowable
+			count: 1
+			path: ../src/classes/class.key-data.php
+
+		-
+			message: '#^PHPDoc tag @throws with type null is not subtype of Throwable$#'
+			identifier: throws.notThrowable
+			count: 1
+			path: ../src/classes/class.key-data.php
+
+		-
+			message: '#^Parameter \$defaultValue of method YeAPF\\SanitizedKeyData\:\:setConstraint\(\) has invalid type YeAPF\\any\.$#'
+			identifier: class.notFound
+			count: 1
+			path: ../src/classes/class.key-data.php
+
+		-
+			message: '#^Result of method YeAPF\\KeyData\:\:__get\(\) \(void\) is used\.$#'
+			identifier: method.void
+			count: 3
+			path: ../src/classes/class.key-data.php
+
+		-
+			message: '#^Result of method YeAPF\\KeyData\:\:__get\(\) \(void\) is used\.$#'
+			identifier: staticMethod.void
+			count: 2
+			path: ../src/classes/class.key-data.php
+
+		-
+			message: '#^Throwing object of an unknown class YeAPF\\YeAPF\\YeAPFException\.$#'
+			identifier: class.notFound
+			count: 2
+			path: ../src/classes/class.key-data.php
+
+		-
+			message: '#^Variable \$replacement on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.variable
+			count: 1
+			path: ../src/classes/class.key-data.php
+
+		-
+			message: '#^Property YeAPF\\SchemaBootstrap\\SchemaBootstrapGate\:\:\$state is never read, only written\.$#'
+			identifier: property.onlyWritten
+			count: 1
+			path: ../src/database/schema-bootstrap/SchemaBootstrapGate.php
+
+		-
+			message: '#^Call to method delete\(\) on an unknown class YeAPF\\ORM\\RedisConnection\.$#'
+			identifier: class.notFound
+			count: 2
+			path: ../src/database/yeapf-collections.php
+
+		-
+			message: '#^Call to method exists\(\) on an unknown class YeAPF\\ORM\\RedisConnection\.$#'
+			identifier: class.notFound
+			count: 2
+			path: ../src/database/yeapf-collections.php
+
+		-
+			message: '#^Call to method get\(\) on an unknown class YeAPF\\ORM\\RedisConnection\.$#'
+			identifier: class.notFound
+			count: 1
+			path: ../src/database/yeapf-collections.php
+
+		-
+			message: '#^Call to method getConnected\(\) on an unknown class YeAPF\\ORM\\RedisConnection\.$#'
+			identifier: class.notFound
+			count: 8
+			path: ../src/database/yeapf-collections.php
+
+		-
+			message: '#^Call to method hget\(\) on an unknown class YeAPF\\ORM\\RedisConnection\.$#'
+			identifier: class.notFound
+			count: 2
+			path: ../src/database/yeapf-collections.php
+
+		-
+			message: '#^Call to method hgetall\(\) on an unknown class YeAPF\\ORM\\RedisConnection\.$#'
+			identifier: class.notFound
+			count: 1
+			path: ../src/database/yeapf-collections.php
+
+		-
+			message: '#^Call to method hset\(\) on an unknown class YeAPF\\ORM\\RedisConnection\.$#'
+			identifier: class.notFound
+			count: 1
+			path: ../src/database/yeapf-collections.php
+
+		-
+			message: '#^Call to method keys\(\) on an unknown class YeAPF\\ORM\\RedisConnection\.$#'
+			identifier: class.notFound
+			count: 2
+			path: ../src/database/yeapf-collections.php
+
+		-
+			message: '#^Call to method set\(\) on an unknown class YeAPF\\ORM\\RedisConnection\.$#'
+			identifier: class.notFound
+			count: 1
+			path: ../src/database/yeapf-collections.php
+
+		-
+			message: '#^Call to method type\(\) on an unknown class YeAPF\\ORM\\RedisConnection\.$#'
+			identifier: class.notFound
+			count: 2
+			path: ../src/database/yeapf-collections.php
+
+		-
+			message: '#^Call to sprintf contains 1 placeholder, 2 values given\.$#'
+			identifier: argument.sprintf
+			count: 1
+			path: ../src/database/yeapf-collections.php
+
+		-
+			message: '#^Cannot call method columns\(\) on null\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: ../src/database/yeapf-collections.php
+
+		-
+			message: '#^Class YeAPF\\ORM\\SanitizedKeyData not found\.$#'
+			identifier: class.notFound
+			count: 1
+			path: ../src/database/yeapf-collections.php
+
+		-
+			message: '#^Constant YeAPF_UNSUPPORTED_TYPE not found\.$#'
+			identifier: constant.notFound
+			count: 2
+			path: ../src/database/yeapf-collections.php
+
+		-
+			message: '#^Expression on left side of \?\? is not nullable\.$#'
+			identifier: nullCoalesce.expr
+			count: 1
+			path: ../src/database/yeapf-collections.php
+
+		-
+			message: '#^Method YeAPF\\ORM\\SharedSanitizedKeyData\:\:getRedisConnection\(\) has invalid return type YeAPF\\ORM\\RedisConnection\.$#'
+			identifier: class.notFound
+			count: 1
+			path: ../src/database/yeapf-collections.php
+
+		-
+			message: '#^Method YeAPF\\ORM\\SharedSanitizedRecord\:\:__get\(\) with return type void returns mixed but should not return anything\.$#'
+			identifier: return.void
+			count: 1
+			path: ../src/database/yeapf-collections.php
+
+		-
+			message: '#^Method YeAPF\\ORM\\SharedSanitizedRecord\:\:__unset\(\) with return type void returns null but should not return anything\.$#'
+			identifier: return.void
+			count: 1
+			path: ../src/database/yeapf-collections.php
+
+		-
+			message: '#^Offset 1 does not exist on array\{\}\.$#'
+			identifier: offsetAccess.notFound
+			count: 2
+			path: ../src/database/yeapf-collections.php
+
+		-
+			message: '#^Offset 3 does not exist on array\{non\-falsy\-string, string, string\}\.$#'
+			identifier: offsetAccess.notFound
+			count: 2
+			path: ../src/database/yeapf-collections.php
+
+		-
+			message: '#^Property YeAPF\\ORM\\DocumentModel\:\:\$context is never read, only written\.$#'
+			identifier: property.onlyWritten
+			count: 1
+			path: ../src/database/yeapf-collections.php
+
+		-
+			message: '#^Property YeAPF\\ORM\\SharedSanitizedCollection\:\:\$collectionIdName on left side of \?\? is not nullable nor uninitialized\.$#'
+			identifier: nullCoalesce.initializedProperty
+			count: 1
+			path: ../src/database/yeapf-collections.php
+
+		-
+			message: '#^Property YeAPF\\ORM\\SharedSanitizedCollection\:\:\$collectionName on left side of \?\? is not nullable nor uninitialized\.$#'
+			identifier: nullCoalesce.initializedProperty
+			count: 1
+			path: ../src/database/yeapf-collections.php
+
+		-
+			message: '#^Result of method YeAPF\\KeyData\:\:__unset\(\) \(void\) is used\.$#'
+			identifier: staticMethod.void
+			count: 1
+			path: ../src/database/yeapf-collections.php
+
+		-
+			message: '#^Result of method YeAPF\\ORM\\SharedSanitizedRecord\:\:__get\(\) \(void\) is used\.$#'
+			identifier: staticMethod.void
+			count: 1
+			path: ../src/database/yeapf-collections.php
+
+		-
+			message: '#^Result of method YeAPF\\ORM\\SharedSanitizedRecord\:\:__set\(\) \(void\) is used\.$#'
+			identifier: staticMethod.void
+			count: 1
+			path: ../src/database/yeapf-collections.php
+
+		-
+			message: '#^Result of method YeAPF\\ORM\\SharedSanitizedRecord\:\:__unset\(\) \(void\) is used\.$#'
+			identifier: staticMethod.void
+			count: 1
+			path: ../src/database/yeapf-collections.php
+
+		-
+			message: '#^Result of method YeAPF\\SanitizedKeyData\:\:__get\(\) \(void\) is used\.$#'
+			identifier: staticMethod.void
+			count: 1
+			path: ../src/database/yeapf-collections.php
+
+		-
+			message: '#^Unreachable statement \- code above always terminates\.$#'
+			identifier: deadCode.unreachable
+			count: 2
+			path: ../src/database/yeapf-collections.php
+
+		-
+			message: '#^Access to an undefined property YeAPF\\Result\:\:\$config\.$#'
+			identifier: property.notFound
+			count: 1
+			path: ../src/database/yeapf-connection.php
+
+		-
+			message: '#^Method YeAPF\\Connection\\DBConnection\:\:__construct\(\) with return type void returns YeAPF\\Result but should not return anything\.$#'
+			identifier: return.void
+			count: 1
+			path: ../src/database/yeapf-connection.php
+
+		-
+			message: '#^Property YeAPF\\ORM\\EyeShotRelation\:\:\$SQLCommand is never read, only written\.$#'
+			identifier: property.onlyWritten
+			count: 1
+			path: ../src/database/yeapf-eyeshot.php
+
+		-
+			message: '#^Trait YeAPF\\ORM\\EyeShot is used zero times and is not analysed\.$#'
+			identifier: trait.unused
+			count: 1
+			path: ../src/database/yeapf-eyeshot.php
+
+		-
+			message: '#^Cannot access property \$config on null\.$#'
+			identifier: property.nonObject
+			count: 1
+			path: ../src/database/yeapf-pdo-connection.php
+
+		-
+			message: '#^Result of method YeAPF\\Connection\\DBConnection\:\:__construct\(\) \(void\) is used\.$#'
+			identifier: staticMethod.void
+			count: 1
+			path: ../src/database/yeapf-pdo-connection.php
+
+		-
+			message: '#^Cannot access property \$config on null\.$#'
+			identifier: property.nonObject
+			count: 1
+			path: ../src/database/yeapf-redis-connection.php
+
+		-
+			message: '#^Result of method YeAPF\\Connection\\DBConnection\:\:__construct\(\) \(void\) is used\.$#'
+			identifier: staticMethod.void
+			count: 1
+			path: ../src/database/yeapf-redis-connection.php
+
+		-
+			message: '#^Access to an undefined property YeAPF\\SanitizedKeyData\:\:\$cnpj\.$#'
+			identifier: property.notFound
+			count: 1
+			path: ../src/examples/formatted-persistent-data.php
+
+		-
+			message: '#^Access to an undefined property YeAPF\\SanitizedKeyData\:\:\$cnpj2\.$#'
+			identifier: property.notFound
+			count: 1
+			path: ../src/examples/formatted-persistent-data.php
+
+		-
+			message: '#^Access to an undefined property YeAPF\\SanitizedKeyData\:\:\$aText\.$#'
+			identifier: property.notFound
+			count: 1
+			path: ../src/examples/internal-representation-vs-external.php
+
+		-
+			message: '#^Access to an undefined property YeAPF\\SanitizedKeyData\:\:\$aThreat\.$#'
+			identifier: property.notFound
+			count: 1
+			path: ../src/examples/internal-representation-vs-external.php
+
+		-
+			message: '#^Function pref_replace not found\.$#'
+			identifier: function.notFound
+			count: 1
+			path: ../src/misc/yAnalyzer.php
+
+		-
+			message: '#^Call to method toISOString\(\) on an unknown class YeAPF\\Date\.$#'
+			identifier: class.notFound
+			count: 1
+			path: ../src/misc/yDataFiller.php
+
+		-
+			message: '#^Instantiated class YeAPF\\Date not found\.$#'
+			identifier: class.notFound
+			count: 1
+			path: ../src/misc/yDataFiller.php
+
+		-
+			message: '#^Left side of && is always false\.$#'
+			identifier: booleanAnd.leftAlwaysFalse
+			count: 1
+			path: ../src/misc/yDataFiller.php
+
+		-
+			message: '#^Parameter \#1 \$min of function mt_rand expects int, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: ../src/misc/yDataFiller.php
+
+		-
+			message: '#^Parameter \#2 \$max of function mt_rand expects int, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: ../src/misc/yDataFiller.php
+
+		-
+			message: '#^Parameter \#3 \$value of function curl_setopt expects bool, int given\.$#'
+			identifier: argument.type
+			count: 2
+			path: ../src/misc/yDataFiller.php
+
+		-
+			message: '#^Variable \$n1 might not be defined\.$#'
+			identifier: variable.undefined
+			count: 4
+			path: ../src/misc/yDataFiller.php
+
+		-
+			message: '#^Variable \$n2 might not be defined\.$#'
+			identifier: variable.undefined
+			count: 4
+			path: ../src/misc/yDataFiller.php
+
+		-
+			message: '#^Variable \$n3 might not be defined\.$#'
+			identifier: variable.undefined
+			count: 4
+			path: ../src/misc/yDataFiller.php
+
+		-
+			message: '#^Variable \$n4 might not be defined\.$#'
+			identifier: variable.undefined
+			count: 4
+			path: ../src/misc/yDataFiller.php
+
+		-
+			message: '#^Variable \$n5 might not be defined\.$#'
+			identifier: variable.undefined
+			count: 4
+			path: ../src/misc/yDataFiller.php
+
+		-
+			message: '#^Variable \$n6 might not be defined\.$#'
+			identifier: variable.undefined
+			count: 4
+			path: ../src/misc/yDataFiller.php
+
+		-
+			message: '#^Variable \$n7 might not be defined\.$#'
+			identifier: variable.undefined
+			count: 4
+			path: ../src/misc/yDataFiller.php
+
+		-
+			message: '#^Variable \$n8 might not be defined\.$#'
+			identifier: variable.undefined
+			count: 4
+			path: ../src/misc/yDataFiller.php
+
+		-
+			message: '#^Variable \$n9 might not be defined\.$#'
+			identifier: variable.undefined
+			count: 4
+			path: ../src/misc/yDataFiller.php
+
+		-
+			message: '#^Access to an undefined property YeAPF\\yLock\:\:\$lockMap\.$#'
+			identifier: property.notFound
+			count: 1
+			path: ../src/misc/yLock.php
+
+		-
+			message: '#^Access to an undefined property YeAPF\\yLockAbstract\:\:\$lockMap\.$#'
+			identifier: property.notFound
+			count: 1
+			path: ../src/misc/yLock.php
+
+		-
+			message: '#^Access to an undefined property YeAPF\\yLockSem\:\:\$destroyLocksAtEnd\.$#'
+			identifier: property.notFound
+			count: 2
+			path: ../src/misc/yLock.php
+
+		-
+			message: '#^Access to an undefined property YeAPF\\yLockSem\:\:\$flagSemaphore\.$#'
+			identifier: property.notFound
+			count: 6
+			path: ../src/misc/yLock.php
+
+		-
+			message: '#^Access to an undefined property YeAPF\\yLockSem\:\:\$lockMap\.$#'
+			identifier: property.notFound
+			count: 4
+			path: ../src/misc/yLock.php
+
+		-
+			message: '#^Access to an undefined property YeAPF\\yLockSem\:\:\$sharedMemoryId\.$#'
+			identifier: property.notFound
+			count: 1
+			path: ../src/misc/yLock.php
+
+		-
+			message: '#^Call to method getMessage\(\) on an unknown class YeAPF\\Exception\.$#'
+			identifier: class.notFound
+			count: 2
+			path: ../src/misc/yLock.php
+
+		-
+			message: '#^Caught class YeAPF\\Exception not found\.$#'
+			identifier: class.notFound
+			count: 2
+			path: ../src/misc/yLock.php
+
+		-
+			message: '#^Constructor of class YeAPF\\yLockAbstract has an unused parameter \$destroyLocksAtEnd\.$#'
+			identifier: constructor.unusedParameter
+			count: 1
+			path: ../src/misc/yLock.php
+
+		-
+			message: '#^Constructor of class YeAPF\\yLockAbstract has an unused parameter \$sharedMemoryName\.$#'
+			identifier: constructor.unusedParameter
+			count: 1
+			path: ../src/misc/yLock.php
+
+		-
+			message: '#^Function YeAPF\\sem_acquire invoked with 2 parameters, 1 required\.$#'
+			identifier: arguments.count
+			count: 2
+			path: ../src/misc/yLock.php
+
+		-
+			message: '#^Function YeAPF\\sem_get invoked with 4 parameters, 1 required\.$#'
+			identifier: arguments.count
+			count: 1
+			path: ../src/misc/yLock.php
+
+		-
+			message: '#^Variable \$lockValue might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: ../src/misc/yLock.php
+
+		-
+			message: '#^Static property YeAPF\\yLogger\:\:\$logStyle is never read, only written\.$#'
+			identifier: property.onlyWritten
+			count: 1
+			path: ../src/misc/yLogger.php
+
+		-
+			message: '#^Static property YeAPF\\yLogger\:\:\$tag is never read, only written\.$#'
+			identifier: property.onlyWritten
+			count: 1
+			path: ../src/misc/yLogger.php
+
+		-
+			message: '#^Constructor of class YeAPF\\xParser has an unused parameter \$as_html\.$#'
+			identifier: constructor.unusedParameter
+			count: 1
+			path: ../src/misc/yParser.php
+
+		-
+			message: '#^Parameter \#1 \$character of function ord expects string, bool given\.$#'
+			identifier: argument.type
+			count: 1
+			path: ../src/misc/yParser.php
+
+		-
+			message: '#^Access to an undefined property YeAPF\\SanitizedKeyData\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: ../src/plugins/i18n.php
+
+		-
+			message: '#^Access to an undefined property YeAPF\\SanitizedKeyData\:\:\$lang\.$#'
+			identifier: property.notFound
+			count: 2
+			path: ../src/plugins/i18n.php
+
+		-
+			message: '#^Access to an undefined property YeAPF\\SanitizedKeyData\:\:\$tag\.$#'
+			identifier: property.notFound
+			count: 4
+			path: ../src/plugins/i18n.php
+
+		-
+			message: '#^Access to an undefined property YeAPF\\SanitizedKeyData\:\:\$text\.$#'
+			identifier: property.notFound
+			count: 4
+			path: ../src/plugins/i18n.php
+
+		-
+			message: '#^Class YeAPF\\ORM\\DocumentModel referenced with incorrect case\: YeAPF\\ORM\\DOcumentModel\.$#'
+			identifier: class.nameCase
+			count: 1
+			path: ../src/plugins/i18n.php
+
+		-
+			message: '#^Static property YeAPF\\i18n\\Translator\:\:\$assetsFolder is unused\.$#'
+			identifier: property.unused
+			count: 1
+			path: ../src/plugins/i18n.php
+
+		-
+			message: '#^Access to an undefined property YeAPF\\Security\\yJWT\:\:\$aud\.$#'
+			identifier: property.notFound
+			count: 1
+			path: ../src/security/yeapf-jwt.php
+
+		-
+			message: '#^Access to an undefined property YeAPF\\Security\\yJWT\:\:\$exp\.$#'
+			identifier: property.notFound
+			count: 2
+			path: ../src/security/yeapf-jwt.php
+
+		-
+			message: '#^Access to an undefined property YeAPF\\Security\\yJWT\:\:\$iat\.$#'
+			identifier: property.notFound
+			count: 1
+			path: ../src/security/yeapf-jwt.php
+
+		-
+			message: '#^Access to an undefined property YeAPF\\IBulletin\:\:\$reason\.$#'
+			identifier: property.notFound
+			count: 2
+			path: ../src/service/yeapf-http2-service.php
+
+		-
+			message: '#^Access to an undefined property YeAPF\\Security\\yJWT\:\:\$exp\.$#'
+			identifier: property.notFound
+			count: 1
+			path: ../src/service/yeapf-http2-service.php
+
+		-
+			message: '#^Access to an undefined property YeAPF\\Security\\yJWT\:\:\$iat\.$#'
+			identifier: property.notFound
+			count: 1
+			path: ../src/service/yeapf-http2-service.php
+
+		-
+			message: '#^Access to an undefined property YeAPF\\Security\\yJWT\:\:\$iss\.$#'
+			identifier: property.notFound
+			count: 2
+			path: ../src/service/yeapf-http2-service.php
+
+		-
+			message: '#^Access to an undefined property YeAPF\\Security\\yJWT\:\:\$uot\.$#'
+			identifier: property.notFound
+			count: 1
+			path: ../src/service/yeapf-http2-service.php
+
+		-
+			message: '#^Access to private property \$reason of parent class YeAPF\\BaseBulletin\.$#'
+			identifier: property.private
+			count: 7
+			path: ../src/service/yeapf-http2-service.php
+
+		-
+			message: '#^Anonymous function has an unused use \$host\.$#'
+			identifier: closure.unusedUse
+			count: 1
+			path: ../src/service/yeapf-http2-service.php
+
+		-
+			message: '#^Anonymous function has an unused use \$port\.$#'
+			identifier: closure.unusedUse
+			count: 1
+			path: ../src/service/yeapf-http2-service.php
+
+		-
+			message: '#^Argument of an invalid type OpenSwoole\\Http\\Request supplied for foreach, only iterables are supported\.$#'
+			identifier: foreach.nonIterable
+			count: 1
+			path: ../src/service/yeapf-http2-service.php
+
+		-
+			message: '#^Call to an undefined method YeAPF\\IBulletin\:\:exportData\(\)\.$#'
+			identifier: method.notFound
+			count: 2
+			path: ../src/service/yeapf-http2-service.php
+
+		-
+			message: '#^If condition is always false\.$#'
+			identifier: if.alwaysFalse
+			count: 1
+			path: ../src/service/yeapf-http2-service.php
+
+		-
+			message: '#^If condition is always true\.$#'
+			identifier: if.alwaysTrue
+			count: 1
+			path: ../src/service/yeapf-http2-service.php
+
+		-
+			message: '#^Method YeAPF\\Services\\HTTP2Service\:\:answerQuery\(\) invoked with 3 parameters, 2 required\.$#'
+			identifier: arguments.count
+			count: 1
+			path: ../src/service/yeapf-http2-service.php
+
+		-
+			message: '#^Property YeAPF\\Services\\HTTP2Service\:\:\$config is never read, only written\.$#'
+			identifier: property.onlyWritten
+			count: 1
+			path: ../src/service/yeapf-http2-service.php
+
+		-
+			message: '#^Property YeAPF\\Services\\HTTP2Service\:\:\$server is never read, only written\.$#'
+			identifier: property.onlyWritten
+			count: 1
+			path: ../src/service/yeapf-http2-service.php
+
+		-
+			message: '#^Variable \$aJWT might not be defined\.$#'
+			identifier: variable.undefined
+			count: 2
+			path: ../src/service/yeapf-http2-service.php
+
+		-
+			message: '#^Access to an undefined property YeAPF\\Services\\TaggedServer\:\:\$lock\.$#'
+			identifier: property.notFound
+			count: 2
+			path: ../src/service/yeapf-sse-service.php
+
+		-
+			message: '#^Call to an undefined method OpenSwoole\\Http\\Server\:\:getClientId\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: ../src/service/yeapf-sse-service.php
+
+		-
+			message: '#^Call to an undefined method OpenSwoole\\Http\\Server\:\:setRunning\(\)\.$#'
+			identifier: method.notFound
+			count: 2
+			path: ../src/service/yeapf-sse-service.php
+
+		-
+			message: '#^Call to an undefined method YeAPF\\Services\\SSEService\:\:getNewClientId\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: ../src/service/yeapf-sse-service.php
+
+		-
+			message: '#^Loose comparison using \=\= between 0 and int\<1, max\> will always evaluate to false\.$#'
+			identifier: equal.alwaysFalse
+			count: 1
+			path: ../src/service/yeapf-sse-service.php
+
+		-
+			message: '#^Method OpenSwoole\\Server\:\:stop\(\) invoked with 0 parameters, 1\-2 required\.$#'
+			identifier: arguments.count
+			count: 1
+			path: ../src/service/yeapf-sse-service.php
+
+		-
+			message: '#^Property YeAPF\\Services\\SSEService\:\:\$clientId is never read, only written\.$#'
+			identifier: property.onlyWritten
+			count: 1
+			path: ../src/service/yeapf-sse-service.php
+
+		-
+			message: '#^Property YeAPF\\Services\\SSEService\:\:\$msgId is never read, only written\.$#'
+			identifier: property.onlyWritten
+			count: 1
+			path: ../src/service/yeapf-sse-service.php
+
+		-
+			message: '#^Variable \$event might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: ../src/service/yeapf-sse-service.php
+
+		-
+			message: '#^Anonymous function has an unused use \$randId\.$#'
+			identifier: closure.unusedUse
+			count: 1
+			path: ../src/webapp/yeapf-webapp.php
+
+		-
+			message: '#^Anonymous function has an unused use \$randNumber\.$#'
+			identifier: closure.unusedUse
+			count: 1
+			path: ../src/webapp/yeapf-webapp.php
+
+		-
+			message: '#^Expression on left side of \?\? is not nullable\.$#'
+			identifier: nullCoalesce.expr
+			count: 1
+			path: ../src/webapp/yeapf-webapp.php
+
+		-
+			message: '#^Variable \$content on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.variable
+			count: 1
+			path: ../src/webapp/yeapf-webapp.php
+
+		-
+			message: '#^Access to an undefined static property YeAPF\\YeAPFConfig\:\:\$configFile\.$#'
+			identifier: staticProperty.notFound
+			count: 1
+			path: ../src/yeapf-config.php
+
+		-
+			message: '#^Left side of && is always true\.$#'
+			identifier: booleanAnd.leftAlwaysTrue
+			count: 1
+			path: ../src/yeapf-config.php
+
+		-
+			message: '#^Method YeAPF\\DebugLabels\:\:getFileFromLabel\(\) should return string but returns null\.$#'
+			identifier: return.type
+			count: 1
+			path: ../src/yeapf-debug-labels.php
+
+		-
+			message: '#^Comparison operation "\>" between 0 and 0 is always false\.$#'
+			identifier: greater.alwaysFalse
+			count: 1
+			path: ../src/yeapf-exception.php
+
+		-
+			message: '#^Parameter \#1 \$callback of function set_error_handler expects \(callable\(int, string, string, int\)\: bool\)\|null, Closure\(mixed, mixed, mixed, mixed\)\: void given\.$#'
+			identifier: argument.type
+			count: 1
+			path: ../src/yeapf-exception.php
+
+		-
+			message: '#^Call to function is_string\(\) with string will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: ../src/yeapf-library.php
+
+		-
+			message: '#^Call to method getMessage\(\) on an unknown class YeAPF\\JsonException\.$#'
+			identifier: class.notFound
+			count: 1
+			path: ../src/yeapf-library.php
+
+		-
+			message: '#^Caught class YeAPF\\JsonException not found\.$#'
+			identifier: class.notFound
+			count: 1
+			path: ../src/yeapf-library.php
+
+		-
+			message: '#^Function inner_xml_encode not found\.$#'
+			identifier: function.notFound
+			count: 2
+			path: ../src/yeapf-library.php
+
+		-
+			message: '#^Function ncurses_close not found\.$#'
+			identifier: function.notFound
+			count: 1
+			path: ../src/yeapf-library.php
+
+		-
+			message: '#^Function ncurses_cols not found\.$#'
+			identifier: function.notFound
+			count: 1
+			path: ../src/yeapf-library.php
+
+		-
+			message: '#^Function ncurses_lines not found\.$#'
+			identifier: function.notFound
+			count: 1
+			path: ../src/yeapf-library.php
+
+		-
+			message: '#^Inner named functions are not supported by PHPStan\. Consider refactoring to an anonymous function, class method, or a top\-level\-defined function\. See issue \#165 \(https\://github\.com/phpstan/phpstan/issues/165\) for more details\.$#'
+			identifier: function.inner
+			count: 1
+			path: ../src/yeapf-library.php
+
+		-
+			message: '#^Instantiated class YeAPF\\InvalidArgumentException not found\.$#'
+			identifier: class.notFound
+			count: 2
+			path: ../src/yeapf-library.php
+
+		-
+			message: '#^Method YeAPF\\YeAPFConsole\:\:isDocker\(\) is unused\.$#'
+			identifier: method.unused
+			count: 1
+			path: ../src/yeapf-library.php
+
+		-
+			message: '#^Throwing object of an unknown class YeAPF\\InvalidArgumentException\.$#'
+			identifier: class.notFound
+			count: 2
+			path: ../src/yeapf-library.php
+
+		-
+			message: '#^Access to an undefined property YeAPF\\SanitizedKeyData\:\:\$document\.$#'
+			identifier: property.notFound
+			count: 3
+			path: AuthenticityCheckerTest.php
+
+		-
+			message: '#^Access to an undefined property YeAPF\\ORM\\DocumentModel\:\:\$text\.$#'
+			identifier: property.notFound
+			count: 2
+			path: DocumentModelTest.php
+
+		-
+			message: '#^Match arm comparison between ''PE\.DNI'' and ''PE\.DNI'' is always true\.$#'
+			identifier: match.alwaysTrue
+			count: 1
+			path: LatamDocumentPluginTest.php
+
+		-
+			message: '#^Access to constant CODE_INTERNAL_UNKNOWN on an unknown class YeAPF\\Connection\\DB\\Driver\\NormalizedDbError\.$#'
+			identifier: class.notFound
+			count: 1
+			path: PluginRegistryTest.php
+
+		-
+			message: '#^Call to method PHPUnit\\Framework\\Assert\:\:assertIsArray\(\) with null will always evaluate to false\.$#'
+			identifier: method.impossibleType
+			count: 1
+			path: PluginRegistryTest.php
+
+		-
+			message: '#^Method FixtureDBDriver\:\:getDriverVersion\(\) never returns null so it can be removed from the return type\.$#'
+			identifier: return.unusedType
+			count: 1
+			path: PluginRegistryTest.php
+
+		-
+			message: '#^Call to method PHPUnit\\Framework\\Assert\:\:assertTrue\(\) with bool will always evaluate to true\.$#'
+			identifier: method.alreadyNarrowedType
+			count: 3
+			path: PluginRoleInterfacesContractTest.php
+
+		-
+			message: '#^Access to an undefined property YeAPF\\SanitizedKeyData\:\:\$cep\.$#'
+			identifier: property.notFound
+			count: 3
+			path: SanitizedKeyDataTest.php
+
+		-
+			message: '#^Access to an undefined property YeAPF\\SanitizedKeyData\:\:\$cnpj\.$#'
+			identifier: property.notFound
+			count: 1
+			path: SanitizedKeyDataTest.php
+
+		-
+			message: '#^Access to an undefined property YeAPF\\SanitizedKeyData\:\:\$cpf\.$#'
+			identifier: property.notFound
+			count: 1
+			path: SanitizedKeyDataTest.php
+
+		-
+			message: '#^Access to an undefined property YeAPF\\SanitizedKeyData\:\:\$name\.$#'
+			identifier: property.notFound
+			count: 1
+			path: SanitizedKeyDataTest.php
+
+		-
+			message: '#^Method YeAPF\\Connection\\DB\\Driver\\DBDriverInterface@anonymous/tests/contracts/bootstrap/StubDriverContractBootstrap\.php\:25\:\:getDriverVersion\(\) never returns null so it can be removed from the return type\.$#'
+			identifier: return.unusedType
+			count: 1
+			path: contracts/bootstrap/StubDriverContractBootstrap.php
+
+		-
+			message: '#^Deprecated in PHP 8\.4\: Parameter \#3 \$expiration \(int\) is implicitly nullable via default value null\.$#'
+			identifier: parameter.implicitlyNullable
+			count: 1
+			path: helpers/InMemoryRedisConnection.php

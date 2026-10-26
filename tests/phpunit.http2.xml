@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+         colors="true"
+         cacheResult="false"
+         displayDetailsOnTestsThatTriggerDeprecations="true"
+         failOnWarning="true"
+         failOnDeprecation="true"
+         failOnIncomplete="true"
+         failOnRisky="true">
+    <testsuites>
+        <testsuite name="integration-http2">
+            <directory suffix="Test.php">integration-http2</directory>
+        </testsuite>
+    </testsuites>
+</phpunit>

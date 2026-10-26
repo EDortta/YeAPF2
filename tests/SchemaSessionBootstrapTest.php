@@ -2,19 +2,19 @@
 
 require_once __DIR__ . '/../src/yeapf-core.php';
 require_once __DIR__ . '/helpers/SchemaBootstrapTestRedis.php';
+require_once __DIR__ . '/helpers/IntegrationDatabaseConfig.php';
 
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
+use Tests\Helpers\IntegrationDatabaseConfig;
 
+#[Group('integration')]
+#[Group('postgres')]
 final class SchemaSessionBootstrapTest extends TestCase
 {
-    private const HOST = '127.0.0.1';
-    private const PORT = 35432;
-    private const DB = 'yeapf2_test';
-    private const USER = 'yeapf2';
-    private const PASSWORD = 'yeapf2';
-    private const TABLE = 'demo_users';
+    private const TABLE = 'yeapf2_demo_users';
 
-    private string $appRoot;
+    private string $appRoot = '';
 
     /** @var array<string,mixed>|null */
     private static ?array $previousConfigAreas = null;
@@ -22,15 +22,15 @@ final class SchemaSessionBootstrapTest extends TestCase
     protected function setUp(): void
     {
         if (!self::isDockerDbReachable()) {
-            $this->markTestSkipped('PostgreSQL docker container is not reachable at 127.0.0.1:35432');
+            $this->markTestSkipped('PostgreSQL test service is not reachable at ' . self::endpoint() . ". Run 'docker compose --profile db up -d --wait postgres' from the repository root.");
         }
 
         $this->appRoot = sys_get_temp_dir() . '/y2-schema-bootstrap-' . bin2hex(random_bytes(4));
         mkdir($this->appRoot . '/.config', 0775, true);
         mkdir($this->appRoot . '/database/documentModels', 0775, true);
         copy(
-            __DIR__ . '/fixtures/schema-bootstrap/documentModels/demo_users.json',
-            $this->appRoot . '/database/documentModels/demo_users.json'
+            __DIR__ . '/fixtures/schema-bootstrap/documentModels/yeapf2_demo_users.json',
+            $this->appRoot . '/database/documentModels/yeapf2_demo_users.json'
         );
 
         self::backupAndSetRuntimeConnectionConfig();
@@ -46,7 +46,9 @@ final class SchemaSessionBootstrapTest extends TestCase
             self::resetPdoConnectionStatics();
             self::restoreRuntimeConnectionConfig();
         }
-        $this->removeDirectory($this->appRoot);
+        if ($this->appRoot !== '') {
+            $this->removeDirectory($this->appRoot);
+        }
     }
 
     public function testBootstrapCreatesTableAndIsIdempotent(): void
@@ -175,9 +177,20 @@ final class SchemaSessionBootstrapTest extends TestCase
         }
     }
 
+    /** @return array{driver:string,host:string,port:int,dbname:string,schema:string,user:string,password:string} */
+    private static function config(): array
+    {
+        return IntegrationDatabaseConfig::postgres();
+    }
+
+    private static function endpoint(): string
+    {
+        return self::config()['host'] . ':' . self::config()['port'];
+    }
+
     private static function isDockerDbReachable(): bool
     {
-        $socket = @fsockopen(self::HOST, self::PORT, $errno, $errstr, 1.0);
+        $socket = @fsockopen(self::config()['host'], self::config()['port'], $errno, $errstr, 1.0);
         if ($socket === false) {
             return false;
         }
@@ -197,12 +210,12 @@ final class SchemaSessionBootstrapTest extends TestCase
             'connection' => (object) [
                 'pdo' => (object) [
                     'driver' => 'pgsql',
-                    'server' => self::HOST,
-                    'port' => self::PORT,
-                    'dbname' => self::DB,
+                    'server' => self::config()['host'],
+                    'port' => self::config()['port'],
+                    'dbname' => self::config()['dbname'],
                     'schema' => 'public',
-                    'user' => self::USER,
-                    'password' => self::PASSWORD,
+                    'user' => self::config()['user'],
+                    'password' => self::config()['password'],
                     'halt_on_error' => true,
                     'pool' => 1,
                 ],

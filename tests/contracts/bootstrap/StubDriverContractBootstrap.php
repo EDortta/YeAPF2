@@ -15,9 +15,22 @@ final class StubDriverContractBootstrap implements DriverContractBootstrapInterf
         return 'stub';
     }
 
+    public function getSchemaName(): string
+    {
+        return 'public';
+    }
+
     public function getDriver(): DBDriverInterface
     {
         return new class implements DBDriverInterface {
+            /** @var array<int, array{id:int,name:string}> */
+            private array $rows = [
+                1 => ['id' => 1, 'name' => 'Ana'],
+                2 => ['id' => 2, 'name' => 'Bia'],
+            ];
+            /** @var array<int, array{id:int,name:string}>|null */
+            private ?array $snapshot = null;
+
             public function getDriverName(): string
             {
                 return 'stub';
@@ -39,32 +52,40 @@ final class StubDriverContractBootstrap implements DriverContractBootstrapInterf
 
             public function execute(string $sql, array $params = []): int
             {
+                if (isset($params['id'], $params['name'])) {
+                    $id = (int) $params['id'];
+                    $this->rows[$id] = ['id' => $id, 'name' => (string) $params['name']];
+                }
                 return 1;
             }
 
             public function fetchOne(string $sql, array $params = []): ?array
             {
-                return ['id' => 1, 'name' => 'Ana'];
+                $id = (int) ($params['id'] ?? 1);
+                return $this->rows[$id] ?? null;
             }
 
             public function fetchAll(string $sql, array $params = []): array
             {
-                return [
-                    ['id' => 1, 'name' => 'Ana'],
-                    ['id' => 2, 'name' => 'Bia'],
-                ];
+                return array_values($this->rows);
             }
 
             public function beginTransaction(): void
             {
+                $this->snapshot = $this->rows;
             }
 
             public function commit(): void
             {
+                $this->snapshot = null;
             }
 
             public function rollBack(): void
             {
+                if ($this->snapshot !== null) {
+                    $this->rows = $this->snapshot;
+                    $this->snapshot = null;
+                }
             }
 
             public function normalizeError(\Throwable $throwable, ?string $sql = null, array $params = []): array
@@ -90,12 +111,13 @@ final class StubDriverContractBootstrap implements DriverContractBootstrapInterf
         return new class implements SchemaInspectorInterface {
             public function tableExists(string $tablename, ?string $schemaname = null): bool
             {
-                return 'users' === $tablename;
+                return in_array($tablename, ['yeapf2_contract_users', 'yeapf2_contract_plan'], true);
             }
 
             public function columnExists(string $tablename, string $columnname, ?string $schemaname = null): bool
             {
-                return 'users' === $tablename && in_array($columnname, ['id', 'name'], true);
+                $columns = $tablename === 'yeapf2_contract_plan' ? ['id', 'label'] : ['id', 'name'];
+                return $this->tableExists($tablename, $schemaname) && in_array($columnname, $columns, true);
             }
 
             public function columnDefinition(string $tablename, string $columnname, ?string $schemaname = null): ?array
@@ -120,13 +142,13 @@ final class StubDriverContractBootstrap implements DriverContractBootstrapInterf
 
             public function columns(string $tablename, ?string $schemaname = null): array
             {
-                if ('users' !== $tablename) {
+                if ('yeapf2_contract_users' !== $tablename) {
                     return [];
                 }
 
                 return [
-                    $this->columnDefinition('users', 'id', $schemaname),
-                    $this->columnDefinition('users', 'name', $schemaname),
+                    $this->columnDefinition('yeapf2_contract_users', 'id', $schemaname),
+                    $this->columnDefinition('yeapf2_contract_users', 'name', $schemaname),
                 ];
             }
         };

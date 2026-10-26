@@ -1,13 +1,15 @@
+name: y2-test
+
 services:
   postgres:
     image: postgres:16
-    container_name: yeapf2-test-postgres
+    profiles: ["db", "full"]
     environment:
       POSTGRES_DB: ${POSTGRES_DB:?Set POSTGRES_DB in .env}
       POSTGRES_USER: ${POSTGRES_USER:?Set POSTGRES_USER in .env}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
     ports:
-      - "${POSTGRES_PORT:?Set POSTGRES_PORT in .env}:5432"
+      - "127.0.0.1:${POSTGRES_PORT:?Set POSTGRES_PORT in .env}:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
       interval: 5s
@@ -18,14 +20,14 @@ services:
 
   mysql:
     image: mysql:8.4
-    container_name: yeapf2-test-mysql
+    profiles: ["db", "full"]
     environment:
       MYSQL_DATABASE: ${MYSQL_DATABASE:?Set MYSQL_DATABASE in .env}
       MYSQL_USER: ${MYSQL_USER:?Set MYSQL_USER in .env}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD:?Set MYSQL_PASSWORD in .env}
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Set MYSQL_ROOT_PASSWORD in .env}
     ports:
-      - "${MYSQL_PORT:?Set MYSQL_PORT in .env}:3306"
+      - "127.0.0.1:${MYSQL_PORT:?Set MYSQL_PORT in .env}:3306"
     healthcheck:
       test: ["CMD-SHELL", "mysqladmin ping --host=127.0.0.1 --user=root --password=\"$$MYSQL_ROOT_PASSWORD\" --silent"]
       interval: 5s
@@ -34,6 +36,63 @@ services:
     volumes:
       - mysql-data:/var/lib/mysql
 
+  php-http:
+    build:
+      context: .
+      dockerfile: tests/http-environment/php/Dockerfile
+    profiles: ["http", "full"]
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /srv/app/.config
+      - /srv/app/assets
+      - /srv/app/logs
+    volumes:
+      - ./src:/workspace/y2/src:ro
+    healthcheck:
+      test: ["CMD", "php-fpm", "-t"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  caddy-http:
+    image: caddy:2.10-alpine
+    profiles: ["http", "full"]
+    depends_on:
+      php-http:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:8443:8443"
+    volumes:
+      - ./tests/http-environment/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./tests/http-environment/app:/srv/app:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    healthcheck:
+      test: ["CMD-SHELL", "test -r /data/caddy/pki/authorities/local/root.crt && wget -q -O /dev/null https://caddy-http:8443/__health"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  http-client:
+    build:
+      context: .
+      dockerfile: tests/http-environment/client/Dockerfile
+    profiles: ["http", "full"]
+    depends_on:
+      caddy-http:
+        condition: service_healthy
+    environment:
+      Y2_HTTP_BASE_URL: https://caddy-http:8443
+      Y2_HTTP_CA_FILE: /caddy-data/caddy/pki/authorities/local/root.crt
+      Y2_HTTP_RESULTS_DIR: /results
+    volumes:
+      - ./:/workspace/y2:ro
+      - caddy-data:/caddy-data:ro
+      - ./.test-results/http2:/results
+
 volumes:
   postgres-data:
   mysql-data:
+  caddy-data:
+  caddy-config:

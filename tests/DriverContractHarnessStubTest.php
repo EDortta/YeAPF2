@@ -9,6 +9,7 @@ use Tests\Contracts\AbstractDriverContractTestCase;
 use Tests\Contracts\Bootstrap\StubDriverContractBootstrap;
 use Tests\Contracts\DriverContractBootstrapInterface;
 
+#[\PHPUnit\Framework\Attributes\Group('contract')]
 final class DriverContractHarnessStubTest extends AbstractDriverContractTestCase
 {
     protected function createBootstrap(): DriverContractBootstrapInterface

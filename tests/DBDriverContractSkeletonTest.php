@@ -4,6 +4,7 @@ require_once __DIR__ . '/../src/yeapf-core.php';
 
 use PHPUnit\Framework\TestCase;
 
+#[\PHPUnit\Framework\Attributes\Group('contract')]
 final class DBDriverContractSkeletonTest extends TestCase
 {
     public function testInterfacesAndCapabilitiesClassExist(): void

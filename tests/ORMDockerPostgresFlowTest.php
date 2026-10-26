@@ -2,17 +2,16 @@
 
 require_once __DIR__ . '/../src/yeapf-core.php';
 require_once __DIR__ . '/helpers/InMemoryRedisConnection.php';
+require_once __DIR__ . '/helpers/IntegrationDatabaseConfig.php';
 
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
+use Tests\Helpers\IntegrationDatabaseConfig;
 
+#[Group('integration')]
+#[Group('postgres')]
 final class ORMDockerPostgresFlowTest extends TestCase
 {
-    private const HOST = '127.0.0.1';
-    private const PORT = 35432;
-    private const DB = 'yeapf2_test';
-    private const USER = 'yeapf2';
-    private const PASSWORD = 'yeapf2';
-    private const SCHEMA = 'public';
     private const TABLE = 'yeapf2_orm_flow_users';
 
     /** @var array<string,mixed>|null */
@@ -21,7 +20,10 @@ final class ORMDockerPostgresFlowTest extends TestCase
     public static function setUpBeforeClass(): void
     {
         if (!self::isDockerDbReachable()) {
-            self::markTestSkipped("PostgreSQL docker container is not reachable at 127.0.0.1:35432. Run 'docker compose up -d postgres' from the repository root first.");
+            self::markTestSkipped(
+                'PostgreSQL test service is not reachable at ' . self::endpoint()
+                . ". Run 'docker compose --profile db up -d --wait postgres' from the repository root."
+            );
         }
 
         self::backupAndSetRuntimeConnectionConfig();
@@ -51,7 +53,7 @@ final class ORMDockerPostgresFlowTest extends TestCase
         $collection = new \YeAPF\ORM\PersistentCollection($context, self::TABLE, 'id', $model);
 
         $this->assertTrue(self::withBorrowedConnection(static function ($pdo): bool {
-            return $pdo->tableExists(self::TABLE, self::SCHEMA);
+            return $pdo->tableExists(self::TABLE, self::config()['schema']);
         }));
 
         // Step 3: Insert one document using the model clone.
@@ -92,9 +94,20 @@ final class ORMDockerPostgresFlowTest extends TestCase
         $this->assertFalse($collection->hasDocument('user-001'));
     }
 
+    /** @return array{driver:string,host:string,port:int,dbname:string,schema:string,user:string,password:string} */
+    private static function config(): array
+    {
+        return IntegrationDatabaseConfig::postgres();
+    }
+
+    private static function endpoint(): string
+    {
+        return self::config()['host'] . ':' . self::config()['port'];
+    }
+
     private static function isDockerDbReachable(): bool
     {
-        $socket = @fsockopen(self::HOST, self::PORT, $errno, $errstr, 1.0);
+        $socket = @fsockopen(self::config()['host'], self::config()['port'], $errno, $errstr, 1.0);
         if ($socket === false) {
             return false;
         }
@@ -116,12 +129,12 @@ final class ORMDockerPostgresFlowTest extends TestCase
             'connection' => (object) [
                 'pdo' => (object) [
                     'driver' => 'pgsql',
-                    'server' => self::HOST,
-                    'port' => self::PORT,
-                    'dbname' => self::DB,
-                    'schema' => self::SCHEMA,
-                    'user' => self::USER,
-                    'password' => self::PASSWORD,
+                    'server' => self::config()['host'],
+                    'port' => self::config()['port'],
+                    'dbname' => self::config()['dbname'],
+                    'schema' => self::config()['schema'],
+                    'user' => self::config()['user'],
+                    'password' => self::config()['password'],
                     'halt_on_error' => true,
                     'pool' => 1,
                 ],

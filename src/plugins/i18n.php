@@ -255,6 +255,34 @@ class Translator extends \YeAPF\Plugins\ServicePlugin implements \YeAPF\Plugins\
     }
   }
 
+  /**
+   * Resolve a local translation without booting persistence or a remote API.
+   *
+   * @param array<string, array<string, string>> $catalog
+   * @param array<string, scalar|null> $replacements
+   */
+  public static function resolve(
+    array $catalog,
+    string $key,
+    ?string $language,
+    string $fallbackLanguage = 'en',
+    array $replacements = []
+  ): string {
+    $language = strtolower(trim((string) $language));
+    $language = explode('-', $language)[0];
+    $fallbackLanguage = strtolower(trim($fallbackLanguage));
+
+    $text = $catalog[$language][$key]
+      ?? $catalog[$fallbackLanguage][$key]
+      ?? $key;
+
+    $safe = [];
+    foreach ($replacements as $name => $value) {
+      $safe['{' . $name . '}'] = htmlspecialchars((string) $value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+    }
+    return strtr($text, $safe);
+  }
+
   public function translate(
     ?string $scope      = null,
     ?string $targetLang = null,

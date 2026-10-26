@@ -10,6 +10,8 @@ interface DriverContractBootstrapInterface
 {
     public function getEngineName(): string;
 
+    public function getSchemaName(): string;
+
     public function getDriver(): DBDriverInterface;
 
     public function getSchemaInspector(): SchemaInspectorInterface;

@@ -2,9 +2,6 @@
 
 namespace YeAPF\Security;
 
-use \Firebase\JWT\JWT;
-use \Firebase\JWT\Key;
-
 class yJWT extends \YeAPF\SanitizedKeyData
 {
     use \YeAPF\Assets;
@@ -22,12 +19,14 @@ class yJWT extends \YeAPF\SanitizedKeyData
     private $timeToLive;
     private $jwtToken;
     private $importResult;
+    /** @var null|callable():int */
+    private static $clock = null;
 
     public function __construct($aToken = null)
     {
         $this->secretKey = \YeAPF\YeAPFConfig::getSection('randomness')->jwtKey;
         $this->algorithm = 'HS256';
-        $this->exp = time() + 1800;
+        $this->exp = self::now() + 1800;
         $this->allowedSections = [];
         $this->jwtToken = null;
         $this->importResult = null;
@@ -140,40 +139,96 @@ class yJWT extends \YeAPF\SanitizedKeyData
         return $ret;
     }
 
+    /** @param null|callable():int $clock */
+    public static function setClock(?callable $clock): void
+    {
+        self::$clock = $clock;
+    }
+
+    private static function now(): int
+    {
+        return self::$clock === null ? time() : (int) (self::$clock)();
+    }
+
     private function importToken($aToken)
     {
-        $this->importResult = null;
-
-        [$header, $payload, $signature] = explode('.', $aToken);
-        $decodedPayload = base64_decode($payload);
-        $payloadArray = json_decode($decodedPayload, true);
-
-        $this->exp = $payloadArray['exp'];
-        $currentTime = time();
-
-        if (!$this->tokenInBin($aToken)) {
-            $this->importResult = false;
-            if ($this->exp >= $currentTime) {
-                $algo = $this->algorithm;
-                try {
-                    $decoded = JWT::decode($aToken, new \Firebase\JWT\Key($this->secretKey, $algo));
-                    foreach ($this->registeredClaimNames as $claimName) {
-                        if (isset($decoded->$claimName))
-                            $this->$claimName = $decoded->$claimName;
-                    }
-                    $this->importResult = YeAPF_JWT_SIGNATURE_VERIFICATION_OK;
-                    $this->jwtToken = $aToken;
-                } catch (\Exception $e) {
-                    $this->importResult = YeAPF_JWT_SIGNATURE_VERIFICATION_FAILED;
-                    $this->sendToBin($aToken);
-                }
-            } else {
-                $this->importResult = YeAPF_JWT_EXPIRED;
-            }
-        } else {
-            $this->importResult = YeAPF_JWT_ALREADY_IN_BIN;
+        $this->importResult = false;
+        if (!is_string($aToken) || $aToken === '') {
+            return $this->importResult;
         }
+        if ($this->tokenInBin($aToken)) {
+            $this->importResult = YeAPF_JWT_ALREADY_IN_BIN;
+            return $this->importResult;
+        }
+
+        try {
+            $payloadArray = $this->decodeToken($aToken);
+            $currentTime = self::now();
+            $expiresAt = isset($payloadArray['exp']) ? (int) $payloadArray['exp'] : null;
+            if ($expiresAt !== null && $expiresAt <= $currentTime) {
+                $this->importResult = YeAPF_JWT_EXPIRED;
+                return $this->importResult;
+            }
+            if (isset($payloadArray['nbf']) && (int) $payloadArray['nbf'] > $currentTime) {
+                $this->importResult = YeAPF_JWT_SIGNATURE_VERIFICATION_FAILED;
+                return $this->importResult;
+            }
+
+            foreach ($this->registeredClaimNames as $claimName) {
+                if (array_key_exists($claimName, $payloadArray)) {
+                    $this->$claimName = $payloadArray[$claimName];
+                }
+            }
+            $this->importResult = YeAPF_JWT_SIGNATURE_VERIFICATION_OK;
+            $this->jwtToken = $aToken;
+        } catch (\Throwable) {
+            $this->importResult = YeAPF_JWT_SIGNATURE_VERIFICATION_FAILED;
+            $this->sendToBin($aToken);
+        }
+
         return $this->importResult;
+    }
+
+    /** @return array<string, mixed> */
+    private function decodeToken(string $token): array
+    {
+        $parts = explode('.', $token);
+        if (count($parts) !== 3) {
+            throw new \UnexpectedValueException('Malformed JWT.');
+        }
+
+        [$encodedHeader, $encodedPayload, $encodedSignature] = $parts;
+        $header = json_decode(self::base64UrlDecode($encodedHeader), true, 512, JSON_THROW_ON_ERROR);
+        $payload = json_decode(self::base64UrlDecode($encodedPayload), true, 512, JSON_THROW_ON_ERROR);
+        if (!is_array($header) || ($header['alg'] ?? null) !== $this->algorithm || !is_array($payload)) {
+            throw new \UnexpectedValueException('Unsupported JWT header or payload.');
+        }
+
+        $expected = hash_hmac('sha256', $encodedHeader . '.' . $encodedPayload, $this->secretKey, true);
+        $actual = self::base64UrlDecode($encodedSignature);
+        if (!hash_equals($expected, $actual)) {
+            throw new \UnexpectedValueException('Invalid JWT signature.');
+        }
+
+        return $payload;
+    }
+
+    private static function base64UrlEncode(string $value): string
+    {
+        return rtrim(strtr(base64_encode($value), '+/', '-_'), '=');
+    }
+
+    private static function base64UrlDecode(string $value): string
+    {
+        $padding = strlen($value) % 4;
+        if ($padding > 0) {
+            $value .= str_repeat('=', 4 - $padding);
+        }
+        $decoded = base64_decode(strtr($value, '-_', '+/'), true);
+        if ($decoded === false) {
+            throw new \UnexpectedValueException('Invalid JWT encoding.');
+        }
+        return $decoded;
     }
 
     public function addAllowedSection($section)
@@ -226,11 +281,15 @@ class yJWT extends \YeAPF\SanitizedKeyData
         if (empty($this->secretKey))
             throw new \YeAPF\YeAPFException('Missing JWT secret key', YeAPF_JWT_KEY_UNDEFINED);
 
-        $this->iat = time();
-        if (empty($this->exp))
-            $this->exp = $this->iat + $this->timeToLive;
+        $this->iat = self::now();
+        if (empty($this->exp)) {
+            $this->exp = $this->iat + ($this->timeToLive ?? 1800);
+        }
         $this->aud = $this->getAllowedSections();
-        $this->jwtToken = JWT::encode($this->getPayload(), $this->secretKey, $this->algorithm);
+        $header = self::base64UrlEncode(json_encode(['typ' => 'JWT', 'alg' => $this->algorithm], JSON_THROW_ON_ERROR));
+        $payload = self::base64UrlEncode(json_encode($this->getPayload(), JSON_THROW_ON_ERROR));
+        $signature = hash_hmac('sha256', $header . '.' . $payload, $this->secretKey, true);
+        $this->jwtToken = $header . '.' . $payload . '.' . self::base64UrlEncode($signature);
         return $this->jwtToken;
     }
 }

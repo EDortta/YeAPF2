@@ -1,0 +1,18 @@
+includes:
+    - phpstan-baseline.neon
+
+parameters:
+    level: 5
+    paths:
+        - ../src
+        - .
+    excludePaths:
+        analyse:
+            - ../src/database/RC-backups/*
+            - ../src/vendor/*
+            - ../src/single-tests/*
+            - vendor/*
+            - .phpunit.cache/*
+    tmpDir: .phpstan-cache
+    reportUnmatchedIgnoredErrors: true
+    treatPhpDocTypesAsCertain: false

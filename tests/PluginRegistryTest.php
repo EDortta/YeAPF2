@@ -4,6 +4,7 @@ require_once __DIR__ . '/../src/yeapf-core.php';
 
 use PHPUnit\Framework\TestCase;
 
+#[\PHPUnit\Framework\Attributes\Group('unit')]
 final class PluginRegistryTest extends TestCase
 {
     protected function setUp(): void

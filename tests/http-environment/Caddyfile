@@ -1,0 +1,11 @@
+{
+    admin off
+    auto_https disable_redirects
+}
+
+https://caddy-http:8443 {
+    tls internal
+    root * /srv/app
+    php_fastcgi php-http:9000
+    encode zstd gzip
+}

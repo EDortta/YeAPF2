@@ -4,6 +4,12 @@ tests/.phpunit.cache/
 **/.phpdoc
 **/vendor
 **/docs
+!docs/
+docs/*
+!docs/issues/
+docs/issues/*
+!docs/issues/test-quality/
+!docs/issues/test-quality/**
 **/logs
 **/jwt-bin
 **/CORONA
@@ -23,6 +29,7 @@ src/.config/*
 test-load.php
 vendor/*
 composer.lock 
+!/tests/composer.lock
 
 # Logs
 logs
@@ -138,3 +145,5 @@ CLAUDE.md
 zip-local-copy.sh
 .phpunit.result.cache
 .vscode/
+
+tests/.phpstan-cache/

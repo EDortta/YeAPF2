@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<ruleset name="Y2 changed-scope PSR-12 gate">
+    <description>PSR-12 gate for files introduced or substantially refactored by test-quality.</description>
+    <arg name="basepath" value=".."/>
+    <arg name="colors"/>
+    <arg value="sp"/>
+    <rule ref="PSR12"/>
+    <file>../src/database/driver/SqlDDLSynthesizer.php</file>
+    <file>../src/database/driver/PostgreSQLDDLSynthesizer.php</file>
+    <file>../src/database/driver/MySQLDDLSynthesizer.php</file>
+    <file>../src/request/yeapf-request.php</file>
+    <file>../src/database/yeapf-mysql-schema-inspector.php</file>
+    <file>../src/classes/class.result.php</file>
+    <file>helpers/IntegrationDatabaseConfig.php</file>
+    <file>IntegrationDatabaseConfigTest.php</file>
+    <file>CoreBehaviorTest.php</file>
+    <file>SecurityObservabilityBehaviorTest.php</file>
+    <file>ServiceBehaviorTest.php</file>
+    <file>ConcreteDDLSynthesizerTest.php</file>
+    <file>PostgreSQLDriverContractTest.php</file>
+    <file>MySQLDriverContractTest.php</file>
+    <file>contracts/bootstrap/PDORealDriverContractBootstrap.php</file>
+    <file>contracts/bootstrap/PostgreSQLDriverContractBootstrap.php</file>
+    <file>contracts/bootstrap/MySQLDriverContractBootstrap.php</file>
+    <file>integration-http2</file>
+    <file>http-environment/app</file>
+</ruleset>

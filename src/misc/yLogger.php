@@ -217,8 +217,24 @@ class yLogger
     }
   }
 
+  static private function redactSecrets(string $message): string
+  {
+    $message = preg_replace(
+      '/("(?:password|passwd|secret|token|authorization)"\s*:\s*")[^"]*(")/i',
+      '$1[REDACTED]$2',
+      $message
+    ) ?? $message;
+    $message = preg_replace(
+      '/\b(password|passwd|secret|token|authorization)(\s*[:=]\s*)([^\s,;]+)/i',
+      '$1$2[REDACTED]',
+      $message
+    ) ?? $message;
+    return preg_replace('/\bBearer\s+[A-Za-z0-9._~+\/-]+=*/i', 'Bearer [REDACTED]', $message) ?? $message;
+  }
+
   static private function buildLogMessage(string $message)
   {
+    $message = self::redactSecrets($message);
     $logStyle = self::getOutputStyle();
     if (YeAPF_LOG_STYLE_AS_ONE_STRING == $logStyle) {
       $message = str_replace("\n", ' ', $message);
@@ -515,6 +531,7 @@ class yLogger
 
   static public function trace(int $area, int $warningLevel, string $message)
   {
+    $message = self::redactSecrets($message);
     if ($warningLevel >= self::$minTraceLevel - 99) {
       if (0 === $area || in_array($area, self::$activeTraceAreas)) {
         self::_setTraceFilename();

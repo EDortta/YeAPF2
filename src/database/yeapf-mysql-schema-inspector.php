@@ -1,4 +1,6 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
 
 namespace YeAPF\Connection\DB;
 
@@ -26,19 +28,25 @@ final class MySQLSchemaInspector implements SchemaInspectorInterface
 
     public function tableExists(string $tablename, ?string $schemaname = null): bool
     {
-        $sql = 'select exists(select 1 from information_schema.tables where table_schema=:schemaname and table_name=:tablename) as `exists`';
+        $sql = 'select exists(select 1 from information_schema.tables '
+            . 'where table_schema=:schemaname and table_name=:tablename) as `exists`';
         $params = [
             'schemaname' => $this->normalizeSchema($schemaname),
             'tablename' => strtolower($tablename),
         ];
 
         $ret = $this->connection->queryAndFetch($sql, $params);
-        return (bool) (is_array($ret) && ($ret['exists'] ?? false));
+        if (!is_array($ret)) {
+            return false;
+        }
+        $ret = array_change_key_case($ret, CASE_LOWER);
+        return (bool) ($ret['exists'] ?? false);
     }
 
     public function columnExists(string $tablename, string $columnname, ?string $schemaname = null): bool
     {
-        $sql = 'select column_name from information_schema.columns where table_schema=:schemaname and table_name=:tablename and column_name=:columnname';
+        $sql = 'select column_name from information_schema.columns '
+            . 'where table_schema=:schemaname and table_name=:tablename and column_name=:columnname';
         $params = [
             'schemaname' => $this->normalizeSchema($schemaname),
             'tablename' => strtolower($tablename),
@@ -49,6 +57,7 @@ final class MySQLSchemaInspector implements SchemaInspectorInterface
         if (!is_array($ret)) {
             return false;
         }
+        $ret = array_change_key_case($ret, CASE_LOWER);
 
         return strcasecmp((string) ($ret['column_name'] ?? ''), strtolower($columnname)) === 0;
     }
@@ -142,6 +151,7 @@ final class MySQLSchemaInspector implements SchemaInspectorInterface
      */
     private function normalizeColumnMetadata(array $columnMetadata): array
     {
+        $columnMetadata = array_change_key_case($columnMetadata, CASE_LOWER);
         $dataType = strtolower((string) ($columnMetadata['data_type'] ?? ''));
         if ('varchar' === $dataType) {
             $dataType = 'character varying';
@@ -149,6 +159,7 @@ final class MySQLSchemaInspector implements SchemaInspectorInterface
             $dataType = 'boolean';
         }
 
+        $isRequired = ($columnMetadata['is_nullable'] ?? 'YES') === 'NO' ? 1 : 0;
         return [
             'column_name' => strtolower((string) ($columnMetadata['column_name'] ?? '')),
             'column_default' => $columnMetadata['column_default'] ?? null,
@@ -159,7 +170,7 @@ final class MySQLSchemaInspector implements SchemaInspectorInterface
             'numeric_scale' => $columnMetadata['numeric_scale'] ?? null,
             'is_primary' => (int) ($columnMetadata['is_primary'] ?? 0),
             'is_unique' => (int) ($columnMetadata['is_unique'] ?? 0),
-            'is_required' => (int) ($columnMetadata['is_required'] ?? (($columnMetadata['is_nullable'] ?? 'YES') === 'NO' ? 1 : 0)),
+            'is_required' => (int) ($columnMetadata['is_required'] ?? $isRequired),
         ];
     }
 }

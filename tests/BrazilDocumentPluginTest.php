@@ -2,6 +2,7 @@
 
 require_once __DIR__ . '/DocumentValidatorConformanceTestCase.php';
 
+#[\PHPUnit\Framework\Attributes\Group('unit')]
 final class BrazilDocumentPluginTest extends DocumentValidatorConformanceTestCase
 {
     protected function supportedKeys(): array

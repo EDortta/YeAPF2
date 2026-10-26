@@ -2,6 +2,7 @@
 
 use PHPUnit\Framework\TestCase;
 
+#[\PHPUnit\Framework\Attributes\Group('unit')]
 final class CodeQualityRegressionTest extends TestCase
 {
     private function readSource(string $relativePath): string

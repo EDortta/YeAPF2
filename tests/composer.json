@@ -1,11 +1,44 @@
 {
+    "name": "yeapf/y2-test-suite",
+    "description": "Deterministic unit, contract, and integration test tooling for YeAPF2.",
+    "type": "project",
+    "license": "MIT",
     "require-dev": {
-        "phpunit/phpunit": "^10"
+        "phpunit/phpunit": "^10",
+        "phpstan/phpstan": "^2.1",
+        "squizlabs/php_codesniffer": "^3.13"
     },
     "scripts": {
-        "test": "php -d opcache.enable_cli=0 vendor/bin/phpunit -c phpunit.xml",
-        "test:schema-bootstrap": "php -d opcache.enable_cli=0 vendor/bin/phpunit -c phpunit.xml --testsuite schema-bootstrap",
+        "test": "@test:default",
+        "test:default": "php -d opcache.enable_cli=0 vendor/bin/phpunit -c phpunit.xml --testsuite default",
+        "test:unit": "php -d opcache.enable_cli=0 vendor/bin/phpunit -c phpunit.xml --testsuite unit",
+        "test:contract": "php -d opcache.enable_cli=0 vendor/bin/phpunit -c phpunit.xml --testsuite contract",
+        "test:integration": "php -d opcache.enable_cli=0 vendor/bin/phpunit -c phpunit.xml --testsuite integration",
+        "test:integration-postgres": "php -d opcache.enable_cli=0 vendor/bin/phpunit -c phpunit.xml --testsuite integration-postgres",
+        "test:integration-mysql": "php -d opcache.enable_cli=0 vendor/bin/phpunit -c phpunit.xml --testsuite integration-mysql",
+        "test:integration-http2": "php -d opcache.enable_cli=0 vendor/bin/phpunit -c phpunit.http2.xml --testsuite integration-http2",
+        "test:coverage": "mkdir -p ../.test-results/coverage && php -d opcache.enable_cli=0 -d pcov.enabled=1 -d pcov.directory=../src vendor/bin/phpunit -c phpunit.xml --testsuite default --coverage-clover ../.test-results/coverage/clover.xml --coverage-text=../.test-results/coverage/summary.txt",
         "test:handoff": "bash run-handoff.sh",
-        "test:handoff:schema-bootstrap": "bash run-handoff.sh schema-bootstrap"
+        "test:handoff:unit": "bash run-handoff.sh unit",
+        "test:handoff:contract": "bash run-handoff.sh contract",
+        "test:handoff:integration": "bash run-handoff.sh integration",
+        "analyse": "php -d memory_limit=1G vendor/bin/phpstan analyse -c phpstan.neon",
+        "analyse:baseline": "php -d memory_limit=1G vendor/bin/phpstan analyse -c phpstan.neon --generate-baseline=phpstan-baseline.neon",
+        "style": "vendor/bin/phpcs --standard=phpcs.xml.dist",
+        "quality": [
+            "@test:default",
+            "@analyse",
+            "@style"
+        ],
+        "lint": "find ../src . -path './vendor' -prune -o -path '../src/vendor' -prune -o -name '*.php' -print0 | xargs -0 -n1 php -l"
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Tests\\Contracts\\Bootstrap\\": "contracts/bootstrap/",
+            "Tests\\Helpers\\": "helpers/",
+            "Tests\\Contracts\\": "contracts/",
+            "Tests\\IntegrationHttp2\\": "integration-http2/",
+            "Tests\\": ""
+        }
     }
 }

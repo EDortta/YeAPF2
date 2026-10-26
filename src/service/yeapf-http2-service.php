@@ -43,7 +43,26 @@ abstract class HTTP2Service extends Skeleton
 
     private $mainAccess = null;
 
+    /** @var list<callable(mixed, callable):mixed> */
+    private array $middleware = [];
+
     abstract function answerQuery(\YeAPF\IBulletin &$bulletin, string $uri);
+
+    public function useMiddleware(callable $middleware): self
+    {
+        $this->middleware[] = $middleware;
+        return $this;
+    }
+
+    public function runMiddleware(mixed $request, callable $handler): mixed
+    {
+        $next = static fn (mixed $currentRequest): mixed => $handler($currentRequest);
+        foreach (array_reverse($this->middleware) as $middleware) {
+            $nextHandler = $next;
+            $next = static fn (mixed $currentRequest): mixed => $middleware($currentRequest, $nextHandler);
+        }
+        return $next($request);
+    }
 
     public function setHandler(
         string $path,
@@ -55,6 +74,7 @@ abstract class HTTP2Service extends Skeleton
 
         // clean path
         $path = implode('/', $this->getPathFromURI($path));
+        $methods = array_map('strtoupper', $methods);
 
         $isArrayCallable = is_array($attendant) && count($attendant) === 2;
         if (!is_callable($attendant) && !$isArrayCallable) {
@@ -105,7 +125,7 @@ abstract class HTTP2Service extends Skeleton
                 $this->handlers[$method][$fnPath] = [
                     'attendant'    => $attendant,
                     'path'         => $path,
-                    'inlineParams' => $isArrayCallable ? array_combine($inlineParams[0], $inlineParams[1]) : [],
+                    'inlineParams' => array_combine($inlineParams[0], $inlineParams[1]) ?: [],
                 ];
 
                 if (is_callable($attendantConstraints)) {
@@ -160,7 +180,11 @@ abstract class HTTP2Service extends Skeleton
 
     private function findHandler(string $method, string $path)
     {
+        $method = strtoupper($method);
         $path = implode('/', $this->getPathFromURI($path));
+        if (!isset($this->handlers[$method])) {
+            return null;
+        }
         _trace("Looking for $path");
         $ret = null;
         foreach ($this->handlers[$method] as $pathPattern => $attendant) {
@@ -176,7 +200,8 @@ abstract class HTTP2Service extends Skeleton
 
     public function getPathFromURI(string $uri, ...$expectedPathElements): array
     {
-        $path = explode('/', $uri);
+        $uriPath = parse_url($uri, PHP_URL_PATH);
+        $path = explode('/', is_string($uriPath) ? $uriPath : '');
 
         if (empty($path[0])) {
             array_shift($path);
@@ -750,7 +775,21 @@ abstract class HTTP2Service extends Skeleton
                         } else {
                             _trace("Calling handler >>>> $method $uri");
                             $aux->importData($params);
-                            $ret_code  = $handler['attendant']($aBulletin, $uri, $params, ...$inlineVariables);
+                            $requestContext = [
+                                'method' => $method,
+                                'uri' => $uri,
+                                'params' => $params,
+                                'headers' => $headers,
+                            ];
+                            $ret_code = $this->runMiddleware(
+                                $requestContext,
+                                static fn (mixed $_request): mixed => $handler['attendant'](
+                                    $aBulletin,
+                                    $uri,
+                                    $params,
+                                    ...$inlineVariables
+                                )
+                            );
                             $cleanCode = true;
                             if ($ret_code >= 200 && $ret_code <= 299) {
                                 if ('JWT' == $bearerFormat) {

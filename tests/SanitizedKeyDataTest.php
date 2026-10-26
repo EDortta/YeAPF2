@@ -5,6 +5,7 @@ require_once __DIR__ . '/../src/yeapf-core.php';
 use PHPUnit\Framework\TestCase;
 use YeAPF\SanitizedKeyData;
 
+#[\PHPUnit\Framework\Attributes\Group('unit')]
 final class SanitizedKeyDataTest extends TestCase
 {
     private SanitizedKeyData $obj;

@@ -26,9 +26,28 @@ class SSEEvent extends \YeAPF\SanitizedKeyData
         $this->retry = $retry;
     }
 
-    public function __toString()
+    public function __toString(): string
     {
-        return json_encode($this->exportData);
+        $lines = [];
+        if ($this->id !== null) {
+            $lines[] = 'id: ' . str_replace(["\r", "\n"], '', (string) $this->id);
+        }
+        if ($this->event !== null) {
+            $lines[] = 'event: ' . str_replace(["\r", "\n"], '', (string) $this->event);
+        }
+        if ($this->retry !== null) {
+            $lines[] = 'retry: ' . max(0, (int) $this->retry);
+        }
+
+        $data = $this->data;
+        if (is_array($data) || is_object($data)) {
+            $data = json_encode($data, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        }
+        foreach (preg_split('/\R/', (string) ($data ?? '')) ?: [''] as $line) {
+            $lines[] = 'data: ' . $line;
+        }
+
+        return implode("\n", $lines) . "\n\n";
     }
 }
 
