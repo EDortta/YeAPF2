@@ -5,9 +5,7 @@ ROOT_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
 cd "$ROOT_DIR"
 
 echo "[1/4] Starting docker databases"
-cd tests/db-environments
 docker compose up -d
-cd "$ROOT_DIR"
 
 echo "[2/4] Waiting for PostgreSQL health status"
 for _ in $(seq 1 60); do
@@ -25,6 +23,6 @@ if [[ "$status" != "healthy" ]]; then
 fi
 
 echo "[3/4] Running ORM docker flow test"
-tests/vendor/bin/phpunit -c phpunit.xml tests/ORMDockerPostgresFlowTest.php
+tests/vendor/bin/phpunit -c tests/phpunit.xml tests/ORMDockerPostgresFlowTest.php
 
 echo "[4/4] Done"

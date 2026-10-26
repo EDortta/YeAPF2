@@ -8,7 +8,7 @@ use PHPUnit\Framework\TestCase;
 final class ORMDockerMySQLFlowTest extends TestCase
 {
     private const HOST = '127.0.0.1';
-    private const PORT = 53306;
+    private const PORT = 33306;
     private const DB = 'yeapf2_test';
     private const USER = 'yeapf2';
     private const PASSWORD = 'yeapf2';
@@ -21,7 +21,7 @@ final class ORMDockerMySQLFlowTest extends TestCase
     public static function setUpBeforeClass(): void
     {
         if (!self::isDockerDbReachable()) {
-            self::markTestSkipped('MySQL docker container is not reachable at 127.0.0.1:53306. Start tests/db-environments first.');
+            self::markTestSkipped("MySQL docker container is not reachable at 127.0.0.1:33306. Run 'docker compose up -d mysql' from the repository root first.");
         }
 
         self::backupAndSetRuntimeConnectionConfig();

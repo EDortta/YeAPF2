@@ -34,11 +34,8 @@ if [[ ! -x "$TESTS_DIR/vendor/bin/phpunit" ]]; then
   exit 127
 fi
 
-echo "Starting PostgreSQL (tests/db-environments)..." | tee -a "$OUT/console.txt"
-(
-  cd "$TESTS_DIR/db-environments"
-  docker compose up -d postgres 2>&1
-) | tee -a "$OUT/console.txt"
+echo "Starting PostgreSQL and MySQL (docker-compose.yml)..." | tee -a "$OUT/console.txt"
+docker compose --project-directory "$ROOT" up -d --wait 2>&1 | tee -a "$OUT/console.txt"
 
 cd "$TESTS_DIR"
 

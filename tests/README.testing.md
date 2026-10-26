@@ -1,14 +1,17 @@
 # Y2 — testes e handoff para agentes
 
-Este diretório contém a suíte PHPUnit do framework. O contrato completo entre **IA de testes** e **IA programadora** está no monorepo ERP-DryWall:
+Este diretório contém a suíte PHPUnit do framework. A infraestrutura Docker de PostgreSQL/MySQL está documentada em [`db-environments/README.md`](db-environments/README.md); agentes devem consultá-la antes de investigar dependências locais.
+
+O contrato completo entre **IA de testes** e **IA programadora** está no monorepo ERP-DryWall:
 
 `~/Sync/Projects/YouBR/ERP-DryWall/docs/agents/test-runner-handoff.md` (contrato canônico test runner ↔ programador).
 
 ## Pré-requisitos
 
 ```bash
-cd tests && composer install
-cd tests/db-environments && docker compose up -d postgres   # porta 55432
+(cd tests && composer install)
+cp .env.example .env                 # somente na primeira execução
+docker compose up -d --wait          # PostgreSQL 35432; MySQL 33306
 ```
 
 ## Comandos
@@ -17,7 +20,7 @@ cd tests/db-environments && docker compose up -d postgres   # porta 55432
 |---------|-----|
 | `./tests/run-handoff.sh` | Suíte completa `yeapf2` + artefatos em `.test-results/latest/` |
 | `./tests/run-handoff.sh schema-bootstrap` | Só `SchemaSessionBootstrapTest` |
-| `php -d opcache.enable_cli=0 ./vendor/bin/phpunit -c phpunit.xml` | PHPUnit direto (sem artefatos de handoff) |
+| `php -d opcache.enable_cli=0 tests/vendor/bin/phpunit -c tests/phpunit.xml` | PHPUnit direto (sem artefatos de handoff) |
 
 ## Artefatos (não commitar)
 

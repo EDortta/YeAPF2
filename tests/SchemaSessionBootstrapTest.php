@@ -8,7 +8,7 @@ use PHPUnit\Framework\TestCase;
 final class SchemaSessionBootstrapTest extends TestCase
 {
     private const HOST = '127.0.0.1';
-    private const PORT = 55432;
+    private const PORT = 35432;
     private const DB = 'yeapf2_test';
     private const USER = 'yeapf2';
     private const PASSWORD = 'yeapf2';
@@ -22,7 +22,7 @@ final class SchemaSessionBootstrapTest extends TestCase
     protected function setUp(): void
     {
         if (!self::isDockerDbReachable()) {
-            $this->markTestSkipped('PostgreSQL docker container is not reachable at 127.0.0.1:55432');
+            $this->markTestSkipped('PostgreSQL docker container is not reachable at 127.0.0.1:35432');
         }
 
         $this->appRoot = sys_get_temp_dir() . '/y2-schema-bootstrap-' . bin2hex(random_bytes(4));

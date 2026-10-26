@@ -8,7 +8,7 @@ use PHPUnit\Framework\TestCase;
 final class ORMDockerPostgresFlowTest extends TestCase
 {
     private const HOST = '127.0.0.1';
-    private const PORT = 55432;
+    private const PORT = 35432;
     private const DB = 'yeapf2_test';
     private const USER = 'yeapf2';
     private const PASSWORD = 'yeapf2';
@@ -21,7 +21,7 @@ final class ORMDockerPostgresFlowTest extends TestCase
     public static function setUpBeforeClass(): void
     {
         if (!self::isDockerDbReachable()) {
-            self::markTestSkipped('PostgreSQL docker container is not reachable at 127.0.0.1:55432. Start tests/db-environments first.');
+            self::markTestSkipped("PostgreSQL docker container is not reachable at 127.0.0.1:35432. Run 'docker compose up -d postgres' from the repository root first.");
         }
 
         self::backupAndSetRuntimeConnectionConfig();
